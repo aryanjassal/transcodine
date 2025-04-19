@@ -1,0 +1,10 @@
+# Editor-specific  files
+.vscode/
+
+# Output directories
+build/
+dist/
+
+# Output files in case they are not in the aforementioned directories
+*.out
+*.o
