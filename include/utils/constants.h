@@ -5,6 +5,10 @@
 #define DEBUG
 
 #define XOR_KEY "==<>==XOR-^.V.^-KEY==<>=="
+#define MCH_ITERS 10000
+#define BUFFER_GROWTH_FACTOR 2
+#define READFILE_CHUNK 1024
+#define SALT_SIZE 16
 
 #define HMAC_TOKEN_PATH "/tmp/transcodine.lock"
 

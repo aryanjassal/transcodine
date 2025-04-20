@@ -28,6 +28,42 @@
       "-Wno-unused-result",
       "-c",
       "-o",
+      "build/crypto/salt.o",
+      "src/crypto/salt.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/crypto/salt.c",
+    "output": "/home/aryanj/Projects/transcodine/build/crypto/salt.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/ii75mhh7sxl11167m1b86p0qrjsjyjmd-gcc-wrapper-14-20241116/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-c",
+      "-o",
+      "build/crypto/minicrypt.o",
+      "src/crypto/minicrypt.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/crypto/minicrypt.c",
+    "output": "/home/aryanj/Projects/transcodine/build/crypto/minicrypt.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/ii75mhh7sxl11167m1b86p0qrjsjyjmd-gcc-wrapper-14-20241116/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-c",
+      "-o",
       "build/crypto/xor.o",
       "src/crypto/xor.c"
     ],
@@ -88,6 +124,24 @@
     "directory": "/home/aryanj/Projects/transcodine",
     "file": "/home/aryanj/Projects/transcodine/src/command/lock.c",
     "output": "/home/aryanj/Projects/transcodine/build/command/lock.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/ii75mhh7sxl11167m1b86p0qrjsjyjmd-gcc-wrapper-14-20241116/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-c",
+      "-o",
+      "build/lib/buffer.o",
+      "src/lib/buffer.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/lib/buffer.c",
+    "output": "/home/aryanj/Projects/transcodine/build/lib/buffer.o"
   },
   {
     "arguments": [

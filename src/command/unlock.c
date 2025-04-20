@@ -4,76 +4,100 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "auth/check_unlock.h"
-#include "crypto/hmac.h"
-#include "crypto/xor.h"
+#include "crypto/minicrypt.h"
+#include "crypto/salt.h"
+#include "utils/args.h"
 #include "utils/constants.h"
 #include "utils/error.h"
 #include "utils/io.h"
-#include "utils/args.h"
+#include "utils/typedefs.h"
 
-int cmd_unlock(int argc, char* argv[]) {
-  /* Ignore additional arguments */
+typedef struct {
+  uint8_t salt[SALT_SIZE];
+  uint8_t hash[32];
+} password_t;
+
+static void generate_salt(uint8_t *salt) {
+  /* Attempt to generate salt via urandom */
+  FILE *urandom = fopen("/dev/urandom", "rb");
+  if (urandom) {
+    debug("Using /dev/urandom to generate salt");
+    size_t bytes_read = fread(salt, sizeof(uint8_t), SALT_SIZE, urandom);
+    if (bytes_read < SALT_SIZE) {
+      throw("Did not read enough data");
+    }
+    fclose(urandom);
+    return;
+  }
+
+  /* If urandom cannot be accessed, then generate salt using a pseudo method */
+  debug("Failed to access urandom. Using pseudo salt generator");
+  const char *home = getenv("HOME");
+  if (!home) {
+    throw("HOME not set");
+  }
+  const char *last_slash = strrchr(home, '/');
+  if (!last_slash) {
+    throw("Invalid home path");
+  }
+  const char *username = last_slash + 1;
+  gen_pseudosalt(username, salt, SALT_SIZE);
+}
+
+static void hash_password(const char *password, const uint8_t *salt,
+                          uint8_t *hash) {
+  mch_hash((uint8_t *)password, salt, hash);
+}
+
+static void save_password(const char *password) {
+  /* Generate password salt and hash */
+  password_t pass;
+  generate_salt(pass.salt);
+  hash_password(password, pass.salt, pass.hash);
+
+  /* Save that to file */
+  FILE *pw_file = fopen(PASSWORD_PATH, "wb");
+  if (!pw_file) {
+    throw("Failed to create password file");
+  }
+  fwrite(&pass, sizeof(password_t), 1, pw_file);
+  fclose(pw_file);
+}
+
+static bool check_password(const char *password) {
+  /* Retrieve stored password details */
+  password_t stored;
+  FILE *pw_file = fopen(PASSWORD_PATH, "rb");
+  if (!pw_file) {
+    throw("Failed to read password file");
+  }
+  fread(&stored, sizeof(password_t), 1, pw_file);
+  fclose(pw_file);
+
+  /* Compare against entered password */
+  uint8_t computed_hash[32];
+  hash_password(password, stored.salt, computed_hash);
+  return memcmp(computed_hash, stored.hash, 32) == 0;
+}
+
+int cmd_unlock(int argc, char *argv[]) {
   ignore_args(argc, argv);
 
-  /* Check if this is the first time the application is being run */
-  FILE* password_file = fopen(PASSWORD_PATH, "rb");
-  if (!password_file) {
-    /* Prompt user for a new password*/
-    char password[PASSWORD_LEN];
-    size_t bytes_read =
-        getline("Enter a new password > ", password, PASSWORD_LEN);
+  char password[PASSWORD_LEN];
+  getline("Enter password > ", password, PASSWORD_LEN);
 
-    /* Encrypt password */
-    xor_encrypt(password, bytes_read);
-
-    /* If the password file doesn't exist, then create it */
-    FILE* password_file_new = fopen(PASSWORD_PATH, "wb");
-    if (!password_file_new) throw("Could not open password file");
-    fwrite(password, sizeof(char), bytes_read, password_file_new);
-    fclose(password_file_new);
-    printf("Successfully set the new password!\n");
-
-    /* Create a HMAC token file for the new passwbrd */
-    FILE* hmac_token = fopen(HMAC_TOKEN_PATH, "wb");
-    char hmac_content[PASSWORD_LEN];
-    hmac(password, hmac_content, bytes_read);
-    fwrite(hmac_content, sizeof(char), bytes_read, hmac_token);
-    fclose(hmac_token);
-
-    /* Return authentication status */
+  if (!fopen(PASSWORD_PATH, "rb")) {
+    save_password(password);
+    debug("Set new password");
     return 0;
   }
 
-  /* Otherwise, read the password and try to unlock the agent */
-  char password_saved[PASSWORD_LEN];
-  size_t bytes_read =
-      fread(password_saved, sizeof(char), PASSWORD_LEN, password_file);
-  fclose(password_file);
-  if (bytes_read == 0) throw("unlock.c: Could not read password file");
-
-  /* Check if the agent is already unlocked */
-  if (check_unlock(password_saved, bytes_read, HMAC_TOKEN_PATH)) {
-    debug("Agent is already unlocked\n");
-    return 0;
-  }
-
-  char password[PASSWORD_LEN] = {0};
-  char password_len = getline("Enter the password > ", password, PASSWORD_LEN);
-  xor_encrypt(password, password_len);
-
-  if (memcmp(password, password_saved, bytes_read) == 0) {
-    /* Set the HMAC token to shortcut unlocking the agent */
-    FILE* hmac_token = fopen(HMAC_TOKEN_PATH, "wb");
-    char hmac_content[PASSWORD_LEN];
-    hmac(password, hmac_content, password_len);
-    fwrite(hmac_content, sizeof(char), password_len, hmac_token);
-    fclose(hmac_token);
-    /* Free up resources and confirm unlocking */
-    printf("Unlocked!\n");
-    return 0;
+  bool result = check_password(password);
+  if (result) {
+    debug("Unlocked agent");
   } else {
-    printf("Wrong password\n");
-    return 1;
+    debug("Incorrect password");
   }
+
+  return 0;
 }

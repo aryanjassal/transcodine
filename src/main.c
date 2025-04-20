@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "command/lock.h"
@@ -56,7 +55,7 @@ int main(int argc, char* argv[]) {
   }
 
   int status = 0;
-  bool found;
+  bool found = false;
   int i;
   for (i = 0; i < num_commands; ++i) {
     if (strcmp(argv[1], commands[i].command) == 0) {

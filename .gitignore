@@ -1,5 +1,6 @@
 # Editor-specific files
 .vscode/
+.cache/
 
 # Output directories
 build/

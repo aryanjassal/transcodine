@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void throw(const char* reason) {
-  printf("ERROR: %s\n", reason);
+void _throw(const char* reason, const char* file, int line, const char* func) {
+  printf("ERROR: %s\n  at %s:%d (%s)\n", reason, file, line, func);
   exit(1);
 }
