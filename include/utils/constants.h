@@ -4,6 +4,8 @@
 /* Enable debug mode. Only for testing. */
 #define DEBUG
 
+#define XOR_KEY "==<>==XOR-^.V.^-KEY==<>=="
+
 #define HMAC_TOKEN_PATH "/tmp/transcodine.lock"
 
 #define PASSWORD_FILE ".transcodine.pw"

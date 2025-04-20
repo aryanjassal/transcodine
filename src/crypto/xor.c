@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "utils/constants.h"
+
 void xor_encrypt(char* data, size_t len) {
   const char* key = XOR_KEY;
   const int diffusion = 31;

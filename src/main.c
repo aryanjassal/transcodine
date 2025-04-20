@@ -4,34 +4,79 @@
 
 #include "command/lock.h"
 #include "command/unlock.h"
-#include "utils/constants.h"
-#include "utils/error.h"
+#include "utils/args.h"
+#include "utils/bootstrap.h"
+#include "utils/typedefs.h"
+
+/* Forward-declare the help command */
+int cmd_help(int argc, char* argv[]);
+
+typedef struct {
+  const char* command;
+  const char* description;
+  int (*handler)(int argc, char* argv[]);
+} cmd_handler_t;
+
+cmd_handler_t commands[] = {
+    {"unlock", "Unlock the agent or create a new agent state", cmd_unlock},
+    {"lock", "Lock the agent manually", cmd_lock},
+    {"help", "Print usage guide", cmd_help}};
+
+const int num_commands = sizeof(commands) / sizeof(commands[0]);
+
+/**
+ * Print the usage guidelines and a list of available commands.
+ * @param argc Number of parameters (unused)
+ * @param argv Array of parameters (unused)
+ * @author Aryan Jassal
+ */
+int cmd_help(int argc, char* argv[]) {
+  /* Suppress unused parameter warning */
+  ignore_args(argc, argv);
+
+  printf("Usage: transcodine <command> [options...]\n");
+  printf("Available commands:\n");
+  int i;
+  for (i = 0; i < num_commands; ++i) {
+    printf("  %-10s %s\n", commands[i].command, commands[i].description);
+  }
+
+  /* The help command can't fail */
+  return 0;
+}
 
 int main(int argc, char* argv[]) {
-  /* Bootstrap some program state */
-  const char* home = getenv("HOME");
-  if (!home ||
-      (strlen(home) + strlen(PASSWORD_FILE) + 1 >= PASSWORD_PATH_LEN)) {
-    throw("Password file path is too long");
-  }
-  strcpy(PASSWORD_PATH, home);
-  strcat(PASSWORD_PATH, "/");
-  strcat(PASSWORD_PATH, PASSWORD_FILE);
+  /* Bootstrap some program state. This needs to run before anything else. */
+  bootstrap();
 
+  /* Handle improper invocation */
   if (argc < 2) {
-    printf("No argument\n");
-    return 0;
+    cmd_help(0, NULL);
+    return 1;
   }
 
-  if (strcmp(argv[1], "unlock") == 0) {
-    cmd_unlock();
-    return 0;
-  } else if (strcmp(argv[1], "lock") == 0) {
-    cmd_lock();
-    return 0;
+  int status = 0;
+  bool found;
+  int i;
+  for (i = 0; i < num_commands; ++i) {
+    if (strcmp(argv[1], commands[i].command) == 0) {
+      /* If we found the command, call the handler with the relevant arguments
+       * (not including the command, only the options).
+       */
+      found = true;
+      status = commands[i].handler(argc - 2, &argv[2]);
+      break;
+    }
   }
 
-  printf("Invalid command\n");
+  if (!found) {
+    printf("Invalid command: %s\n\n", argv[1]);
+    cmd_help(0, NULL);
+    status = 1;
+  }
 
-  return 0;
+  /* Cleanup any resources here */
+
+  /* Return the command with the given status*/
+  return status;
 }

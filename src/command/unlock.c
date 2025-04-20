@@ -10,8 +10,12 @@
 #include "utils/constants.h"
 #include "utils/error.h"
 #include "utils/io.h"
+#include "utils/args.h"
 
-bool cmd_unlock() {
+int cmd_unlock(int argc, char* argv[]) {
+  /* Ignore additional arguments */
+  ignore_args(argc, argv);
+
   /* Check if this is the first time the application is being run */
   FILE* password_file = fopen(PASSWORD_PATH, "rb");
   if (!password_file) {
@@ -38,7 +42,7 @@ bool cmd_unlock() {
     fclose(hmac_token);
 
     /* Return authentication status */
-    return true;
+    return 0;
   }
 
   /* Otherwise, read the password and try to unlock the agent */
@@ -51,7 +55,7 @@ bool cmd_unlock() {
   /* Check if the agent is already unlocked */
   if (check_unlock(password_saved, bytes_read, HMAC_TOKEN_PATH)) {
     debug("Agent is already unlocked\n");
-    return true;
+    return 0;
   }
 
   char password[PASSWORD_LEN] = {0};
@@ -67,9 +71,9 @@ bool cmd_unlock() {
     fclose(hmac_token);
     /* Free up resources and confirm unlocking */
     printf("Unlocked!\n");
-    return true;
+    return 0;
   } else {
     printf("Wrong password\n");
-    return false;
+    return 1;
   }
 }

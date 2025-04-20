@@ -118,11 +118,83 @@
       "-Wno-unused-result",
       "-c",
       "-o",
+      "build/utils/io.o",
+      "src/utils/io.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/utils/io.c",
+    "output": "/home/aryanj/Projects/transcodine/build/utils/io.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/ii75mhh7sxl11167m1b86p0qrjsjyjmd-gcc-wrapper-14-20241116/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-c",
+      "-o",
+      "build/utils/bootstrap.o",
+      "src/utils/bootstrap.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/utils/bootstrap.c",
+    "output": "/home/aryanj/Projects/transcodine/build/utils/bootstrap.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/ii75mhh7sxl11167m1b86p0qrjsjyjmd-gcc-wrapper-14-20241116/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-c",
+      "-o",
+      "build/utils/constants.o",
+      "src/utils/constants.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/utils/constants.c",
+    "output": "/home/aryanj/Projects/transcodine/build/utils/constants.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/ii75mhh7sxl11167m1b86p0qrjsjyjmd-gcc-wrapper-14-20241116/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-c",
+      "-o",
       "build/utils/error.o",
       "src/utils/error.c"
     ],
     "directory": "/home/aryanj/Projects/transcodine",
     "file": "/home/aryanj/Projects/transcodine/src/utils/error.c",
     "output": "/home/aryanj/Projects/transcodine/build/utils/error.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/ii75mhh7sxl11167m1b86p0qrjsjyjmd-gcc-wrapper-14-20241116/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-c",
+      "-o",
+      "build/utils/args.o",
+      "src/utils/args.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/utils/args.c",
+    "output": "/home/aryanj/Projects/transcodine/build/utils/args.o"
   }
 ]

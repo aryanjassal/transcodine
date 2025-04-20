@@ -9,8 +9,10 @@
  * the agent has already been unlocked. If it has, then unlocking will be a noop
  * method call. Finally, if the agent is locked, then the method will prompt the
  * user to enter a password and unlock the agent.
+ * @param argc Number of parameters (unused)
+ * @param argv Array of parameters (unused)
  * @author Aryan Jassal
  */
-bool cmd_unlock();
+int cmd_unlock(int argc, char* argv[]);
 
 #endif
