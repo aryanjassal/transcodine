@@ -3,6 +3,6 @@
 
 #include <stdio.h>
 
-void hmac(const char* key, char* output, size_t max_len);
+void hmac(const char* key, char* output, size_t len);
 
 #endif
