@@ -10,7 +10,7 @@
 #define READFILE_CHUNK 1024
 #define SALT_SIZE 16
 
-#define HMAC_TOKEN_PATH "/tmp/transcodine.lock"
+#define UNLOCK_TOKEN_PATH "/tmp/transcodine.lock"
 
 #define PASSWORD_FILE ".transcodine.pw"
 #define PASSWORD_PATH_LEN 256

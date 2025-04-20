@@ -3,28 +3,41 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "crypto/hmac.h"
+#include "crypto/xor.h"
 #include "utils/constants.h"
 #include "utils/error.h"
+#include "utils/io.h"
+#include "utils/typedefs.h"
 
-bool check_unlock(char* encrypted_password, size_t password_len,
-                  const char* hmac_token_path) {
-  /* If the HMAC file doesn't exist, then we havent unlocked the agent */
-  FILE* unlock_token = fopen(hmac_token_path, "rb");
-  if (!unlock_token) return false;
+void write_unlock(const uint8_t *key, const size_t len) {
+  /* Generate the unlock token */
+  uint8_t token[len];
+  xor_encrypt(key, len, token);
 
-  /* Get the expected HMAC for the password */
-  char hmac_expected[PASSWORD_LEN];
-  hmac(encrypted_password, hmac_expected, password_len);
-
-  /* Compare that with the actual HMAC in the token file */
-  char hmac_actual[PASSWORD_LEN];
-  size_t bytes_read =
-      fread(hmac_actual, sizeof(char), PASSWORD_LEN, unlock_token);
+  /* Write the token to file */
+  FILE *unlock_token = fopen(UNLOCK_TOKEN_PATH, "wb");
+  if (!unlock_token) {
+    throw("Failed writing to unlock token");
+  }
+  fwrite(token, sizeof(uint8_t), len, unlock_token);
   fclose(unlock_token);
+  debug("Writing unlock token");
+}
 
-  if (bytes_read == 0) throw("check_unlock.c: Failed to read hmac file");
+bool check_unlock(const uint8_t *key, const size_t len) {
+  /* Read the unlock token from file */
+  FILE *unlock_token = fopen(UNLOCK_TOKEN_PATH, "rb");
+  if (!unlock_token) {
+    throw("Failed writing to unlock token");
+  }
+  uint8_t token[len];
+  fread(token, sizeof(uint8_t), len, unlock_token);
 
-  /* If they are same, then we have unlocked. Otherwise we haven't. */
-  return memcmp(hmac_expected, hmac_actual, bytes_read) == 0;
+  /* Decrypt the token */
+  uint8_t unencrypted_token[len];
+  xor_decrypt(token, len, unencrypted_token);
+  debug("Reading unlock token");
+
+  /* Compare against the original key */
+  return memcmp(key, unencrypted_token, len) == 0;
 }

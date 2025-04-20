@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "auth/check_unlock.h"
 #include "crypto/minicrypt.h"
 #include "crypto/salt.h"
 #include "utils/args.h"
@@ -62,6 +63,9 @@ static void save_password(const char *password) {
   }
   fwrite(&pass, sizeof(password_t), 1, pw_file);
   fclose(pw_file);
+
+  /* Only if all the password stuff is done, unlock the agent */
+  write_unlock(pass.hash, sizeof(pass.hash));
 }
 
 static bool check_password(const char *password) {
@@ -77,27 +81,63 @@ static bool check_password(const char *password) {
   /* Compare against entered password */
   uint8_t computed_hash[32];
   hash_password(password, stored.salt, computed_hash);
-  return memcmp(computed_hash, stored.hash, 32) == 0;
+  bool result = memcmp(computed_hash, stored.hash, 32) == 0;
+
+  /* Unlock the agent before returning */
+  write_unlock(stored.hash, sizeof(stored.hash));
+  return result;
+}
+
+static bool confirm_unlock() {
+  /* Retrieve stored password details */
+  password_t stored;
+  FILE *pw_file = fopen(PASSWORD_PATH, "rb");
+  if (!pw_file) {
+    throw("Failed to read password file");
+  }
+  fread(&stored, sizeof(password_t), 1, pw_file);
+  fclose(pw_file);
+
+  /* Check if the agent is unlocked or not */
+  return check_unlock(stored.hash, sizeof(stored.hash));
 }
 
 int cmd_unlock(int argc, char *argv[]) {
   ignore_args(argc, argv);
 
-  char password[PASSWORD_LEN];
-  getline("Enter password > ", password, PASSWORD_LEN);
+  FILE *unlock_file = fopen(UNLOCK_TOKEN_PATH, "rb");
+  if (unlock_file) {
+    if (confirm_unlock()) {
+      debug("Agent already unlocked");
+      fclose(unlock_file);
+      return 0;
+    } else {
+      throw("Invalid unlock token");
+      fclose(unlock_file);
+      return 1;
+    }
+  }
 
-  if (!fopen(PASSWORD_PATH, "rb")) {
+  FILE *pw_file = fopen(PASSWORD_PATH, "rb");
+  if (!pw_file) {
+    char password[PASSWORD_LEN];
+    getline("Enter new password > ", password, PASSWORD_LEN);
+
     save_password(password);
     debug("Set new password");
     return 0;
   }
+  fclose(pw_file);
+
+  char password[PASSWORD_LEN];
+  getline("Enter password > ", password, PASSWORD_LEN);
 
   bool result = check_password(password);
   if (result) {
     debug("Unlocked agent");
+    return 0;
   } else {
     debug("Incorrect password");
+    return 1;
   }
-
-  return 0;
 }
