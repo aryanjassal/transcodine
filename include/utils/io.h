@@ -12,7 +12,7 @@
  * @returns The number of bytes read
  * @author Aryan Jassal
  */
-size_t getline(char* prompt, char* output, size_t len);
+size_t getline(char *prompt, char *output, size_t len);
 
 /**
  * Reads a line from stdin into a buffer. Unlike reading into an array in the
@@ -26,7 +26,7 @@ size_t getline(char* prompt, char* output, size_t len);
  * @param buf An initialised buffer
  * @author Aryan Jassal
  */
-void getline_buf(const char* prompt, buf_t* buf);
+void getline_buf(const char *prompt, buf_t *buf);
 
 /**
  * Reads the entire contents of a file into a buffer. Unlike reading into an
@@ -41,10 +41,24 @@ void getline_buf(const char* prompt, buf_t* buf);
  * @param buf An initialised buffer
  * @author Aryan Jassal
  */
-void readfile_buf(const char* filepath, buf_t* buf);
+void readfile_buf(const char *filepath, buf_t *buf);
 
-void _log_debug(const char* message, const char* file, int line,
-                const char* func);
+/**
+ * Renders a warning message string to the screen with yellow text.
+ * @param message The message to print to the user
+ * @author Aryan Jassal
+ */
+void warn(const char *message);
+
+/**
+ * Renders an error message string to the screen with red text.
+ * @param message The message to print to the user
+ * @author Aryan Jassal
+ */
+void error(const char *message);
+
+void _log_debug(const char *message, const char *file, int line,
+                const char *func);
 
 #define debug(msg) _log_debug(msg, __FILE__, __LINE__, __func__);
 

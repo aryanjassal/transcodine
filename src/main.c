@@ -8,13 +8,7 @@
 #include "utils/typedefs.h"
 
 /* Forward-declare the help command */
-int cmd_help(int argc, char* argv[]);
-
-typedef struct {
-  const char* command;
-  const char* description;
-  int (*handler)(int argc, char* argv[]);
-} cmd_handler_t;
+int cmd_help(int argc, char *argv[]);
 
 cmd_handler_t commands[] = {
     {"unlock", "Unlock the agent or create a new agent state", cmd_unlock},
@@ -29,7 +23,7 @@ const int num_commands = sizeof(commands) / sizeof(commands[0]);
  * @param argv Array of parameters (unused)
  * @author Aryan Jassal
  */
-int cmd_help(int argc, char* argv[]) {
+int cmd_help(int argc, char *argv[]) {
   /* Suppress unused parameter warning */
   ignore_args(argc, argv);
 
@@ -44,7 +38,7 @@ int cmd_help(int argc, char* argv[]) {
   return 0;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   /* Bootstrap some program state. This needs to run before anything else. */
   bootstrap();
 

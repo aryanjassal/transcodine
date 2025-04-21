@@ -13,6 +13,28 @@
 #include "utils/io.h"
 #include "utils/typedefs.h"
 
+bool make_unlock_token = true;
+
+void flag_help();
+
+void flag_once() { make_unlock_token = false; }
+
+flag_handler_t flags[] = {
+    {"--once", "Does not create the unlock token", flag_once, false},
+    {"--help", "Print usage guide", flag_help, true},
+};
+
+const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
+
+void flag_help() {
+  printf("Usage: transcodine unlock [...options]\n");
+  printf("Available options:\n");
+  int i;
+  for (i = 0; i < num_flags; ++i) {
+    printf("  %-10s %s\n", flags[i].flag, flags[i].description);
+  }
+}
+
 typedef struct {
   uint8_t salt[PASSWORD_SALT_SIZE];
   uint8_t hash[SHA256_HASH_SIZE];
@@ -48,10 +70,10 @@ static void generate_salt(uint8_t *salt) {
 
 static void hash_password(buf_t *password, const uint8_t *salt, uint8_t *hash) {
   buf_t salt_buf = {
-    .data = (uint8_t*)salt,
-    .size = PASSWORD_SALT_SIZE,
-    .capacity = PASSWORD_SALT_SIZE,
-    .offset = 0,
+      .data = (uint8_t *)salt,
+      .size = PASSWORD_SALT_SIZE,
+      .capacity = PASSWORD_SALT_SIZE,
+      .offset = 0,
   };
 
   buf_t out_buf;
@@ -77,7 +99,9 @@ static void save_password(buf_t *password) {
   fclose(pw_file);
 
   /* Only if all the password stuff is done, unlock the agent */
-  write_unlock(pass.hash, sizeof(pass.hash));
+  if (make_unlock_token) {
+    write_unlock(pass.hash, sizeof(pass.hash));
+  }
 }
 
 static bool check_password(buf_t *password) {
@@ -96,7 +120,9 @@ static bool check_password(buf_t *password) {
   bool result = memcmp(computed_hash, stored.hash, SHA256_HASH_SIZE) == 0;
 
   /* Unlock the agent before returning */
-  write_unlock(stored.hash, sizeof(stored.hash));
+  if (result && make_unlock_token) {
+    write_unlock(stored.hash, sizeof(stored.hash));
+  }
   return result;
 }
 
@@ -115,7 +141,29 @@ static bool confirm_unlock() {
 }
 
 int cmd_unlock(int argc, char *argv[]) {
-  ignore_args(argc, argv);
+  /* Match any arguments to their handler */
+  int i, j;
+  for (i = 0; i < argc; ++i) {
+    bool found = false;
+    for (j = 0; j < num_flags; ++j) {
+      if (strcmp(argv[i], flags[j].flag) == 0) {
+        /* Handle the flag. Exit if the flag requires early exit. */
+        found = true;
+        flags[j].handler();
+        if (flags[j].exit) {
+          return 0;
+        }
+        break;
+      }
+    }
+
+    /* If the flag was not found, then it is an invalid flag. */
+    if (!found) {
+      printf("Invalid flag: %s\n\n", argv[i]);
+      flag_help();
+      return 1;
+    }
+  }
 
   FILE *unlock_file = fopen(UNLOCK_TOKEN_PATH, "rb");
   if (unlock_file) {
@@ -151,7 +199,7 @@ int cmd_unlock(int argc, char *argv[]) {
     debug("Unlocked agent");
     return 0;
   } else {
-    debug("Incorrect password");
+    error("Incorrect password");
     return 1;
   }
 }
