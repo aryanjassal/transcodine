@@ -7,6 +7,7 @@ typedef struct {
   uint8_t *data;
   size_t size;
   size_t capacity;
+  size_t offset;
 } buf_t;
 
 /**

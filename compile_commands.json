@@ -46,12 +46,30 @@
       "-Wno-unused-result",
       "-c",
       "-o",
-      "build/crypto/minicrypt.o",
-      "src/crypto/minicrypt.c"
+      "build/crypto/pbkdf2.o",
+      "src/crypto/pbkdf2.c"
     ],
     "directory": "/home/aryanj/Projects/transcodine",
-    "file": "/home/aryanj/Projects/transcodine/src/crypto/minicrypt.c",
-    "output": "/home/aryanj/Projects/transcodine/build/crypto/minicrypt.o"
+    "file": "/home/aryanj/Projects/transcodine/src/crypto/pbkdf2.c",
+    "output": "/home/aryanj/Projects/transcodine/build/crypto/pbkdf2.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/ii75mhh7sxl11167m1b86p0qrjsjyjmd-gcc-wrapper-14-20241116/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-c",
+      "-o",
+      "build/crypto/sha256.o",
+      "src/crypto/sha256.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/crypto/sha256.c",
+    "output": "/home/aryanj/Projects/transcodine/build/crypto/sha256.o"
   },
   {
     "arguments": [
