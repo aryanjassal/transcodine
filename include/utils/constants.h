@@ -10,19 +10,19 @@
 #define PBKDF2_ITERATIONS 16384
 #define XOR_KEY "==<>==XOR-^.V.^-KEY==<>=="
 
+/* Bootstrap file names */
+#define PASSWORD_FILE_NAME ".tc-pass"
+#define UNLOCK_TOKEN_FILE_NAME "tc-agent.lock"
+#define KEK_FILE_NAME ".tc-key"
+
 /* Password handling parameters */
 #define PASSWORD_SALT_SIZE 16
+#define KEK_SIZE 32
 
 #define READFILE_CHUNK 1024
 
-#define UNLOCK_TOKEN_PATH "/tmp/transcodine.lock"
-
-#define PASSWORD_FILE ".transcodine.pw"
-#define PASSWORD_PATH_LEN 256
 
 /* Library method parameters */
 #define BUFFER_GROWTH_FACTOR 2
-
-extern char PASSWORD_PATH[PASSWORD_PATH_LEN];
 
 #endif

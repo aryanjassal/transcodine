@@ -10,6 +10,7 @@
 #include "utils/args.h"
 #include "utils/constants.h"
 #include "utils/error.h"
+#include "utils/globals.h"
 #include "utils/io.h"
 #include "utils/typedefs.h"
 
@@ -42,15 +43,9 @@ typedef struct {
 
 static void generate_salt(uint8_t *salt) {
   /* Attempt to generate salt via urandom */
-  FILE *urandom = fopen("/dev/urandom", "rb");
-  if (urandom) {
+  bool using_urandom = urandom(salt, PASSWORD_SALT_SIZE);
+  if (using_urandom) {
     debug("Using /dev/urandom to generate salt");
-    size_t bytes_read =
-        fread(salt, sizeof(uint8_t), PASSWORD_SALT_SIZE, urandom);
-    if (bytes_read < PASSWORD_SALT_SIZE) {
-      throw("Did not read enough data");
-    }
-    fclose(urandom);
     return;
   }
 
@@ -84,14 +79,14 @@ static void hash_password(buf_t *password, const uint8_t *salt, uint8_t *hash) {
   buf_free(&out_buf);
 }
 
-static void save_password(buf_t *password) {
+static void save_new_password(buf_t *password) {
   /* Generate password salt and hash */
   password_t pass;
   generate_salt(pass.salt);
   hash_password(password, pass.salt, pass.hash);
 
   /* Save that to file */
-  FILE *pw_file = fopen(PASSWORD_PATH, "wb");
+  FILE *pw_file = fopen((char *)PASSWORD_PATH.data, "wb");
   if (!pw_file) {
     throw("Failed to create password file");
   }
@@ -102,12 +97,47 @@ static void save_password(buf_t *password) {
   if (make_unlock_token) {
     write_unlock(pass.hash, sizeof(pass.hash));
   }
+
+  /* This is a new agent, so write the key encryption key */
+  FILE *kek_file = fopen((char *)KEK_PATH.data, "wb");
+  if (!kek_file) {
+    throw("Failed to create KEK file");
+  }
+  uint8_t kek[KEK_SIZE];
+  bool using_urandom = urandom(kek, KEK_SIZE);
+  if (using_urandom) {
+    debug("Using urandom for KEK");
+  } else {
+    debug("Can't access urandom. Using psuedosalt for KEK");
+    const char *home = getenv("HOME");
+    if (!home) {
+      throw("HOME is unset");
+    }
+    gen_pseudosalt(home, kek, KEK_SIZE);
+  }
+
+  /* Encrypt KEK using RK */
+  buf_t kek_encrypted;
+  buf_init(&kek_encrypted, SHA256_HASH_SIZE);
+  buf_t pass_hash_buf = {.data = pass.hash,
+                         .size = sizeof(pass.hash),
+                         .capacity = sizeof(pass.hash),
+                         .offset = 0};
+  buf_t pass_salt_buf = {.data = pass.salt,
+                         .size = sizeof(pass.salt),
+                         .capacity = sizeof(pass.salt),
+                         .offset = 0};
+  pbkdf2_hmac_sha256_hash(&pass_hash_buf, &pass_salt_buf, PBKDF2_ITERATIONS,
+                          &kek_encrypted, KEK_SIZE);
+  fwrite(kek_encrypted.data, sizeof(uint8_t) * KEK_SIZE, 1, kek_file);
+  fclose(kek_file);
+  buf_free(&kek_encrypted);
 }
 
 static bool check_password(buf_t *password) {
   /* Retrieve stored password details */
   password_t stored;
-  FILE *pw_file = fopen(PASSWORD_PATH, "rb");
+  FILE *pw_file = fopen((char *)PASSWORD_PATH.data, "rb");
   if (!pw_file) {
     throw("Failed to read password file");
   }
@@ -129,7 +159,7 @@ static bool check_password(buf_t *password) {
 static bool confirm_unlock() {
   /* Retrieve stored password details */
   password_t stored;
-  FILE *pw_file = fopen(PASSWORD_PATH, "rb");
+  FILE *pw_file = fopen((char *)PASSWORD_PATH.data, "rb");
   if (!pw_file) {
     throw("Unlock token exists without password file");
   }
@@ -165,7 +195,7 @@ int cmd_unlock(int argc, char *argv[]) {
     }
   }
 
-  FILE *unlock_file = fopen(UNLOCK_TOKEN_PATH, "rb");
+  FILE *unlock_file = fopen((char *)UNLOCK_TOKEN_PATH.data, "rb");
   if (unlock_file) {
     if (confirm_unlock()) {
       debug("Agent already unlocked");
@@ -181,10 +211,10 @@ int cmd_unlock(int argc, char *argv[]) {
   buf_t password;
   buf_init(&password, 32);
 
-  FILE *pw_file = fopen(PASSWORD_PATH, "rb");
+  FILE *pw_file = fopen((char *)PASSWORD_PATH.data, "rb");
   if (!pw_file) {
     getline_buf("Enter new password > ", &password);
-    save_password(&password);
+    save_new_password(&password);
     buf_free(&password);
     debug("Set new password");
     return 0;

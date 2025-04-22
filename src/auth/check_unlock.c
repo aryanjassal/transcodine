@@ -4,8 +4,8 @@
 #include <string.h>
 
 #include "crypto/xor.h"
-#include "utils/constants.h"
 #include "utils/error.h"
+#include "utils/globals.h"
 #include "utils/io.h"
 #include "utils/typedefs.h"
 
@@ -15,7 +15,7 @@ void write_unlock(const uint8_t *key, const size_t len) {
   xor_encrypt(key, len, token);
 
   /* Write the token to file */
-  FILE *unlock_token = fopen(UNLOCK_TOKEN_PATH, "wb");
+  FILE *unlock_token = fopen((char *)UNLOCK_TOKEN_PATH.data, "wb");
   if (!unlock_token) {
     throw("Failed writing to unlock token");
   }
@@ -26,7 +26,7 @@ void write_unlock(const uint8_t *key, const size_t len) {
 
 bool check_unlock(const uint8_t *key, const size_t len) {
   /* Read the unlock token from file */
-  FILE *unlock_token = fopen(UNLOCK_TOKEN_PATH, "rb");
+  FILE *unlock_token = fopen((char *)UNLOCK_TOKEN_PATH.data, "rb");
   if (!unlock_token) {
     throw("Failed writing to unlock token");
   }

@@ -54,6 +54,19 @@ void readfile_buf(const char *filepath, buf_t *buf) {
   fclose(file);
 }
 
+bool urandom(uint8_t *buffer, const size_t len) {
+  FILE *rand_file = fopen("/dev/urandom", "rb");
+  if (!rand_file) {
+    return false;
+  }
+  size_t bytes_read = fread(buffer, sizeof(uint8_t), len, rand_file);
+  if (bytes_read < len) {
+    throw("Did not read enough data");
+  }
+  fclose(rand_file);
+  return true;
+}
+
 void error(const char *message) {
   printf("\033[1;31mERROR: %s\033[0m\n", message);
 }
@@ -67,5 +80,11 @@ void _log_debug(const char *message, const char *file, int line,
 #ifdef DEBUG
   printf("\033[2;37mDEBUG: %s\n  at %s:%d (%s)\033[0m\n", message, file, line,
          func);
+#else
+  /* Ignoring parameters if debug is disabled */
+  (void)message;
+  (void)file;
+  (void)line;
+  (void)func;
 #endif
 }

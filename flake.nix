@@ -13,6 +13,7 @@
         nativeBuildInputs = with pkgs; [
           clang-tools
           gcc
+          gdb
           gnumake
         ];
       };

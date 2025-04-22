@@ -42,7 +42,7 @@ expose others.
 Users can manage multiple bins, each with its own independent encryption key.
 This isolation ensures that brute-forcing or compromising one bin does not
 expose others. The password is hashed and encrypted using state-of-the-art
-PBKDF2-HMAC_SHA-256 hashing algorithm to ensure resistance against all the most
+PBKDF2-HMAC-SHA-256 hashing algorithm to ensure resistance against all the most
 common attacks.
 
 ### Unlockable Agent
@@ -61,7 +61,7 @@ tampering.
 ### Portability
 
 Only standard ANSI C headers were used to maximise portability. While this means
-that some features were compromised, high performance and safety are guaranteed.
+that some features were compromised, high performance and safety are guarranteed.
 
 ## Security Model
 
@@ -85,6 +85,7 @@ the following protocols.
 - SHA-256
 - HMAC-SHA-256
 - PBKDF2-HMAC-SHA-256
+- ChaCha20-Poly1305
 
 ## Technical Notes
 

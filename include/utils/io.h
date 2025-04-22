@@ -44,6 +44,16 @@ void getline_buf(const char *prompt, buf_t *buf);
 void readfile_buf(const char *filepath, buf_t *buf);
 
 /**
+ * Reads random bytes from /dev/urandom. Returns false if the file wasn't
+ * accessible, otherwise throws if not enough data could be read.
+ * @param buffer The buffer to store the data in
+ * @param len The length of data to extract
+ * @returns False if the file couldn't be opened, true otherwise
+ * @author Aryan Jassal
+ */
+ bool urandom(uint8_t* buffer, const size_t len);
+
+/**
  * Renders a warning message string to the screen with yellow text.
  * @param message The message to print to the user
  * @author Aryan Jassal
