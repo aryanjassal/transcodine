@@ -1,8 +1,6 @@
 #ifndef __COMMAND_UNLOCK_H__
 #define __COMMAND_UNLOCK_H__
 
-#include "utils/typedefs.h"
-
 /**
  * Command handler for unencrypting the agent. If this is the first time running
  * the application, then the agent stores the password. Otherwise, it checks if

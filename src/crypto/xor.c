@@ -1,32 +1,32 @@
 #include "crypto/xor.h"
 
-#include <string.h>
-
+#include "lib/buffer.h"
 #include "utils/constants.h"
 #include "utils/typedefs.h"
 
-void xor_encrypt(const uint8_t* data, const size_t len, uint8_t* output) {
-  const char* key = XOR_KEY;
-  const int diffusion = 31;
+void xor_encrypt(const buf_t* data, const buf_t *key, buf_t* output) {
+  buf_clear(output);
   size_t i;
-  for (i = 0; i < len; ++i) {
-    /* Perform the XOR cypher on each character of the input key. */
-    uint8_t xor = data[i] ^ key[i % strlen(key)];
-    /* Add some diffusion to ensure change across bytes. */
-    uint8_t diffuse = i * diffusion;
-    /* Combine the XOR result and the diffusion to create the final output. */
-    output[i] = xor + diffuse;
+  uint8_t buf[1];
+  for (i = 0; i < data->size; ++i) {
+    /* Perform the XOR cypher with some diffusion to reduce predictability. */
+    uint8_t xor = data->data[i] ^ key->data[i % key->size];
+    uint8_t diffuse = i * XOR_DIFFUSION;
+    buf[0] = xor + diffuse;
+    buf_append(output, buf, sizeof(buf));
   }
 }
 
-void xor_decrypt(const uint8_t* input, const size_t len, uint8_t* output) {
-  const char* key = XOR_KEY;
-  const int diffusion = 31;
+void xor_decrypt(const buf_t* data, const buf_t* key, buf_t* output) {
+  buf_clear(output);
   size_t i;
-  for (i = 0; i < len; ++i) {
-    /* Calculate the diffusion to undo the XOR */
-    uint8_t diffuse = i * diffusion;
-    /* Subtract the diffusion before reversing the XOR operation */
-    output[i] = (input[i] - diffuse) ^ key[i % strlen(key)];
+  uint8_t buf[1];
+  for (i = 0; i < data->size; ++i) {
+    /* Subtract the diffusion value */
+    uint8_t diffuse = i * XOR_DIFFUSION;
+    uint8_t xor = data->data[i] - diffuse;
+    /* Reverse the XOR operation with the key */
+    buf[0] = xor ^ key->data[i % key->size];
+    buf_append(output, buf, sizeof(buf));
   }
 }

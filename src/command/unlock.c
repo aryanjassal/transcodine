@@ -4,9 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "auth/check_unlock.h"
-#include "crypto/pbkdf2.h"
+#include "auth/check.h"
+#include "auth/hash.h"
 #include "crypto/salt.h"
+#include "crypto/xor.h"
 #include "utils/args.h"
 #include "utils/constants.h"
 #include "utils/error.h"
@@ -36,11 +37,6 @@ void flag_help() {
   }
 }
 
-typedef struct {
-  uint8_t salt[PASSWORD_SALT_SIZE];
-  uint8_t hash[SHA256_HASH_SIZE];
-} password_t;
-
 static void generate_salt(uint8_t *salt) {
   /* Attempt to generate salt via urandom */
   bool using_urandom = urandom(salt, PASSWORD_SALT_SIZE);
@@ -63,22 +59,6 @@ static void generate_salt(uint8_t *salt) {
   gen_pseudosalt(username, salt, PASSWORD_SALT_SIZE);
 }
 
-static void hash_password(buf_t *password, const uint8_t *salt, uint8_t *hash) {
-  buf_t salt_buf = {
-      .data = (uint8_t *)salt,
-      .size = PASSWORD_SALT_SIZE,
-      .capacity = PASSWORD_SALT_SIZE,
-      .offset = 0,
-  };
-
-  buf_t out_buf;
-  buf_init(&out_buf, 32);
-
-  pbkdf2_hmac_sha256_hash(password, &salt_buf, PBKDF2_ITERATIONS, &out_buf, 32);
-  memcpy(hash, out_buf.data, 32);
-  buf_free(&out_buf);
-}
-
 static void save_new_password(buf_t *password) {
   /* Generate password salt and hash */
   password_t pass;
@@ -95,7 +75,11 @@ static void save_new_password(buf_t *password) {
 
   /* Only if all the password stuff is done, unlock the agent */
   if (make_unlock_token) {
-    write_unlock(pass.hash, sizeof(pass.hash));
+    buf_t hash = {.data = pass.hash,
+                  .capacity = sizeof(pass.hash),
+                  .size = sizeof(pass.hash),
+                  .offset = 0};
+    write_unlock(&hash);
   }
 
   /* This is a new agent, so write the key encryption key */
@@ -118,24 +102,22 @@ static void save_new_password(buf_t *password) {
 
   /* Encrypt KEK using RK */
   buf_t kek_encrypted;
-  buf_init(&kek_encrypted, SHA256_HASH_SIZE);
-  buf_t pass_hash_buf = {.data = pass.hash,
-                         .size = sizeof(pass.hash),
-                         .capacity = sizeof(pass.hash),
-                         .offset = 0};
-  buf_t pass_salt_buf = {.data = pass.salt,
-                         .size = sizeof(pass.salt),
-                         .capacity = sizeof(pass.salt),
-                         .offset = 0};
-  pbkdf2_hmac_sha256_hash(&pass_hash_buf, &pass_salt_buf, PBKDF2_ITERATIONS,
-                          &kek_encrypted, KEK_SIZE);
-  fwrite(kek_encrypted.data, sizeof(uint8_t) * KEK_SIZE, 1, kek_file);
+  buf_init(&kek_encrypted, KEK_SIZE);
+  buf_t kek_buf = {
+      .data = kek, .size = sizeof(kek), .capacity = sizeof(kek), .offset = 0};
+  buf_t pass_hash = {.data = pass.hash,
+                     .size = sizeof(pass.hash),
+                     .capacity = sizeof(pass.hash),
+                     .offset = 0};
+  xor_encrypt(&kek_buf, &pass_hash, &kek_encrypted);
+  fwrite(kek_encrypted.data, sizeof(uint8_t) * kek_encrypted.size, 1, kek_file);
   fclose(kek_file);
-  buf_free(&kek_encrypted);
 }
 
-static bool check_password(buf_t *password) {
-  /* Retrieve stored password details */
+static bool confirm_password(buf_t *password) {
+  bool result = check_password(password);
+
+  /* Read the stored password details for the unlock token */
   password_t stored;
   FILE *pw_file = fopen((char *)PASSWORD_PATH.data, "rb");
   if (!pw_file) {
@@ -144,30 +126,17 @@ static bool check_password(buf_t *password) {
   fread(&stored, sizeof(password_t), 1, pw_file);
   fclose(pw_file);
 
-  /* Compare against entered password */
-  uint8_t computed_hash[SHA256_HASH_SIZE];
-  hash_password(password, stored.salt, computed_hash);
-  bool result = memcmp(computed_hash, stored.hash, SHA256_HASH_SIZE) == 0;
-
   /* Unlock the agent before returning */
   if (result && make_unlock_token) {
-    write_unlock(stored.hash, sizeof(stored.hash));
+    buf_t stored_hash = {
+      .data = stored.hash,
+      .size = sizeof(stored.hash),
+      .capacity = sizeof(stored.hash),
+      .offset = 0
+    };
+    write_unlock(&stored_hash);
   }
   return result;
-}
-
-static bool confirm_unlock() {
-  /* Retrieve stored password details */
-  password_t stored;
-  FILE *pw_file = fopen((char *)PASSWORD_PATH.data, "rb");
-  if (!pw_file) {
-    throw("Unlock token exists without password file");
-  }
-  fread(&stored, sizeof(password_t), 1, pw_file);
-  fclose(pw_file);
-
-  /* Check if the agent is unlocked or not */
-  return check_unlock(stored.hash, sizeof(stored.hash));
 }
 
 int cmd_unlock(int argc, char *argv[]) {
@@ -197,7 +166,7 @@ int cmd_unlock(int argc, char *argv[]) {
 
   FILE *unlock_file = fopen((char *)UNLOCK_TOKEN_PATH.data, "rb");
   if (unlock_file) {
-    if (confirm_unlock()) {
+    if (check_unlock()) {
       debug("Agent already unlocked");
       fclose(unlock_file);
       return 0;
@@ -222,7 +191,7 @@ int cmd_unlock(int argc, char *argv[]) {
   fclose(pw_file);
 
   getline_buf("Enter password > ", &password);
-  bool result = check_password(&password);
+  bool result = confirm_password(&password);
   buf_free(&password);
 
   if (result) {

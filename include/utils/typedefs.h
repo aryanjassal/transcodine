@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 
+#include "utils/constants.h"
+
 /* Setup boolean logic */
 #define false 0
 #define true 1
@@ -14,5 +16,10 @@ typedef unsigned int uint32_t;
 typedef unsigned long uint64_t;
 
 typedef size_t size_t;
+
+typedef struct {
+  uint8_t salt[PASSWORD_SALT_SIZE];
+  uint8_t hash[SHA256_HASH_SIZE];
+} password_t;
 
 #endif

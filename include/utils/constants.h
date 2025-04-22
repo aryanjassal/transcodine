@@ -9,6 +9,7 @@
 #define SHA256_BLOCK_SIZE 64
 #define PBKDF2_ITERATIONS 16384
 #define XOR_KEY "==<>==XOR-^.V.^-KEY==<>=="
+#define XOR_DIFFUSION 31
 
 /* Bootstrap file names */
 #define PASSWORD_FILE_NAME ".tc-pass"

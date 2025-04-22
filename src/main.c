@@ -2,9 +2,11 @@
 #include <string.h>
 
 #include "command/lock.h"
+#include "command/reset.h"
 #include "command/unlock.h"
 #include "utils/args.h"
 #include "utils/bootstrap.h"
+#include "utils/globals.h"
 #include "utils/typedefs.h"
 
 /* Forward-declare the help command */
@@ -13,7 +15,9 @@ int cmd_help(int argc, char *argv[]);
 cmd_handler_t commands[] = {
     {"unlock", "Unlock the agent or create a new agent state", cmd_unlock},
     {"lock", "Lock the agent manually", cmd_lock},
-    {"help", "Print usage guide", cmd_help}};
+    {"reset", "Change the agent password", cmd_reset},
+    {"help", "Print usage guide", cmd_help},
+};
 
 const int num_commands = sizeof(commands) / sizeof(commands[0]);
 
@@ -69,6 +73,9 @@ int main(int argc, char *argv[]) {
   }
 
   /* Cleanup any resources here */
+  buf_free(&PASSWORD_PATH);
+  buf_free(&UNLOCK_TOKEN_PATH);
+  buf_free(&KEK_PATH);
 
   /* Return the command with the given status*/
   return status;
