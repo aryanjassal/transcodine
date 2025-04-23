@@ -4,20 +4,20 @@
 
 #include "auth/check.h"
 #include "auth/hash.h"
+#include "constants.h"
+#include "core/buffer.h"
 #include "crypto/xor.h"
-#include "lib/buffer.h"
+#include "globals.h"
+#include "typedefs.h"
 #include "utils/args.h"
-#include "utils/constants.h"
-#include "utils/error.h"
-#include "utils/globals.h"
 #include "utils/io.h"
-#include "utils/typedefs.h"
+#include "utils/throw.h"
 
-static void update_kek(buf_t *rk_old, buf_t *rk_new) {
+static void update_kek(const buf_t *rk_old, const buf_t *rk_new) {
   /* Load existing KEK */
   buf_t kek_encrypted;
   buf_init(&kek_encrypted, KEK_SIZE);
-  readfile_buf((char *)KEK_PATH.data, &kek_encrypted);
+  readfile((char *)KEK_PATH.data, &kek_encrypted);
 
   /* Decrypt KEK */
   buf_t kek;
@@ -63,14 +63,10 @@ static void update_password(buf_t *old_password, buf_t *new_password) {
   fclose(pw_file);
 
   /* Update KEK to reflect new password */
-  buf_t rk_old = {.data = pass.hash,
-                  .size = sizeof(pass.hash),
-                  .capacity = sizeof(pass.hash),
-                  .offset = 0};
-  buf_t rk_new = {.data = new_pass.hash,
-                  .size = sizeof(pass.hash),
-                  .capacity = sizeof(pass.hash),
-                  .offset = 0};
+  buf_t rk_old;
+  buf_t rk_new;
+  buf_view(&rk_old, pass.hash, sizeof(pass.hash));
+  buf_view(&rk_new, new_pass.hash, sizeof(new_pass.hash));
   update_kek(&rk_old, &rk_new);
 
   /* Update unlock token */
@@ -80,8 +76,8 @@ static void update_password(buf_t *old_password, buf_t *new_password) {
 int cmd_reset(int argc, char **argv) {
   ignore_args(argc, argv);
 
-  /* TODO: create better errors */
-
+  /* TODO: does the agent even need unlocking for this? */
+  /* TODO: why can't we also prompt the user to unlock for that one command? */
   if (!check_unlock()) {
     error("The agent is not unlocked!");
     return 1;
@@ -89,7 +85,7 @@ int cmd_reset(int argc, char **argv) {
 
   buf_t password_current;
   buf_init(&password_current, 32);
-  getline_buf("Enter current password > ", &password_current);
+  readline("Enter current password > ", &password_current);
   bool result = check_password(&password_current);
 
   if (!result) {
@@ -102,8 +98,8 @@ int cmd_reset(int argc, char **argv) {
   buf_init(&password_new_1, 32);
   buf_init(&password_new_2, 32);
 
-  getline_buf("Enter new password > ", &password_new_1);
-  getline_buf("Confirm password > ", &password_new_2);
+  readline("Enter new password > ", &password_new_1);
+  readline("Confirm password > ", &password_new_2);
 
   if (memcmp(password_new_1.data, password_new_2.data, password_new_1.size) !=
       0) {

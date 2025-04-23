@@ -7,6 +7,6 @@
  * @param argv Array of parameters (unused)
  * @author Aryan Jassal
  */
-int cmd_lock(int argc, char* argv[]);
+int cmd_lock(int argc, char *argv[]);
 
 #endif

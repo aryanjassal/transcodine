@@ -4,10 +4,10 @@
 #include "command/lock.h"
 #include "command/reset.h"
 #include "command/unlock.h"
+#include "globals.h"
+#include "typedefs.h"
 #include "utils/args.h"
 #include "utils/bootstrap.h"
-#include "utils/globals.h"
-#include "utils/typedefs.h"
 
 /* Forward-declare the help command */
 int cmd_help(int argc, char *argv[]);

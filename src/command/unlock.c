@@ -6,14 +6,14 @@
 
 #include "auth/check.h"
 #include "auth/hash.h"
+#include "constants.h"
 #include "crypto/salt.h"
 #include "crypto/xor.h"
+#include "globals.h"
+#include "typedefs.h"
 #include "utils/args.h"
-#include "utils/constants.h"
-#include "utils/error.h"
-#include "utils/globals.h"
 #include "utils/io.h"
-#include "utils/typedefs.h"
+#include "utils/throw.h"
 
 bool make_unlock_token = true;
 
@@ -75,18 +75,12 @@ static void save_new_password(buf_t *password) {
 
   /* Only if all the password stuff is done, unlock the agent */
   if (make_unlock_token) {
-    buf_t hash = {.data = pass.hash,
-                  .capacity = sizeof(pass.hash),
-                  .size = sizeof(pass.hash),
-                  .offset = 0};
+    buf_t hash;
+    buf_from(&hash, pass.hash, sizeof(pass.hash));
     write_unlock(&hash);
   }
 
   /* This is a new agent, so write the key encryption key */
-  FILE *kek_file = fopen((char *)KEK_PATH.data, "wb");
-  if (!kek_file) {
-    throw("Failed to create KEK file");
-  }
   uint8_t kek[KEK_SIZE];
   bool using_urandom = urandom(kek, KEK_SIZE);
   if (using_urandom) {
@@ -102,16 +96,13 @@ static void save_new_password(buf_t *password) {
 
   /* Encrypt KEK using RK */
   buf_t kek_encrypted;
+  buf_t kek_buf;
+  buf_t pass_hash;
   buf_init(&kek_encrypted, KEK_SIZE);
-  buf_t kek_buf = {
-      .data = kek, .size = sizeof(kek), .capacity = sizeof(kek), .offset = 0};
-  buf_t pass_hash = {.data = pass.hash,
-                     .size = sizeof(pass.hash),
-                     .capacity = sizeof(pass.hash),
-                     .offset = 0};
+  buf_view(&kek_buf, kek, sizeof(kek));
+  buf_view(&pass_hash, pass.hash, sizeof(pass.hash));
   xor_encrypt(&kek_buf, &pass_hash, &kek_encrypted);
-  fwrite(kek_encrypted.data, sizeof(uint8_t) * kek_encrypted.size, 1, kek_file);
-  fclose(kek_file);
+  writefile((char *)KEK_PATH.data, &kek_encrypted);
 }
 
 static bool confirm_password(buf_t *password) {
@@ -128,12 +119,8 @@ static bool confirm_password(buf_t *password) {
 
   /* Unlock the agent before returning */
   if (result && make_unlock_token) {
-    buf_t stored_hash = {
-      .data = stored.hash,
-      .size = sizeof(stored.hash),
-      .capacity = sizeof(stored.hash),
-      .offset = 0
-    };
+    buf_t stored_hash;
+    buf_view(&stored_hash, stored.hash, sizeof(stored.hash));
     write_unlock(&stored_hash);
   }
   return result;
@@ -182,7 +169,7 @@ int cmd_unlock(int argc, char *argv[]) {
 
   FILE *pw_file = fopen((char *)PASSWORD_PATH.data, "rb");
   if (!pw_file) {
-    getline_buf("Enter new password > ", &password);
+    readline("Enter new password > ", &password);
     save_new_password(&password);
     buf_free(&password);
     debug("Set new password");
@@ -190,7 +177,7 @@ int cmd_unlock(int argc, char *argv[]) {
   }
   fclose(pw_file);
 
-  getline_buf("Enter password > ", &password);
+  readline("Enter password > ", &password);
   bool result = confirm_password(&password);
   buf_free(&password);
 

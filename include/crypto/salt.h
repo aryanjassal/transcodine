@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 
-#include "utils/typedefs.h"
+#include "typedefs.h"
 
-void gen_pseudosalt(const char* seed, uint8_t* salt_out, size_t len);
+void gen_pseudosalt(const char *seed, uint8_t *salt_out, size_t len);
 
 #endif

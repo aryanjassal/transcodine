@@ -1,7 +1,7 @@
 #ifndef __CRYPTO_HMAC_H__
 #define __CRYPTO_HMAC_H__
 
-#include "lib/buffer.h"
+#include "core/buffer.h"
 
 /**
  * Returns a HMAC SHA256 hash of the input data based on a key. The key should
@@ -12,6 +12,6 @@
  * @param out The output hash
  * @author Aryan Jassal
  */
-void hmac_sha256_hash(buf_t *key, buf_t *data, buf_t *out);
+void hmac_sha256_hash(const buf_t *key, const buf_t *data, buf_t *out);
 
 #endif

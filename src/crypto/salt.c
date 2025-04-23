@@ -1,6 +1,6 @@
 #include "crypto/salt.h"
 
-#include "utils/typedefs.h"
+#include "typedefs.h"
 
 static uint64_t xorshift_state = 0xdeadbeefcafebabeul;
 
@@ -15,7 +15,7 @@ static uint64_t xorshift() {
   return x * 0x2545f4914f6cdd1dul;
 }
 
-void gen_pseudosalt(const char* seed, uint8_t* salt_out, size_t len) {
+void gen_pseudosalt(const char *seed, uint8_t *salt_out, size_t len) {
   /* Set PRNG from ASCII values */
   size_t i;
   for (i = 0; seed[i]; ++i) {

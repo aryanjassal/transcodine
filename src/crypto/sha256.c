@@ -11,16 +11,19 @@
  */
 
 #include "crypto/sha256.h"
-#include "utils/constants.h"
-#include "utils/typedefs.h"
+
 #include <string.h>
+
+#include "constants.h"
+#include "typedefs.h"
+#include "utils/throw.h"
 
 /**
  * Initialisation constants for SHA256. These are derived from the first 32 bits
  * of the fractional parts of the cube roots of the first sixty-four prime
  * numbers.
  *
- * @see ection 6.2.2
+ * @see Section 6.2.2
  */
 static const uint32_t K[64] = {
     0x428a2f98ul, 0x71374491ul, 0xb5c0fbcful, 0xe9b5dba5ul, 0x3956c25bul,
@@ -107,13 +110,13 @@ static uint32_t read_u32_be(uint8_t *buf, size_t offset) {
          ((uint32_t)buf[offset + 2] << 8) | ((uint32_t)buf[offset + 3]);
 }
 
-static void transform(sha256_ctx_t *context, const buf_t *buffer) {
+static void transform(sha256_ctx_t *ctx, const buf_t *buffer) {
   uint32_t S[8];
   uint32_t W[64];
   int t;
 
   /* Copy state into S */
-  memcpy(S, context->state, sizeof(S));
+  memcpy(S, ctx->state, sizeof(S));
 
   /*
    * Copy the buffer into W[0..15]. We can't use memcpy here as the data needs
@@ -145,111 +148,105 @@ static void transform(sha256_ctx_t *context, const buf_t *buffer) {
 
   /* Feed-forward */
   for (t = 0; t < 8; ++t) {
-    context->state[t] += S[t];
+    ctx->state[t] += S[t];
   }
 }
 
-void sha256_init(sha256_ctx_t *context) {
-  context->length = 0;
-  context->current_length = 0;
+void sha256_init(sha256_ctx_t *ctx) {
+  ctx->length = 0;
+
+  buf_init(&ctx->buf, 64);
+  ctx->buf.fixed = true;
 
   /* Initialise the state with constants from Section 5.3.3 */
-  context->state[0] = 0x6a09e667ul;
-  context->state[1] = 0xbb67ae85ul;
-  context->state[2] = 0x3c6ef372ul;
-  context->state[3] = 0xa54ff53aul;
-  context->state[4] = 0x510e527ful;
-  context->state[5] = 0x9b05688cul;
-  context->state[6] = 0x1f83d9abul;
-  context->state[7] = 0x5be0cd19ul;
+  ctx->state[0] = 0x6a09e667ul;
+  ctx->state[1] = 0xbb67ae85ul;
+  ctx->state[2] = 0x3c6ef372ul;
+  ctx->state[3] = 0xa54ff53aul;
+  ctx->state[4] = 0x510e527ful;
+  ctx->state[5] = 0x9b05688cul;
+  ctx->state[6] = 0x1f83d9abul;
+  ctx->state[7] = 0x5be0cd19ul;
 }
 
-void sha256_update(sha256_ctx_t *context, buf_t *buffer) {
-  /* Process all available input data in the buffer */
-  while (buffer->offset < buffer->size) {
-    size_t bufsize = buffer->size - buffer->offset;
-    if (context->current_length == 0 && bufsize >= SHA256_BLOCK_SIZE) {
-      transform(context, buffer);
-      context->length += SHA256_BLOCK_SIZE * 8;
-      buffer->offset += SHA256_BLOCK_SIZE;
-    } else {
-      /* Either copy a whole block or whatever's left */
-      uint32_t n = SHA256_BLOCK_SIZE - context->current_length;
-      if (n > bufsize) {
-        n = bufsize;
-      }
-      memcpy(context->buf + context->current_length,
-             buffer->data + buffer->offset, n);
-      context->current_length += n;
-      buffer->offset += n;
+void sha256_update(sha256_ctx_t *ctx, const buf_t *buffer) {
+  size_t offset = 0;
+  size_t bufsize = buffer->size;
 
-      /* If the internal buffer is now full, then process it */
-      if (context->current_length == SHA256_BLOCK_SIZE) {
-        /* Wrap the context buffer as transform only accepts a buffer object */
-        buf_t tmp = {
-            .data = context->buf, .size = 64, .capacity = 64, .offset = 0};
-        transform(context, &tmp);
-        context->length += SHA256_BLOCK_SIZE * 8;
-        context->current_length = 0;
-      }
+  /* Process all available input data in the buffer */
+  while (offset < bufsize) {
+    size_t ctx_space = SHA256_BLOCK_SIZE - ctx->buf.size;
+    size_t buf_remaining = bufsize - offset;
+    size_t to_copy = (buf_remaining < ctx_space) ? buf_remaining : ctx_space;
+    buf_append(&ctx->buf, buffer->data + offset, to_copy);
+    offset += to_copy;
+
+    /* If the internal buffer is now full, then process it */
+    if (ctx->buf.size == SHA256_BLOCK_SIZE) {
+      transform(ctx, &ctx->buf);
+      ctx->length += SHA256_BLOCK_SIZE * 8;
+      buf_clear(&ctx->buf);
+    }
+
+    /* Defensive programming */
+    if (ctx->buf.size > SHA256_BLOCK_SIZE) {
+      throw("Invalid SHA state");
     }
   }
 }
 
-void sha256_finalize(sha256_ctx_t *context, sha256_hash_t *digest) {
-  if (context->current_length == SHA256_BLOCK_SIZE) {
-    buf_t tmp = {.data = context->buf, .size = 64, .capacity = 64, .offset = 0};
-    transform(context, &tmp);
-    context->length += SHA256_BLOCK_SIZE * 8;
-    context->current_length = 0;
+void sha256_finalize(sha256_ctx_t *ctx, sha256_hash_t *digest) {
+  if (ctx->buf.size == SHA256_BLOCK_SIZE) {
+    transform(ctx, &ctx->buf);
+    ctx->length += SHA256_BLOCK_SIZE * 8;
+    buf_clear(&ctx->buf);
   }
 
   /* Increase the length of the message and append the one-bit */
-  context->length += context->current_length * 8;
-  context->buf[context->current_length++] = 0x80;
+  ctx->length += ctx->buf.size * 8;
+  ctx->buf.data[ctx->buf.size++] = 0x80;
 
   /* If the length is above 56 bytes we append zeros then compress */
-  if (context->current_length > 56) {
-    while (context->current_length < 64) {
-      context->buf[context->current_length++] = 0;
+  if (ctx->buf.size > 56) {
+    while (ctx->buf.size < 64) {
+      ctx->buf.data[ctx->buf.size++] = 0;
     }
 
-    /* Wrap the context buffer as transform only accepts a buffer object */
-    buf_t tmp = {.data = context->buf, .size = 64, .capacity = 64, .offset = 0};
-    transform(context, &tmp);
-    context->current_length = 0;
+    transform(ctx, &ctx->buf);
+    buf_clear(&ctx->buf);
   }
 
   /* Pad up to 56 bytes of zeros */
-  while (context->current_length < 56) {
-    context->buf[context->current_length++] = 0;
+  while (ctx->buf.size < 56) {
+    ctx->buf.data[ctx->buf.size++] = 0;
   }
 
   /* Store length across the last 8 bits */
-  context->buf[56] = (context->length >> 56) & 0xff;
-  context->buf[57] = (context->length >> 48) & 0xff;
-  context->buf[58] = (context->length >> 40) & 0xff;
-  context->buf[59] = (context->length >> 32) & 0xff;
-  context->buf[60] = (context->length >> 24) & 0xff;
-  context->buf[61] = (context->length >> 16) & 0xff;
-  context->buf[62] = (context->length >> 8) & 0xff;
-  context->buf[63] = context->length & 0xff;
+  ctx->buf.data[56] = (ctx->length >> 56) & 0xff;
+  ctx->buf.data[57] = (ctx->length >> 48) & 0xff;
+  ctx->buf.data[58] = (ctx->length >> 40) & 0xff;
+  ctx->buf.data[59] = (ctx->length >> 32) & 0xff;
+  ctx->buf.data[60] = (ctx->length >> 24) & 0xff;
+  ctx->buf.data[61] = (ctx->length >> 16) & 0xff;
+  ctx->buf.data[62] = (ctx->length >> 8) & 0xff;
+  ctx->buf.data[63] = ctx->length & 0xff;
 
   /* One more transform because the spec says so */
-  buf_t tmp = {.data = context->buf, .size = 64, .capacity = 64, .offset = 0};
-  transform(context, &tmp);
+  transform(ctx, &ctx->buf);
 
   /* Copy output to digest */
   int i;
   for (i = 0; i < 8; ++i) {
-    digest->bytes[(i * 4)] = (context->state[i] >> 24) & 0xff;
-    digest->bytes[(i * 4) + 1] = (context->state[i] >> 16) & 0xff;
-    digest->bytes[(i * 4) + 2] = (context->state[i] >> 8) & 0xff;
-    digest->bytes[(i * 4) + 3] = context->state[i] & 0xff;
+    digest->bytes[(i * 4)] = (ctx->state[i] >> 24) & 0xff;
+    digest->bytes[(i * 4) + 1] = (ctx->state[i] >> 16) & 0xff;
+    digest->bytes[(i * 4) + 2] = (ctx->state[i] >> 8) & 0xff;
+    digest->bytes[(i * 4) + 3] = ctx->state[i] & 0xff;
   }
+
+  buf_free(&ctx->buf);
 }
 
-void sha256_hash(buf_t *buffer, sha256_hash_t *digest) {
+void sha256_hash(const buf_t *buffer, sha256_hash_t *digest) {
   sha256_ctx_t context;
   sha256_init(&context);
   sha256_update(&context, buffer);

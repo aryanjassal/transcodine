@@ -1,7 +1,7 @@
 #ifndef __UTILS_ARGS_H__
 #define __UTILS_ARGS_H__
 
-#include "utils/typedefs.h"
+#include "typedefs.h"
 
 typedef struct {
   const char *command;

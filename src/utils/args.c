@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "lib/buffer.h"
+#include "core/buffer.h"
 #include "utils/io.h"
 
 const char *prefix = "Ignoring extra argument: ";

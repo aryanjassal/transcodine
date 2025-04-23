@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "lib/buffer.h"
-#include "utils/constants.h"
-#include "utils/error.h"
-#include "utils/globals.h"
+#include "constants.h"
+#include "core/buffer.h"
+#include "globals.h"
+#include "utils/throw.h"
 
 void bootstrap() {
   /* Get agent-writable path */

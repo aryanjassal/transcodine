@@ -2,10 +2,11 @@
 
 #include <string.h>
 
+#include "constants.h"
 #include "crypto/sha256.h"
-#include "utils/typedefs.h"
+#include "typedefs.h"
 
-void hmac_sha256_hash(buf_t *key, buf_t *data, buf_t *out) {
+void hmac_sha256_hash(const buf_t *key, const buf_t *data, buf_t *out) {
   uint8_t k_ipad[SHA256_BLOCK_SIZE];
   uint8_t k_opad[SHA256_BLOCK_SIZE];
   uint8_t keybuf[SHA256_BLOCK_SIZE];
@@ -31,27 +32,22 @@ void hmac_sha256_hash(buf_t *key, buf_t *data, buf_t *out) {
 
   /* Step 3: Inner hash = SHA256(k_ipad || data) */
   sha256_init(&context);
-  buf_t ipad_buf = {.data = k_ipad,
-                    .size = SHA256_BLOCK_SIZE,
-                    .capacity = SHA256_BLOCK_SIZE,
-                    .offset = 0};
+  buf_t ipad_buf;
+  buf_view(&ipad_buf, k_ipad, SHA256_BLOCK_SIZE);
   sha256_update(&context, &ipad_buf);
   sha256_update(&context, data);
   sha256_finalize(&context, &inner_hash);
 
   /* Step 4: Outer hash = SHA256(k_opad || inner_hash) */
   sha256_init(&context);
-  buf_t opad_buf = {.data = k_opad,
-                    .size = SHA256_BLOCK_SIZE,
-                    .capacity = SHA256_BLOCK_SIZE,
-                    .offset = 0};
-  buf_t inner_buf = {.data = inner_hash.bytes,
-                     .size = SHA256_HASH_SIZE,
-                     .capacity = SHA256_HASH_SIZE,
-                     .offset = 0};
+  buf_t opad_buf;
+  buf_t inner_buf;
+  buf_view(&opad_buf, k_opad, SHA256_BLOCK_SIZE);
+  buf_view(&inner_buf, inner_hash.bytes, SHA256_HASH_SIZE);
   sha256_update(&context, &opad_buf);
   sha256_update(&context, &inner_buf);
   sha256_finalize(&context, &final_hash);
 
+  buf_clear(out);
   buf_append(out, final_hash.bytes, SHA256_HASH_SIZE);
 }

@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#include "utils/constants.h"
+#include "constants.h"
 
 /* Setup boolean logic */
 #define false 0

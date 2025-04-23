@@ -3,25 +3,15 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "lib/buffer.h"
-#include "utils/constants.h"
-#include "utils/error.h"
-#include "utils/typedefs.h"
+#include "constants.h"
+#include "core/buffer.h"
+#include "typedefs.h"
+#include "utils/throw.h"
 
-size_t getline(char *prompt, char *output, size_t len) {
-  printf("%s", prompt);
-  fgets(output, len, stdin);
-
-  if (!strchr(output, '\n')) {
-    throw("Buffer is too small");
-  }
-  output[strcspn(output, "\n")] = 0;
-  return strlen(output);
-}
-
-void getline_buf(const char *prompt, buf_t *buf) {
-  if (buf->data == NULL)
+void readline(const char *prompt, buf_t *buf) {
+  if (!buf->data) {
     throw("Uninitialised buffer");
+  }
   printf("%s", prompt);
 
   /* As fgets needs a fixed-length buffer, we loop with a temp buffer to read
@@ -42,16 +32,38 @@ void getline_buf(const char *prompt, buf_t *buf) {
   }
 }
 
-void readfile_buf(const char *filepath, buf_t *buf) {
+void readfile(const char *filepath, buf_t *buf) {
   uint8_t chunk[READFILE_CHUNK];
   FILE *file = fopen(filepath, "rb");
-  if (!file)
+  if (!file) {
     throw("Failed to open file");
+  }
   size_t n;
   while ((n = fread(chunk, sizeof(uint8_t), sizeof(chunk), file)) > 0) {
     buf_append(buf, chunk, n);
   }
   fclose(file);
+}
+
+void writefile(const char *filepath, buf_t *buf) {
+  FILE *file = fopen(filepath, "wb");
+  if (!file) {
+    throw("Failed to write to file");
+  }
+  size_t bytes_written = fwrite(buf->data, sizeof(uint8_t), buf->size, file);
+  if (bytes_written != buf->size) {
+    throw("Failed to write entire buffer to file");
+  }
+  fclose(file);
+}
+
+bool access(const char *filepath) {
+  FILE *file = fopen(filepath, "rb");
+  if (!file) {
+    return false;
+  }
+  fclose(file);
+  return true;
 }
 
 bool urandom(uint8_t *buffer, const size_t len) {
@@ -67,16 +79,19 @@ bool urandom(uint8_t *buffer, const size_t len) {
   return true;
 }
 
-void error(const char *message) {
-  printf("\033[1;31mERROR: %s\033[0m\n", message);
+void info(const char *message) {
+  printf("\033[0;33mINFO: %s\033[0m\n", message);
 }
 
 void warn(const char *message) {
-  printf("\033[0;33mWARN: %s\033[0m\n", message);
+  fprintf(stderr, "\033[0;33mWARN: %s\033[0m\n", message);
 }
 
-void _log_debug(const char *message, const char *file, int line,
-                const char *func) {
+void error(const char *message) {
+  fprintf(stderr, "\033[1;31mERROR: %s\033[0m\n", message);
+}
+
+void _debug(const char *message, const char *file, int line, const char *func) {
 #ifdef DEBUG
   printf("\033[2;37mDEBUG: %s\n  at %s:%d (%s)\033[0m\n", message, file, line,
          func);

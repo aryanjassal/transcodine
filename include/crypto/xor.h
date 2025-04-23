@@ -1,7 +1,7 @@
 #ifndef __CRYPTO_XOR_H__
 #define __CRYPTO_XOR_H__
 
-#include "lib/buffer.h"
+#include "core/buffer.h"
 
 /**
  * Performs a simple diffused XOR encryption using a master key. Note that this

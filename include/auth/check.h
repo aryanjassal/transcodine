@@ -1,8 +1,8 @@
 #ifndef __AUTH_CHECK_UNLOCK_H__
 #define __AUTH_CHECK_UNLOCK_H__
 
-#include "lib/buffer.h"
-#include "utils/typedefs.h"
+#include "core/buffer.h"
+#include "typedefs.h"
 
 /**
  * Writes the unlock token to keep the agent unlocked.

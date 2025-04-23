@@ -2,8 +2,8 @@
 
 #include <stdio.h>
 
+#include "globals.h"
 #include "utils/args.h"
-#include "utils/globals.h"
 #include "utils/io.h"
 
 int cmd_lock(int argc, char *argv[]) {

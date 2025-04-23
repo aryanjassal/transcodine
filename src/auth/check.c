@@ -4,21 +4,18 @@
 #include <string.h>
 
 #include "auth/hash.h"
+#include "constants.h"
+#include "core/buffer.h"
 #include "crypto/xor.h"
-#include "lib/buffer.h"
-#include "utils/constants.h"
-#include "utils/error.h"
-#include "utils/globals.h"
+#include "globals.h"
+#include "typedefs.h"
 #include "utils/io.h"
-#include "utils/typedefs.h"
+#include "utils/throw.h"
 
 void write_unlock(const buf_t *key) {
-  buf_t xor_key = {
-      .data = (uint8_t *)XOR_KEY,
-      .size = strlen(XOR_KEY),
-      .capacity = strlen(XOR_KEY),
-      .offset = 0,
-  };
+  buf_t xor_key;
+  buf_init(&xor_key, strlen(XOR_KEY));
+  buf_from(&xor_key, XOR_KEY, strlen(XOR_KEY));
 
   /* Generate the unlock token */
   buf_t token;
@@ -26,22 +23,14 @@ void write_unlock(const buf_t *key) {
   xor_encrypt(key, &xor_key, &token);
 
   /* Write the token to file */
-  FILE *unlock_token = fopen((char *)UNLOCK_TOKEN_PATH.data, "wb");
-  if (!unlock_token) {
-    throw("Failed writing to unlock token");
-  }
-  fwrite(token.data, sizeof(uint8_t), token.size, unlock_token);
-  fclose(unlock_token);
+  writefile((char *)UNLOCK_TOKEN_PATH.data, &token);
   debug("Writing unlock token");
 }
 
 bool check_unlock() {
-  buf_t xor_key = {
-      .data = (uint8_t *)XOR_KEY,
-      .size = strlen(XOR_KEY),
-      .capacity = strlen(XOR_KEY),
-      .offset = 0,
-  };
+  buf_t xor_key;
+  buf_init(&xor_key, strlen(XOR_KEY));
+  buf_from(&xor_key, XOR_KEY, strlen(XOR_KEY));
 
   /* Retrieve stored password details */
   password_t stored;
@@ -58,12 +47,13 @@ bool check_unlock() {
   /* Read the unlock token from file */
   buf_t token;
   buf_init(&token, 32);
-  FILE* unlock_file = fopen((char *)UNLOCK_TOKEN_PATH.data, "rb");
+  FILE *unlock_file = fopen((char *)UNLOCK_TOKEN_PATH.data, "rb");
   if (!unlock_file) {
+    debug("Could not find unlock file");
     return false;
   }
   fclose(unlock_file);
-  readfile_buf((char *)UNLOCK_TOKEN_PATH.data, &token);
+  readfile((char *)UNLOCK_TOKEN_PATH.data, &token);
 
   /* Decrypt the token */
   buf_t unencrypted_token;
@@ -72,7 +62,14 @@ bool check_unlock() {
   debug("Reading unlock token");
 
   /* Compare against the original key */
-  return memcmp(key, unencrypted_token.data, len) == 0;
+  bool result = memcmp(key, unencrypted_token.data, len) == 0;
+  if (!result) {
+    warn("Invalid unlock token. Removing.");
+    remove((char *)UNLOCK_TOKEN_PATH.data);
+  } else {
+    debug("Unlock token correct");
+  }
+  return result;
 }
 
 bool check_password(buf_t *password) {

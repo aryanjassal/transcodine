@@ -1,6 +1,6 @@
-#include "utils/globals.h"
+#include "globals.h"
 
-#include "lib/buffer.h"
+#include "core/buffer.h"
 
 buf_t PASSWORD_PATH;
 buf_t UNLOCK_TOKEN_PATH;

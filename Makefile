@@ -7,11 +7,11 @@ OUTPUT := transcodine
 # === Internal variables ===
 SRC := $(shell find $(SRC_DIR) -name '*.c')
 OBJ := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC))
-CFLAGS := -Wall -Wextra -Werror -ansi -I$(INC_DIR) -Wno-unused-result
+CFLAGS := -Wall -Wextra -Werror -ansi -I$(INC_DIR) -Wno-unused-result -g
 LDFLAGS := -lm -I$(INC_DIR)
 
 # === Default target ===
-.PHONY: all compile run clean
+.PHONY: all compile run clean format
 
 all: clean compile
 
@@ -42,3 +42,7 @@ run: $(OUTPUT)
 clean:
 	@echo "Cleaning up..."
 	@rm -rf $(BUILD_DIR) $(OUTPUT)
+
+# === Formats all files in include dir and src dir ===
+format:
+	@clang-format -i $(SRC_DIR)/**/*.c -i $(INC_DIR)/**/*.h
