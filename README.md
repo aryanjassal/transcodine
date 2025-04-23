@@ -1,7 +1,8 @@
 # What is Transcodine?
 
-> [!WARNING] This program is for educational purposes and is not
-> production-ready!
+> [!WARNING]
+
+> This program is for educational purposes and is not production-ready!
 
 Transcodine is a command-line application for securely storing and managing
 collections of files in **encrypted-at-rest** bins, with optional compression
@@ -118,10 +119,12 @@ Do note that the token will remain valid until you manually lock your agent or
 remove the token. Other users can also technically view the token but it should
 be safe.
 
-> [!WARNING] If anyone gets access to the password hash, they would be easily
-> able to replicate the unlock token. This is a real security risk. You either
-> have an agent running in the background, storing state, or you need to
-> authenticate each time. I chose storing state on disk for convenience.
+> [!WARNING]
+
+> If anyone gets access to the password hash, they would be easily able to
+> replicate the unlock token. This is a real security risk. You either have an
+> agent running in the background, storing state, or you need to authenticate
+> each time. I chose storing state on disk for convenience.
 
 ### Password Reset
 
