@@ -2,7 +2,7 @@
 #define __UTILS_IO_H__
 
 #include "core/buffer.h"
-#include "typedefs.h"
+#include "stddefs.h"
 
 /**
  * Reads a line from stdin into a buffer. Unlike reading into an array in the
@@ -34,6 +34,23 @@ void readline(const char *prompt, buf_t *buf);
 void readfile(const char *filepath, buf_t *buf);
 
 /**
+ * Reads the contents of a file into a buffer. Unlike reading into an
+ * array in the stack, the size of a buffer can be arbitrary, thus this is
+ * suited for larger inputs or if you don't know the input size beforehand. This
+ * method can read files upto a fixed limit. This fixed limit is set by the
+ * buffer capacity as the buffer is assumed to be fixed.
+ *
+ * This still uses an internal stack buffer to temporarily store incoming data.
+ * Note that the internal buffer size is 512 bytes. As such, this has higher
+ * memory consumption if the file isn't large.
+ *
+ * @param filepath The path of the file to be read
+ * @param buf An initialised fixed buffer
+ * @author Aryan Jassal
+ */
+void readfilef(const char *filepath, buf_t *buf);
+
+/**
  * Writes the entire contents of a buffer into a file.
  *
  * @param filepath The path of the file to be read
@@ -52,13 +69,13 @@ bool access(const char *filepath);
 
 /**
  * Reads random bytes from /dev/urandom. Returns false if the file wasn't
- * accessible, otherwise throws if not enough data could be read.
+ * accessible, otherwise throws if not enough data could be read. The length is
+ * assumed to be the buffer capacity as the buffer is assumed to be fixed.
  * @param buffer The buffer to store the data in
- * @param len The length of data to extract
  * @returns False if the file couldn't be opened, true otherwise
  * @author Aryan Jassal
  */
-bool urandom(uint8_t *buffer, const size_t len);
+bool urandom(buf_t *buffer);
 
 /**
  * Renders a info message string to the screen with gray text. Prints to stdout.

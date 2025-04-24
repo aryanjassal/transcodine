@@ -1,30 +1,24 @@
 #include "command/unlock.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "auth/check.h"
 #include "auth/hash.h"
 #include "constants.h"
+#include "core/buffer.h"
 #include "crypto/salt.h"
 #include "crypto/xor.h"
 #include "globals.h"
+#include "stddefs.h"
 #include "typedefs.h"
 #include "utils/args.h"
 #include "utils/io.h"
 #include "utils/throw.h"
 
-bool make_unlock_token = true;
-
 void flag_help();
 
-void flag_once() { make_unlock_token = false; }
-
-flag_handler_t flags[] = {
-    {"--once", "Does not create the unlock token", flag_once, false},
-    {"--help", "Print usage guide", flag_help, true},
-};
+flag_handler_t flags[] = {{"--help", "Print usage guide", flag_help, true}};
 
 const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
 
@@ -37,9 +31,9 @@ void flag_help() {
   }
 }
 
-static void generate_salt(uint8_t *salt) {
+static void generate_salt(buf_t *salt) {
   /* Attempt to generate salt via urandom */
-  bool using_urandom = urandom(salt, PASSWORD_SALT_SIZE);
+  bool using_urandom = urandom(salt);
   if (using_urandom) {
     debug("Using /dev/urandom to generate salt");
     return;
@@ -47,83 +41,46 @@ static void generate_salt(uint8_t *salt) {
 
   /* If urandom cannot be accessed, then generate salt using a pseudo method */
   debug("Failed to access urandom. Using pseudo salt generator");
-  const char *home = getenv("HOME");
-  if (!home) {
-    throw("HOME not set");
-  }
-  const char *last_slash = strrchr(home, '/');
+  const char *last_slash = strrchr(buf_to_cstr(&HOME_PATH), '/');
   if (!last_slash) {
     throw("Invalid home path");
   }
   const char *username = last_slash + 1;
-  gen_pseudosalt(username, salt, PASSWORD_SALT_SIZE);
+  gen_pseudosalt(username, salt);
 }
 
-static void save_new_password(buf_t *password) {
-  /* Generate password salt and hash */
-  password_t pass;
-  generate_salt(pass.salt);
-  hash_password(password, pass.salt, pass.hash);
+static void save_password(buf_t *password) {
+  /* Prepare a new auth token */
+  auth_t auth;
+  buf_initf(&auth.pass_salt, PASSWORD_SALT_SIZE);
+  buf_initf(&auth.pass_hash, SHA256_HASH_SIZE);
+  buf_initf(&auth.kek_salt, PASSWORD_SALT_SIZE);
+  buf_initf(&auth.kek_hash, KEK_SIZE);
 
-  /* Save that to file */
-  FILE *pw_file = fopen((char *)PASSWORD_PATH.data, "wb");
-  if (!pw_file) {
-    throw("Failed to create password file");
-  }
-  fwrite(&pass, sizeof(password_t), 1, pw_file);
-  fclose(pw_file);
-
-  /* Only if all the password stuff is done, unlock the agent */
-  if (make_unlock_token) {
-    buf_t hash;
-    buf_from(&hash, pass.hash, sizeof(pass.hash));
-    write_unlock(&hash);
-  }
+  /* Generate password salt and hask */
+  generate_salt(&auth.pass_salt);
+  generate_salt(&auth.kek_salt);
+  hash_password(password, &auth.pass_salt, &auth.pass_hash);
 
   /* This is a new agent, so write the key encryption key */
-  uint8_t kek[KEK_SIZE];
-  bool using_urandom = urandom(kek, KEK_SIZE);
+  buf_t kek;
+  buf_initf(&kek, KEK_SIZE);
+  bool using_urandom = urandom(&kek);
   if (using_urandom) {
     debug("Using urandom for KEK");
   } else {
     debug("Can't access urandom. Using psuedosalt for KEK");
-    const char *home = getenv("HOME");
-    if (!home) {
-      throw("HOME is unset");
-    }
-    gen_pseudosalt(home, kek, KEK_SIZE);
+    gen_pseudosalt(buf_to_cstr(&HOME_PATH), &kek);
   }
 
   /* Encrypt KEK using RK */
-  buf_t kek_encrypted;
-  buf_t kek_buf;
-  buf_t pass_hash;
-  buf_init(&kek_encrypted, KEK_SIZE);
-  buf_view(&kek_buf, kek, sizeof(kek));
-  buf_view(&pass_hash, pass.hash, sizeof(pass.hash));
-  xor_encrypt(&kek_buf, &pass_hash, &kek_encrypted);
-  writefile((char *)KEK_PATH.data, &kek_encrypted);
-}
+  buf_t root_key;
+  buf_initf(&root_key, SHA256_HASH_SIZE);
+  hash_password(password, &auth.kek_salt, &root_key);
+  xor_encrypt(&kek, &root_key, &auth.kek_hash);
 
-static bool confirm_password(buf_t *password) {
-  bool result = check_password(password);
-
-  /* Read the stored password details for the unlock token */
-  password_t stored;
-  FILE *pw_file = fopen((char *)PASSWORD_PATH.data, "rb");
-  if (!pw_file) {
-    throw("Failed to read password file");
-  }
-  fread(&stored, sizeof(password_t), 1, pw_file);
-  fclose(pw_file);
-
-  /* Unlock the agent before returning */
-  if (result && make_unlock_token) {
-    buf_t stored_hash;
-    buf_view(&stored_hash, stored.hash, sizeof(stored.hash));
-    write_unlock(&stored_hash);
-  }
-  return result;
+  /* Write the auth stuff into a file on disk */
+  write_auth(&auth);
 }
 
 int cmd_unlock(int argc, char *argv[]) {
@@ -151,37 +108,18 @@ int cmd_unlock(int argc, char *argv[]) {
     }
   }
 
-  FILE *unlock_file = fopen((char *)UNLOCK_TOKEN_PATH.data, "rb");
-  if (unlock_file) {
-    if (check_unlock()) {
-      debug("Agent already unlocked");
-      fclose(unlock_file);
-      return 0;
-    } else {
-      throw("Invalid unlock token");
-      fclose(unlock_file);
-      return 1;
-    }
-  }
-
   buf_t password;
   buf_init(&password, 32);
 
-  FILE *pw_file = fopen((char *)PASSWORD_PATH.data, "rb");
-  if (!pw_file) {
+  if (!access(buf_to_cstr(&AUTH_KEYS_PATH))) {
     readline("Enter new password > ", &password);
-    save_new_password(&password);
+    save_password(&password);
     buf_free(&password);
     debug("Set new password");
     return 0;
   }
-  fclose(pw_file);
 
-  readline("Enter password > ", &password);
-  bool result = confirm_password(&password);
-  buf_free(&password);
-
-  if (result) {
+  if (prompt_password()) {
     debug("Unlocked agent");
     return 0;
   } else {

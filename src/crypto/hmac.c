@@ -4,7 +4,7 @@
 
 #include "constants.h"
 #include "crypto/sha256.h"
-#include "typedefs.h"
+#include "stddefs.h"
 
 void hmac_sha256_hash(const buf_t *key, const buf_t *data, buf_t *out) {
   uint8_t k_ipad[SHA256_BLOCK_SIZE];

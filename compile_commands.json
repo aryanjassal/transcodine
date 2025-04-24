@@ -8,6 +8,26 @@
       "-ansi",
       "-Iinclude",
       "-Wno-unused-result",
+      "-g",
+      "-c",
+      "-o",
+      "build/globals.o",
+      "src/globals.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/globals.c",
+    "output": "/home/aryanj/Projects/transcodine/build/globals.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/ii75mhh7sxl11167m1b86p0qrjsjyjmd-gcc-wrapper-14-20241116/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-g",
       "-c",
       "-o",
       "build/main.o",
@@ -26,6 +46,26 @@
       "-ansi",
       "-Iinclude",
       "-Wno-unused-result",
+      "-g",
+      "-c",
+      "-o",
+      "build/core/buffer.o",
+      "src/core/buffer.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/core/buffer.c",
+    "output": "/home/aryanj/Projects/transcodine/build/core/buffer.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/ii75mhh7sxl11167m1b86p0qrjsjyjmd-gcc-wrapper-14-20241116/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-g",
       "-c",
       "-o",
       "build/crypto/salt.o",
@@ -44,6 +84,7 @@
       "-ansi",
       "-Iinclude",
       "-Wno-unused-result",
+      "-g",
       "-c",
       "-o",
       "build/crypto/pbkdf2.o",
@@ -62,6 +103,7 @@
       "-ansi",
       "-Iinclude",
       "-Wno-unused-result",
+      "-g",
       "-c",
       "-o",
       "build/crypto/sha256.o",
@@ -80,6 +122,7 @@
       "-ansi",
       "-Iinclude",
       "-Wno-unused-result",
+      "-g",
       "-c",
       "-o",
       "build/crypto/xor.o",
@@ -98,6 +141,7 @@
       "-ansi",
       "-Iinclude",
       "-Wno-unused-result",
+      "-g",
       "-c",
       "-o",
       "build/crypto/hmac.o",
@@ -116,6 +160,7 @@
       "-ansi",
       "-Iinclude",
       "-Wno-unused-result",
+      "-g",
       "-c",
       "-o",
       "build/command/unlock.o",
@@ -134,14 +179,15 @@
       "-ansi",
       "-Iinclude",
       "-Wno-unused-result",
+      "-g",
       "-c",
       "-o",
-      "build/command/lock.o",
-      "src/command/lock.c"
+      "build/command/reset.o",
+      "src/command/reset.c"
     ],
     "directory": "/home/aryanj/Projects/transcodine",
-    "file": "/home/aryanj/Projects/transcodine/src/command/lock.c",
-    "output": "/home/aryanj/Projects/transcodine/build/command/lock.o"
+    "file": "/home/aryanj/Projects/transcodine/src/command/reset.c",
+    "output": "/home/aryanj/Projects/transcodine/build/command/reset.o"
   },
   {
     "arguments": [
@@ -152,14 +198,15 @@
       "-ansi",
       "-Iinclude",
       "-Wno-unused-result",
+      "-g",
       "-c",
       "-o",
-      "build/lib/buffer.o",
-      "src/lib/buffer.c"
+      "build/auth/hash.o",
+      "src/auth/hash.c"
     ],
     "directory": "/home/aryanj/Projects/transcodine",
-    "file": "/home/aryanj/Projects/transcodine/src/lib/buffer.c",
-    "output": "/home/aryanj/Projects/transcodine/build/lib/buffer.o"
+    "file": "/home/aryanj/Projects/transcodine/src/auth/hash.c",
+    "output": "/home/aryanj/Projects/transcodine/build/auth/hash.o"
   },
   {
     "arguments": [
@@ -170,14 +217,15 @@
       "-ansi",
       "-Iinclude",
       "-Wno-unused-result",
+      "-g",
       "-c",
       "-o",
-      "build/auth/check_unlock.o",
-      "src/auth/check_unlock.c"
+      "build/auth/check.o",
+      "src/auth/check.c"
     ],
     "directory": "/home/aryanj/Projects/transcodine",
-    "file": "/home/aryanj/Projects/transcodine/src/auth/check_unlock.c",
-    "output": "/home/aryanj/Projects/transcodine/build/auth/check_unlock.o"
+    "file": "/home/aryanj/Projects/transcodine/src/auth/check.c",
+    "output": "/home/aryanj/Projects/transcodine/build/auth/check.o"
   },
   {
     "arguments": [
@@ -188,6 +236,7 @@
       "-ansi",
       "-Iinclude",
       "-Wno-unused-result",
+      "-g",
       "-c",
       "-o",
       "build/utils/io.o",
@@ -206,6 +255,7 @@
       "-ansi",
       "-Iinclude",
       "-Wno-unused-result",
+      "-g",
       "-c",
       "-o",
       "build/utils/bootstrap.o",
@@ -224,14 +274,15 @@
       "-ansi",
       "-Iinclude",
       "-Wno-unused-result",
+      "-g",
       "-c",
       "-o",
-      "build/utils/constants.o",
-      "src/utils/constants.c"
+      "build/utils/throw.o",
+      "src/utils/throw.c"
     ],
     "directory": "/home/aryanj/Projects/transcodine",
-    "file": "/home/aryanj/Projects/transcodine/src/utils/constants.c",
-    "output": "/home/aryanj/Projects/transcodine/build/utils/constants.o"
+    "file": "/home/aryanj/Projects/transcodine/src/utils/throw.c",
+    "output": "/home/aryanj/Projects/transcodine/build/utils/throw.o"
   },
   {
     "arguments": [
@@ -242,24 +293,7 @@
       "-ansi",
       "-Iinclude",
       "-Wno-unused-result",
-      "-c",
-      "-o",
-      "build/utils/error.o",
-      "src/utils/error.c"
-    ],
-    "directory": "/home/aryanj/Projects/transcodine",
-    "file": "/home/aryanj/Projects/transcodine/src/utils/error.c",
-    "output": "/home/aryanj/Projects/transcodine/build/utils/error.o"
-  },
-  {
-    "arguments": [
-      "/nix/store/ii75mhh7sxl11167m1b86p0qrjsjyjmd-gcc-wrapper-14-20241116/bin/cc",
-      "-Wall",
-      "-Wextra",
-      "-Werror",
-      "-ansi",
-      "-Iinclude",
-      "-Wno-unused-result",
+      "-g",
       "-c",
       "-o",
       "build/utils/args.o",

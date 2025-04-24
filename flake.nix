@@ -16,6 +16,9 @@
           gdb
           gnumake
         ];
+        shellHook = ''
+          PATH=./build:$PATH
+        '';
       };
     };
 }

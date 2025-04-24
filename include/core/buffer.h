@@ -1,7 +1,7 @@
 #ifndef __LIB_BUFFER_H__
 #define __LIB_BUFFER_H__
 
-#include "typedefs.h"
+#include "stddefs.h"
 
 typedef struct {
   uint8_t *data;
@@ -18,6 +18,15 @@ typedef struct {
  * @author Aryan Jassal
  */
 void buf_init(buf_t *buf, size_t initial_capacity);
+
+/**
+ * Initialise a fixed buffer with a given capacity. This will run malloc under
+ * the hood to initialise some memory on the heap.
+ * @param buf An uninitialised buffer
+ * @param initial_capacity The initial capacity of the buffer
+ * @author Aryan Jassal
+ */
+void buf_initf(buf_t *buf, size_t initial_capacity);
 
 /**
  * Copies the data from source to destination. Note that this is not an exact
@@ -119,5 +128,19 @@ void buf_clear(buf_t *buf);
  * @author Aryan Jassal
  */
 void buf_free(buf_t *buf);
+
+/**
+ * Converts a buffer to a char pointer. This utility function can be used to
+ * convert buffer data into paths to be used by C inbuilts.
+ *
+ * WARNING: Assume that any modifications to the buffer will invalidate the char
+ * pointer. Do not modify the contents if you are going to use the result
+ * somewhere. Do not reuse the result unless you have a really good reason.
+ *
+ * @param buf An initialised buffer
+ * @returns A char pointer to the beginning of the buffer data
+ * @author Aryan Jassal
+ */
+char *buf_to_cstr(buf_t *buf);
 
 #endif

@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "constants.h"
-#include "typedefs.h"
+#include "stddefs.h"
 #include "utils/throw.h"
 
 static void buf_resize(buf_t *buf, size_t new_capacity) {
@@ -27,6 +27,16 @@ void buf_init(buf_t *buf, size_t initial_capacity) {
   buf->size = 0;
   buf->capacity = initial_capacity;
   buf->fixed = false;
+}
+
+void buf_initf(buf_t *buf, size_t initial_capacity) {
+  buf->data = (uint8_t *)malloc(initial_capacity);
+  if (!buf->data) {
+    throw("Malloc failed");
+  }
+  buf->size = 0;
+  buf->capacity = initial_capacity;
+  buf->fixed = true;
 }
 
 void buf_copy(buf_t *dst, const buf_t *src) {
@@ -93,7 +103,7 @@ void buf_write(buf_t *buf, const uint8_t data) {
 }
 
 bool buf_equal(const buf_t *a, const buf_t *b) {
-  return a->size == b->size && memcmp(a, b, a->size) == 0;
+  return a->size == b->size && memcmp(a->data, b->data, a->size) == 0;
 }
 
 void buf_clear(buf_t *buf) { buf->size = 0; }
@@ -104,3 +114,5 @@ void buf_free(buf_t *buf) {
   }
   buf->data = NULL;
 }
+
+char *buf_to_cstr(buf_t *buf) { return (char *)buf->data; }

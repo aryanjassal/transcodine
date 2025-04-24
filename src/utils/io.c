@@ -5,7 +5,7 @@
 
 #include "constants.h"
 #include "core/buffer.h"
-#include "typedefs.h"
+#include "stddefs.h"
 #include "utils/throw.h"
 
 void readline(const char *prompt, buf_t *buf) {
@@ -45,6 +45,25 @@ void readfile(const char *filepath, buf_t *buf) {
   fclose(file);
 }
 
+void readfilef(const char *filepath, buf_t *buf) {
+  uint8_t chunk[READFILE_CHUNK];
+  FILE *file = fopen(filepath, "rb");
+  if (!file) {
+    throw("Failed to open file");
+  }
+  size_t remaining = buf->capacity - buf->size;
+  while (remaining > 0) {
+    size_t to_read = (remaining < READFILE_CHUNK) ? remaining : READFILE_CHUNK;
+    size_t n = fread(chunk, sizeof(uint8_t), to_read, file);
+    if (n == 0)
+      break;
+
+    buf_append(buf, chunk, n);
+    remaining -= n;
+  }
+  fclose(file);
+}
+
 void writefile(const char *filepath, buf_t *buf) {
   FILE *file = fopen(filepath, "wb");
   if (!file) {
@@ -66,16 +85,15 @@ bool access(const char *filepath) {
   return true;
 }
 
-bool urandom(uint8_t *buffer, const size_t len) {
-  FILE *rand_file = fopen("/dev/urandom", "rb");
-  if (!rand_file) {
+bool urandom(buf_t *buf) {
+  if (!access("/dev/urandom")) {
     return false;
   }
-  size_t bytes_read = fread(buffer, sizeof(uint8_t), len, rand_file);
-  if (bytes_read < len) {
+  buf_clear(buf);
+  readfilef("/dev/urandom", buf);
+  if (buf->size != buf->capacity) {
     throw("Did not read enough data");
   }
-  fclose(rand_file);
   return true;
 }
 

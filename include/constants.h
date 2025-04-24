@@ -1,5 +1,5 @@
-#ifndef __UTILS_CONSTANTS_H__
-#define __UTILS_CONSTANTS_H__
+#ifndef __CONSTANTS_H__
+#define __CONSTANTS_H__
 
 /* Enable debug mode. Only for testing. */
 #define DEBUG
@@ -10,12 +10,10 @@
 #define PBKDF2_ITERATIONS 16384
 #define XOR_KEY "==<>==XOR-^.V.^-KEY==<>=="
 #define XOR_DIFFUSION 31
-#define UNLOCK_PAYLOAD "unlock-token"
 
 /* Bootstrap file names */
-#define PASSWORD_FILE_NAME ".tc-pass"
-#define UNLOCK_TOKEN_FILE_NAME "tc-agent.lock"
-#define KEK_FILE_NAME ".tc-key"
+#define AUTH_KEYS_FILE_NAME ".tc-auth.db"
+#define KEYRING_FILE_NAME ".tc-keyring.db"
 
 /* Password handling parameters */
 #define PASSWORD_SALT_SIZE 16

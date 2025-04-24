@@ -11,84 +11,54 @@
 #include "typedefs.h"
 #include "utils/args.h"
 #include "utils/io.h"
-#include "utils/throw.h"
-
-static void update_kek(const buf_t *rk_old, const buf_t *rk_new) {
-  /* Load existing KEK */
-  buf_t kek_encrypted;
-  buf_init(&kek_encrypted, KEK_SIZE);
-  readfile((char *)KEK_PATH.data, &kek_encrypted);
-
-  /* Decrypt KEK */
-  buf_t kek;
-  buf_init(&kek, KEK_SIZE);
-  xor_decrypt(&kek_encrypted, rk_old, &kek);
-
-  /* Re-encrypt KEK */
-  buf_t kek_new;
-  buf_init(&kek_new, KEK_SIZE);
-  xor_encrypt(&kek, rk_new, &kek_new);
-
-  /* Store re-encrypted KEK */
-  FILE *kek_out = fopen((char *)KEK_PATH.data, "wb");
-  if (!kek_out) {
-    throw("Failed to update KEK file");
-  }
-  fwrite(kek_encrypted.data, sizeof(uint8_t) * kek_encrypted.size, 1, kek_out);
-  fclose(kek_out);
-}
 
 static void update_password(buf_t *old_password, buf_t *new_password) {
-  /* Hash old password */
-  password_t pass;
-  FILE *pw_file = fopen((char *)PASSWORD_PATH.data, "rb");
-  if (!pw_file) {
-    throw("Failed to read password file");
-  }
-  fread(&pass.salt, sizeof(pass.hash), 1, pw_file);
-  fclose(pw_file);
-  hash_password(old_password, pass.salt, pass.hash);
+  /* Being here means old password was correct */
+  auth_t auth;
+  buf_initf(&auth.pass_salt, PASSWORD_SALT_SIZE);
+  buf_initf(&auth.pass_hash, SHA256_HASH_SIZE);
+  buf_initf(&auth.kek_salt, PASSWORD_SALT_SIZE);
+  buf_initf(&auth.kek_hash, KEK_SIZE);
+  read_auth(&auth);
 
   /* Create new password and derive new RK */
-  password_t new_pass;
-  memcpy(new_pass.salt, pass.salt, sizeof(pass.salt));
-  hash_password(new_password, new_pass.salt, new_pass.hash);
-
-  /* Store new password */
-  pw_file = fopen((char *)PASSWORD_PATH.data, "wb");
-  if (!pw_file) {
-    throw("Failed to update password file");
-  }
-  fwrite(&new_pass, sizeof(password_t), 1, pw_file);
-  fclose(pw_file);
+  auth_t new_auth;
+  buf_initf(&new_auth.pass_salt, SHA256_HASH_SIZE);
+  buf_copy(&new_auth.pass_salt, &auth.pass_salt);
+  buf_copy(&new_auth.kek_salt, &auth.kek_salt);
+  hash_password(new_password, &new_auth.pass_salt, &new_auth.pass_hash);
 
   /* Update KEK to reflect new password */
   buf_t rk_old;
   buf_t rk_new;
-  buf_view(&rk_old, pass.hash, sizeof(pass.hash));
-  buf_view(&rk_new, new_pass.hash, sizeof(new_pass.hash));
-  update_kek(&rk_old, &rk_new);
+  buf_initf(&rk_old, SHA256_HASH_SIZE);
+  buf_initf(&rk_new, SHA256_HASH_SIZE);
+  hash_password(old_password, &auth.kek_salt, &rk_old);
+  hash_password(new_password, &new_auth.kek_salt, &rk_new);
 
-  /* Update unlock token */
-  write_unlock(&rk_new);
+  /* Re-encrypt KEK into the new auth object */
+  buf_t kek;
+  buf_initf(&kek, KEK_SIZE);
+  xor_decrypt(&auth.kek_hash, &rk_old, &kek);
+  xor_encrypt(&kek, &rk_new, &new_auth.kek_hash);
+
+  /* Store new auth details */
+  write_auth(&new_auth);
 }
 
 int cmd_reset(int argc, char **argv) {
   ignore_args(argc, argv);
 
-  /* TODO: does the agent even need unlocking for this? */
-  /* TODO: why can't we also prompt the user to unlock for that one command? */
-  if (!check_unlock()) {
-    error("The agent is not unlocked!");
+  if (!access(buf_to_cstr(&AUTH_KEYS_PATH))) {
+    error("Create a new agent before attempting to reset password");
     return 1;
   }
 
   buf_t password_current;
   buf_init(&password_current, 32);
   readline("Enter current password > ", &password_current);
-  bool result = check_password(&password_current);
 
-  if (!result) {
+  if (!check_password(&password_current)) {
     buf_free(&password_current);
     error("The password is incorrect");
     return 1;
@@ -111,5 +81,6 @@ int cmd_reset(int argc, char **argv) {
 
   update_password(&password_current, &password_new_1);
 
+  buf_free(&password_current);
   return 0;
 }

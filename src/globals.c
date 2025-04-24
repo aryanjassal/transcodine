@@ -2,6 +2,6 @@
 
 #include "core/buffer.h"
 
-buf_t PASSWORD_PATH;
-buf_t UNLOCK_TOKEN_PATH;
-buf_t KEK_PATH;
+buf_t HOME_PATH;
+buf_t AUTH_KEYS_PATH;
+buf_t KEYRING_PATH;

@@ -1,25 +1,13 @@
-#ifndef __UTILS_TYPES_H__
-#define __UTILS_TYPES_H__
+#ifndef __TYPEDEFS_H__
+#define __TYPEDEFS_H__
 
-#include <stdio.h>
-
-#include "constants.h"
-
-/* Setup boolean logic */
-#define false 0
-#define true 1
-typedef char bool;
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long uint64_t;
-
-typedef size_t size_t;
+#include "core/buffer.h"
 
 typedef struct {
-  uint8_t salt[PASSWORD_SALT_SIZE];
-  uint8_t hash[SHA256_HASH_SIZE];
-} password_t;
+  buf_t pass_salt;
+  buf_t pass_hash;
+  buf_t kek_salt;
+  buf_t kek_hash;
+} auth_t;
 
 #endif

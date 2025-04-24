@@ -1,11 +1,11 @@
-#ifndef __UTILS_GLOBALS_H__
-#define __UTILS_GLOBALS_H__
+#ifndef __GLOBALS_H__
+#define __GLOBALS_H__
 
 #include "core/buffer.h"
 
 /* Bootstrap state */
-extern buf_t PASSWORD_PATH;
-extern buf_t UNLOCK_TOKEN_PATH;
-extern buf_t KEK_PATH;
+extern buf_t HOME_PATH;
+extern buf_t AUTH_KEYS_PATH;
+extern buf_t KEYRING_PATH;
 
 #endif
