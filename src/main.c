@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "command/bin/bin.h"
 #include "command/reset.h"
 #include "command/unlock.h"
 #include "stddefs.h"
@@ -13,10 +14,10 @@ int cmd_help(int argc, char *argv[]);
 cmd_handler_t commands[] = {
     {"unlock", "Unlock the agent or create a new agent state", cmd_unlock},
     {"reset", "Change the agent password", cmd_reset},
-    {"help", "Print usage guide", cmd_help},
-};
+    {"bin", "Operate on bins", cmd_bin},
+    {"help", "Print usage guide", cmd_help}};
 
-const int num_commands = sizeof(commands) / sizeof(commands[0]);
+const int num_commands = sizeof(commands) / sizeof(cmd_handler_t);
 
 /**
  * Print the usage guidelines and a list of available commands.
@@ -54,7 +55,8 @@ int main(int argc, char *argv[]) {
   int i;
   for (i = 0; i < num_commands; ++i) {
     if (strcmp(argv[1], commands[i].command) == 0) {
-      /* If we found the command, call the handler with the relevant arguments
+      /**
+       * If we found the command, call the handler with the relevant arguments
        * (not including the command, only the options).
        */
       found = true;

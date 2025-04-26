@@ -98,7 +98,7 @@ void aes_init(aes_ctx_t *ctx, const buf_t *key) {
     throw("NULL parameters provided");
   }
   if (key->size != AES_KEY_SIZE || key->capacity != AES_KEY_SIZE ||
-      !key->fixed || !key->data) {
+      !key->data) {
     throw("Buffer state is invalid");
   }
 
@@ -141,8 +141,7 @@ void aes_init(aes_ctx_t *ctx, const buf_t *key) {
 }
 
 void aes_encrypt(const aes_ctx_t *ctx, const buf_t *in, buf_t *out) {
-  if (in->size != AES_BLOCK_SIZE || in->capacity != AES_BLOCK_SIZE ||
-      !in->fixed) {
+  if (in->size != AES_BLOCK_SIZE || in->capacity != AES_BLOCK_SIZE) {
     throw("In buffer state is invalid");
   }
   if (out->size != AES_BLOCK_SIZE || out->capacity != AES_BLOCK_SIZE ||

@@ -12,6 +12,7 @@
 #define XOR_DIFFUSION 31
 #define AES_BLOCK_SIZE 16
 #define AES_KEY_SIZE 16
+#define AES_IV_SIZE 16
 #define AES_ROUNDS 10
 #define AES_NK (AES_KEY_SIZE / 4)
 #define AES_NR AES_ROUNDS
@@ -21,6 +22,15 @@
 /* Bootstrap file names */
 #define AUTH_KEYS_FILE_NAME ".tc-auth.db"
 #define KEYRING_FILE_NAME ".tc-keyring.db"
+
+/* Constants for handling bin files */
+#define BIN_ID_SIZE 16
+#define BIN_MAGIC_SIZE 8
+#define BIN_MAGIC_VERSION "ARCHV-32"
+#define BIN_MAGIC_UNLOCKED "UNLOCKED"
+#define BIN_MAGIC_FILE "ARCHVFLE"
+#define BIN_MAGIC_END "ARCHVEND"
+#define BIN_GLOBAL_HEADER_SIZE 40
 
 /* Password handling parameters */
 #define PASSWORD_SALT_SIZE 16

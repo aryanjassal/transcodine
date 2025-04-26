@@ -97,6 +97,29 @@ bool urandom(buf_t *buf) {
   return true;
 }
 
+bool urandom_ascii(buf_t *buf) {
+  if (!access("/dev/urandom")) {
+    return false;
+  }
+  buf_clear(buf);
+  readfilef("/dev/urandom", buf);
+  if (buf->size != buf->capacity) {
+    throw("Did not read enough data");
+  }
+  size_t i;
+  for (i = 0; i < buf->size; ++i) {
+    uint8_t v = buf->data[i] % 62; /* 26 + 26 + 10 = 62 characters */
+    if (v < 26) {
+      buf->data[i] = 'A' + v; /* 0-25 => 'A'-'Z' */
+    } else if (v < 52) {
+      buf->data[i] = 'a' + (v - 26); /* 26-51 => 'a'-'z' */
+    } else {
+      buf->data[i] = '0' + (v - 52); /* 52-61 => '0'-'9' */
+    }
+  }
+  return true;
+}
+
 void info(const char *message) {
   printf("\033[0;33mINFO: %s\033[0m\n", message);
 }

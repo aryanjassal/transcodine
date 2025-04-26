@@ -88,7 +88,8 @@ the following protocols.
 - SHA-256
 - HMAC-SHA-256
 - PBKDF2-HMAC-SHA-256
-- ChaCha20-Poly1305
+- AES-128
+- AES-CTR
 
 ## Technical Details
 
@@ -109,24 +110,12 @@ hash was used for as a key, otherwise everything is encrypted forever.
 
 ### Agent State Management
 
-To unlock the agent and avoid doing it each command, the
-`transcodine agent unlock` command can be used. That command will create a
-unlock token which will reside in the `/tmp` directory. This means that the
-token will be wiped on a reboot. The token uses the root hash key and encrypts
-it using a diffused XOR cypher. This prevents tampering with the key or forging
-the unlock token.
+Previously, the agent was being kept unlocked via an unlock token stored in a
+temporary directory, but that led to security vulnerabilities as without
+communicating with an agent, a hash can be used to synthesize the unlock token.
 
-Do note that the token will remain valid until you manually lock your agent or
-remove the token. Other users can also technically view the token but it should
-be safe.
-
-<!-- prettier-ignore-start -->
-> [!WARNING]
-> If anyone gets access to the password hash, they would be easily able to
-> replicate the unlock token. This is a real security risk. You either have an
-> agent running in the background, storing state, or you need to authenticate
-> each time. I chose storing state on disk for convenience.
-<!-- prettier-ignore-end -->
+In favour of enhancing security, each command now requires entering the password
+instead of saving an unlocked state.
 
 ### Password Reset
 

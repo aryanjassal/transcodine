@@ -23,7 +23,7 @@
 #include "stddefs.h"
 
 typedef struct {
-  uint8_t round_keys[AES_ROUNDS * AES_KEY_SIZE];
+  uint8_t round_keys[(AES_ROUNDS + 1) * AES_KEY_SIZE];
 } aes_ctx_t;
 
 /**

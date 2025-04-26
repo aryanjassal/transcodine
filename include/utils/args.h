@@ -1,7 +1,7 @@
 #ifndef __UTILS_ARGS_H__
 #define __UTILS_ARGS_H__
 
-#include "typedefs.h"
+#include "stddefs.h"
 
 typedef struct {
   const char *command;
@@ -33,5 +33,18 @@ void ignore_args(int argc, char *argv[]);
  * @author Aryan Jassal
  */
 void ignore_arg(char *arg);
+
+/**
+ * Dispatches flag handlers by matching them agains their flags.
+ * @param argc Number of arguments
+ * @param argv Array of arguments
+ * @param flags Array of all flag metadata and their handlers
+ * @param num_flags Number of flags in the array
+ * @returns 1 if early exit is requested by the flag, -1 if the flag wasn't
+ * found, 0 otherwise.
+ * @author Aryan Jassal
+ */
+int dispatch_flag(int argc, char *argv[], const flag_handler_t flags[],
+                  int num_flags);
 
 #endif
