@@ -10,6 +10,13 @@
 #define PBKDF2_ITERATIONS 16384
 #define XOR_KEY "==<>==XOR-^.V.^-KEY==<>=="
 #define XOR_DIFFUSION 31
+#define AES_BLOCK_SIZE 16
+#define AES_KEY_SIZE 16
+#define AES_ROUNDS 10
+#define AES_NK (AES_KEY_SIZE / 4)
+#define AES_NR AES_ROUNDS
+#define AES_NB (AES_BLOCK_SIZE / 4)
+#define AES_KEY_SCHEDULE_SIZE (AES_BLOCK_SIZE * (AES_NR + 1))
 
 /* Bootstrap file names */
 #define AUTH_KEYS_FILE_NAME ".tc-auth.db"
