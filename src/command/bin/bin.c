@@ -3,7 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "command/bin/add.h"
+#include "command/bin/cat.h"
 #include "command/bin/create.h"
+#include "command/bin/ls.h"
 #include "command/bin/open.h"
 #include "utils/args.h"
 
@@ -11,6 +14,9 @@ static int cmd_bin_help(int argc, char *argv[]);
 
 static cmd_handler_t commands[] = {
     {"create", "Create a new bin", cmd_bin_create},
+    {"ls", "Recursively list all the files in a bin", cmd_bin_ls},
+    {"add", "Adds a file from disk to the bin", cmd_bin_add},
+    {"cat", "Reads the contents of a file in the bin", cmd_bin_cat},
     {"open", "Decrypt a bin and store it (debug)", cmd_bin_open},
     {"help", "Print usage guide", cmd_bin_help}};
 

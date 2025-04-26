@@ -26,11 +26,13 @@
 /* Constants for handling bin files */
 #define BIN_ID_SIZE 16
 #define BIN_MAGIC_SIZE 8
-#define BIN_MAGIC_VERSION "ARCHV-32"
+#define BIN_GLOBAL_HEADER_SIZE 40
+#define BIN_FILE_HEADER_SIZE 24
+#define BIN_MAGIC_VERSION "ARCHV-64"
 #define BIN_MAGIC_UNLOCKED "UNLOCKED"
 #define BIN_MAGIC_FILE "ARCHVFLE"
 #define BIN_MAGIC_END "ARCHVEND"
-#define BIN_GLOBAL_HEADER_SIZE 40
+#define BIN_MAGIC_FILE "ARCHVFLE"
 
 /* Password handling parameters */
 #define PASSWORD_SALT_SIZE 16

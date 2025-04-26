@@ -1,6 +1,7 @@
-#include "command/bin/create.h"
+#include "command/bin/add.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #include "auth/check.h"
 #include "bin.h"
@@ -18,7 +19,7 @@ static flag_handler_t flags[] = {
 static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
 
 static void flag_help() {
-  printf("Usage: transcodine bin create <name>\n");
+  printf("Usage: transcodine bin add <name> <local path> <bin path>\n");
   printf("Available options:\n");
   int i;
   for (i = 0; i < num_flags; ++i) {
@@ -26,7 +27,7 @@ static void flag_help() {
   }
 }
 
-int cmd_bin_create(int argc, char *argv[]) {
+int cmd_bin_add(int argc, char *argv[]) {
   /* Dispatch flag handler */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
   case 1:
@@ -41,7 +42,7 @@ int cmd_bin_create(int argc, char *argv[]) {
   }
 
   /* Check argument options */
-  if (argc < 1) {
+  if (argc < 3) {
     flag_help();
     return 1;
   }
@@ -52,8 +53,13 @@ int cmd_bin_create(int argc, char *argv[]) {
     return 1;
   }
 
-  if (access(argv[0])) {
-    error("A bin with that name already exists");
+  if (!access(argv[0])) {
+    error("A bin with that name does not exist");
+    return 1;
+  }
+
+  if (!access(argv[1])) {
+    error("A file with that name does not exist");
     return 1;
   }
 
@@ -62,11 +68,22 @@ int cmd_bin_create(int argc, char *argv[]) {
 
   buf_t aes_key;
   buf_init(&aes_key, AES_KEY_SIZE);
+  readfilef(".key", &aes_key);
 
-  bin_create(&bin, argv[0], &aes_key);
-  writefile(".key", &aes_key);
+  bin_open(&bin, argv[0], "/tmp/filebin", &aes_key);
 
-  printf("Created bin '%s' (%s) successfully\n", argv[0], bin.id.data);
+  buf_t fq_path;
+  buf_init(&fq_path, strlen(argv[2]) + 1);
+  buf_append(&fq_path, argv[2], strlen(argv[2]));
+  buf_write(&fq_path, 0);
 
+  buf_t data;
+  buf_init(&data, 32);
+  readfile(argv[1], &data);
+
+  bin_addfile(&bin, &fq_path, &data);
+
+  /* Cleanup */
+  bin_close(&bin, &aes_key);
   return 0;
 }

@@ -13,21 +13,21 @@
  * large part of the) output so it might be technically more secure, but for a
  * program like this, it really doesn't make a difference.
  *
- * This is what an encrypted archive looks like. I'm calling the format ARC32,
- * for 32-bit archive, where 32-bit refers to the bits in the size field.
+ * This is what an encrypted archive looks like. I'm calling the format ARC64,
+ * for 64-bit archive, where 64-bit refers to the bits in the size field.
  *
  * [40-byte Global Header]
- *   [8-byte VERSION]: "ARCHV-32"
+ *   [8-byte VERSION]: "ARCHV-64"
  *   [16-byte BIN_ID]: Like "abcd1234wxyz68789"
  *   [16-byte AES_IV]
  * [8-byte Magic Block]
  *   [8-byte MAGIC]: "UNLOCKED
- * [16-byte File Header]
+ * [24-byte File Header]
  *   [8-byte MAGIC]: "ARCHVFLE"
- *   [4-byte PATH_LEN]
- *   [4-byte DATA_LEN]
+ *   [8-byte PATH_LEN]: Null-terminated
+ *   [8-byte DATA_LEN]
  * [File Data]
- *   [... FILE_PATH_DATA]
+ *   [... FILE_PATH_DATA]: Null-terminated
  *   [... FILE_DATA]
  * [Footer]
  *   [8-byte END]: "ARCHVEND"
@@ -108,6 +108,38 @@ void bin_open(bin_t *bin, const char *encrypted_path,
  * @author Aryan Jassal
  */
 void bin_close(bin_t *bin, const buf_t *aes_key);
+
+/**
+ * Writes data from a buffer into a specified path on the disk. Note that the
+ * path can be a fully-qualified path and it will be parsed and processed into a
+ * tree by the program instead by the archival system. Note that the file paths
+ * must be null-terminated.
+ * @param bin An initialised bin object
+ * @param fq_path The fully-qualified path relative to bin root
+ * @param data The data of the file to be written
+ * @author Aryan Jassal
+ */
+void bin_addfile(bin_t *bin, const buf_t *fq_path, const buf_t *data);
+
+/**
+ * Lists all the files in a bin recursively. The files are stored flatly, so
+ * there is no real way to only read files in a specific directory - they need
+ * to be converted at runtime.
+ * @param bin An initialised bin object
+ * @param paths The buffer storing const char* pointers for each path
+ * @author Aryan Jassal
+ */
+void bin_listfiles(const bin_t *bin, buf_t *paths);
+
+/**
+ * Searches for a file by its name in the bin, and returns its contents if found.
+ * @param bin An initialised bin object
+ * @param path The path of the file in the bin
+ * @param out_data The buffer containing the output data
+ * @returns True if file was found, false otherwise
+ * @author Aryan Jassal
+ */
+bool bin_fetchfile(const bin_t *bin, const char *path, buf_t *out_data);
 
 /**
  * Frees memory consumed by the bin object. This is mostly to free the buffers.
