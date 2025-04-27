@@ -5,91 +5,57 @@
 > This program is for educational purposes and is not production-ready!
 <!-- prettier-ignore-end -->
 
-Transcodine is a command-line application for securely storing and managing
-collections of files in **encrypted-at-rest** bins, with optional compression
-and multi-bin support. It’s designed to give users complete control over
-sensitive data while maintaining portability and performance through a
-simplified archive structure. Access to stored files requires an authenticated
-and unlocked agent session, making all bin contents unreadable without explicit
-authorization.
+Transcodine is a command-line application for **securely storing and managing
+collections of files** in virtual file systems which are **encrypted-at-rest**,
+with optional compression and multi-bin support. It’s designed to give users
+complete control over sensitive data while **maintaining portability and
+performance** through a simplified archive structure. Access to stored files
+requires an authenticated and unlocked agent session, making all **bin contents
+unreadable without explicit authorization**.
 
-## Key Features
+**Key features**
 
-### Encrypted-at-Rest Bins
+- **Encrypted-at-rest bins** act as a freestanding secure archive, ensuring all
+  contents (including file metadata) are all encrypted.
+- **Simplified archive structure** thanks to a custom archival format designed
+  for transcodine ensures minimal overhead for storing data while also
+  supporting arbitrarily large files and their paths.
+- **Optional compression** can compress all the tracked bins into a single file,
+  further reducing the disk footprint.
+- **Multi-bin architecture** ensures separation of security so a single leaked
+  secret cannot compromise the entire database, allowing the secrets to be
+  duplicated and organised.
+- **Password-based key derivation** enforces the correct password to unlock the
+  database containing the decryption keys, making authentication enforced by
+  design instead of programatically.
+- **Up-to-date cryptography** allows for maximum security by using tested and
+  hardened cryptographic algorithms known to resist all sorts of malicious
+  attacks.
+- **Portable ANSI C** implementation makes an easy job of using the application
+  on any Unix-based systems and requires minimal dependencies to get running on
+  an embedded system.
 
-Each bin acts like a standalone secure archive. All contents (including headers,
-metadata, and file data) are encrypted before being written to disk using a
-per-bin key derived from a user-defined master password.
+## Table of Contents
 
-### Simplified TAR-like Structure
+- [Security Model](#security-model)
+- [Technical Details](#technical-details)
+  - [Password Management](#password-management)
+  - [Agent Management](#agent-management)
+  - [Bin Management](#bin-management)
+  - [Notes](#notes)
+- [Credits](#credits)
 
-Transcodine uses a lightweight custom archive format modeled after the TAR
-protocol. It supports file and directory headers, optional nesting, and
-extensible metadata fields — while removing legacy TAR limitations.
-
-### Optional Compression
-
-Bins can be optionally compressed using a block-based streaming method, reducing
-disk usage without sacrificing security. Compression occurs after headers are
-constructed but before encryption.
-
-### Multi-Bin Architecture
-
-Users can manage multiple bins, each with its own independent encryption key.
-This isolation ensures that brute-forcing or compromising one bin does not
-expose others.
-
-### Password-Based Key Derivation
-
-Users can manage multiple bins, each with its own independent encryption key.
-This isolation ensures that brute-forcing or compromising one bin does not
-expose others. The password is hashed and encrypted using state-of-the-art
-PBKDF2-HMAC-SHA-256 hashing algorithm to ensure resistance against all the most
-common attacks.
-
-### Unlockable Agent
-
-The system includes a secure unlock agent that holds derived keys temporarily in
-memory for authenticated sessions. Until the agent is unlocked via password
-entry, all bins remain cryptographically sealed.
-
-### Token-Based Session Unlocking
-
-Upon successful authentication, the agent writes an unlock token (based on a
-re-encrypted hash) to disk. This allows subsequent commands to verify session
-state without re-requesting the password — while remaining resistant to
-tampering.
-
-### Portability
-
-Only standard ANSI C headers were used to maximise portability. While this means
-that some features were compromised, high performance and safety are
-guarranteed.
-
-## Security Model
-
-- **Encryption:** Bins are encrypted using derived keys through authenticated
-  encryption primitives (e.g., ChaCha20/Poly1305).
-- **Key Isolation:** Each bin receives a **unique cryptographic key**, derived
-  independently using unique salts.
-- **No plaintext leaks:** Even metadata like file names and sizes are encrypted.
-- **Unlock tokens:** Stored tokens are protected using a one-way function to
-  prevent reconstruction of the session key.
-- **Brute-force resistance:** PBKDF2 iteration count is configurable to balance
-  security and speed, making brute-forcing unfeasible. The inclusion of salting
-  also prevents rainbow-table attacks.
-- **Tamper protection:** File headers and padding are validated at read time to
-  detect unauthorized modifications.
+## Capabilities
 
 To provide maximum security for the users, the most advanced security protocols
-have been selected to keep the data secure. Some of the implementations include
-the following protocols.
+have been selected to keep the data secure. The implementations include the
+following protocols.
 
-- SHA-256
-- HMAC-SHA-256
-- PBKDF2-HMAC-SHA-256
-- AES-128
-- AES-CTR
+- [SHA256](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf)
+- [SHA256-HMAC](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.198-1.pdf)
+- [PBKDF2](https://www.rfc-editor.org/rfc/pdfrfc/rfc8018.txt.pdf)
+- [AES128](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197-upd1.pdf)
+- [AES-CTR](https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-38a.pdf)
 
 ## Technical Details
 
@@ -106,21 +72,54 @@ The encrypted key generated by the hashing algorithm is the root key. This root
 key then unlocks a key encryption key, or KEK for short. This middle-man exists
 to prevent re-encrypting either the bins or the database storing all the keys,
 as updating the password would mean a complete rehash of everything that the
-hash was used for as a key, otherwise everything is encrypted forever.
+hash was used for as a key, otherwise all the encrypted data will be lost
+forever.
 
-### Agent State Management
+### Agent Management
 
 Previously, the agent was being kept unlocked via an unlock token stored in a
-temporary directory, but that led to security vulnerabilities as without
-communicating with an agent, a hash can be used to synthesize the unlock token.
+temporary directory, but that led to a security vulnerability. The unlock token
+needs to be encrypted and not hashed, so it can be decrypted at runtime with a
+known key, but if the unlock is achievable without entering a password to unlock
+the encrypted database, then the unlock token can be easily forged to falsely
+unlock a user session.
 
-In favour of enhancing security, each command now requires entering the password
-instead of saving an unlocked state.
+In favor of enhancing security, each command requires entering the password
+instead. This allows for the password itself to be used as the input key to
+derive decryption hashes,so a bad actor can obtain the password hashes and
+salts, but without having access to the raw password, they will be unable to do
+anything with it.
 
-### Password Reset
+### Bin Management
 
-This is the stage where the KEK is re-encrypted to prevent rehashing of the
-entire tracked state.
+Each bin contains a 40-byte global header. This header stores a public
+decryption key. The paired private key is stored in an encrypted database which
+is only opened by using the original password as the key. All the data after the
+global header is encrypted via AES-CTR. A magic string is stored immediately
+after the global header which will read `UNLOCKED` if the decryption was
+successful.
+
+To store a file, it needs a new header. The file header contains the size of the
+file path and the size of the data. This allows for the file paths and data to
+be dynamic and to not waste storage space in each header block for a file name
+which would often undershoot the reserved space and might overshoot the allowed
+space as well.
+
+Immediately following the file header, the file path and the file data is
+located. Note that the file path must be null-terminated. This does not apply to
+the file data.
+
+The file paths are stored as fully-qualified paths, meaning the files are not
+grouped by directories by architecture and needs to be done manually at
+parse-time. This also introduces a limitation where empty directories cannot be
+made, they can only be made implicitly via file creation.
+
+To minimise the impact of the bins in memory, the archive must be streamed to
+decrypt it. This streaming requires the archive to be written to a temporary
+directory, completely unlocked. This can be taken advantage of by malicious
+actors. Moreover, if the program crashed unexpectedly, chances are that the
+archive will remain decrypted. It needs to be manually cleaned up and does
+reflect a security breach.
 
 ### Notes
 
@@ -131,14 +130,16 @@ entire tracked state.
   features of strings in C++ or `Buffer` in Node.js runtimes. However, this
   implementation focuses more heavily on heap management than features and only
   supports basic functions like appending data or clearing the buffer.
-- The password is completely managed by the unlock command handler. It handles
-  reading the input and hashing it. If needed, the hashing protocol can be
-  trivially updated to something more advanced.
-- Unability to access platform-specific headers included with wanting the safety
-  of not invoking any `system` calls led to the inability to create system
-  directories. As such, all the configuration will be dumped in directories
-  known to exist and being writable. In this case, it defaults to `$HOME`.
 - Performance, correctness, or production-readiness were not prioritised in this
   implementation. Rather, this is for educational purposes and the aim was to
   showcase advanced encryption/compression algorithms, which I'd say this does
   pretty well.
+- The main hashing algorithm, PBDKF2, is designed to be fast and have a lower
+  memory impact, however that makes it weaker to GPU cracking. Thus, for hashes
+  which can be easily accessed by bad actors, using stronger hashing algorithms
+  like argon2 is recommended for production environments.
+
+## Credits
+
+Refer to [Polykey](https://github.com/MatrixAI/Polykey) for a complete and
+production-ready implementation of this concept.
