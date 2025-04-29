@@ -8,24 +8,23 @@
 #include "utils/args.h"
 #include "utils/bootstrap.h"
 
-/* Forward-declare the help command */
-int cmd_help(int argc, char *argv[]);
-
-cmd_handler_t commands[] = {
-    {"unlock", "Unlock the agent or create a new agent state", cmd_unlock},
-    {"reset", "Change the agent password", cmd_reset},
-    {"bin", "Operate on bins", cmd_bin},
-    {"help", "Print usage guide", cmd_help}};
-
-const int num_commands = sizeof(commands) / sizeof(cmd_handler_t);
-
 /**
  * Print the usage guidelines and a list of available commands.
  * @param argc Number of parameters (unused)
  * @param argv Array of parameters (unused)
  * @author Aryan Jassal
  */
-int cmd_help(int argc, char *argv[]) {
+static int cmd_help(int argc, char *argv[]);
+
+static cmd_handler_t commands[] = {
+    {"unlock", "Unlock the agent or create a new agent state", cmd_unlock},
+    {"reset", "Change the agent password", cmd_reset},
+    {"bin", "Operate on bins", cmd_bin},
+    {"help", "Print usage guide", cmd_help}};
+
+static const int num_commands = sizeof(commands) / sizeof(cmd_handler_t);
+
+static int cmd_help(int argc, char *argv[]) {
   /* Suppress unused parameter warning */
   ignore_args(argc, argv);
 

@@ -19,7 +19,7 @@ static flag_handler_t flags[] = {
 static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
 
 static void flag_help() {
-  printf("Usage: transcodine bin ls <name>\n");
+  printf("Usage: transcodine bin ls <bin_name>\n");
   printf("Available options:\n");
   int i;
   for (i = 0; i < num_flags; ++i) {
