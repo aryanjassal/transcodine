@@ -19,6 +19,78 @@ static void bin_remove(bin_t *bin) {
   remove(bin->decrypted_path);
 }
 
+/**
+ * Find a file by its name. Returns the location as a 64-bit signed integer.
+ */
+static int64_t bin_findfile(const bin_t *bin, const char *filename) {
+  if (!bin || !filename) {
+    throw("Bin cannot be NULL");
+  }
+  if (!bin->open) {
+    throw("Bin must be open");
+  }
+
+  /* Setup bin file and skip global header */
+  FILE *bin_file = fopen(bin->decrypted_path, "rb");
+  if (!bin_file) {
+    throw("Failed to open bin at encrypted path");
+  }
+  fseek(bin_file, BIN_GLOBAL_HEADER_SIZE + BIN_MAGIC_SIZE, SEEK_SET);
+
+  int64_t location = -1;
+  char type[BIN_MAGIC_SIZE];
+  while (true) {
+    if (fread(type, 1, BIN_MAGIC_SIZE, bin_file) != BIN_MAGIC_SIZE) {
+      throw("Unexpected EOF");
+    }
+
+    if (memcmp(type, BIN_MAGIC_END, BIN_MAGIC_SIZE) == 0) {
+      break;
+    }
+    if (memcmp(type, BIN_MAGIC_FILE, BIN_MAGIC_SIZE) != 0) {
+      throw("Unexpected record type in bin");
+    }
+
+    size_t path_len;
+    if (fread(&path_len, 1, sizeof(size_t), bin_file) != sizeof(size_t)) {
+      throw("Failed to read path_len");
+    }
+
+    size_t data_len;
+    if (fread(&data_len, 1, sizeof(size_t), bin_file) != sizeof(size_t)) {
+      throw("Failed to read data_len");
+    }
+
+    buf_t temp_path;
+    buf_init(&temp_path, path_len);
+    if (fread(temp_path.data, 1, path_len, bin_file) != path_len) {
+      buf_free(&temp_path);
+      throw("Failed to read path string");
+    }
+    temp_path.size = path_len;
+    buf_write(&temp_path, 0);
+
+
+    if (strcmp(buf_to_cstr(&temp_path), filename) == 0) {
+      /* Go back to the start of the header and return that address */
+      debug("Found file");
+      fseek(bin_file,
+            -(sizeof(path_len) + sizeof(data_len) + path_len + BIN_MAGIC_SIZE),
+            SEEK_CUR);
+      location = ftell(bin_file);
+      break;
+    } else {
+      if (fseek(bin_file, data_len, SEEK_CUR) != 0) {
+        throw("Failed to skip file data");
+      }
+    }
+  }
+
+  /* Cleanup */
+  fclose(bin_file);
+  return location;
+}
+
 void bin_init(bin_t *bin) {
   buf_initf(&bin->id, BIN_ID_SIZE);
   buf_initf(&bin->aes_iv, AES_IV_SIZE);
@@ -334,7 +406,6 @@ bool bin_fetchfile(const bin_t *bin, const char *filename, buf_t *out_data) {
   if (!bin || !filename || !out_data) {
     throw("Arguments cannot be NULL");
   }
-
   if (!bin->open) {
     error("The bin is not yet open");
     return false;
@@ -345,62 +416,124 @@ bool bin_fetchfile(const bin_t *bin, const char *filename, buf_t *out_data) {
     throw("Failed to open bin file");
   }
 
-  /* Skip the global header and unlocked magic */
-  if (fseek(bin_file, BIN_GLOBAL_HEADER_SIZE + BIN_MAGIC_SIZE, SEEK_SET) != 0) {
+  /* Find the location of the header of the file we need */
+  int64_t location = bin_findfile(bin, filename);
+  if (location == -1) {
     fclose(bin_file);
-    throw("Failed to seek in bin file");
+    return false;
   }
 
-  char type[BIN_MAGIC_SIZE];
-  while (true) {
-    if (fread(type, 1, BIN_MAGIC_SIZE, bin_file) != BIN_MAGIC_SIZE) {
-      throw("Unexpected EOF");
-    }
+  fseek(bin_file, location, SEEK_SET);
 
-    if (memcmp(type, BIN_MAGIC_END, BIN_MAGIC_SIZE) == 0) {
-      break;
-    }
-    if (memcmp(type, BIN_MAGIC_FILE, BIN_MAGIC_SIZE) != 0) {
-      throw("Unexpected record type in bin");
-    }
-
-    size_t path_len;
-    if (fread(&path_len, 1, sizeof(size_t), bin_file) != sizeof(size_t)) {
-      throw("Failed to read path_len");
-    }
-
-    size_t data_len;
-    if (fread(&data_len, 1, sizeof(size_t), bin_file) != sizeof(size_t)) {
-      throw("Failed to read data_len");
-    }
-
-    char temp_path[path_len];
-    if (fread(temp_path, 1, path_len, bin_file) != path_len) {
-      throw("Failed to read path string");
-    }
-    temp_path[path_len] = '\0';
-
-    if (strcmp(temp_path, filename) == 0) {
-      /* Match found! Allocate space for file content. */
-      buf_free(out_data);
-      buf_init(out_data, data_len);
-      if (fread(out_data->data, sizeof(uint8_t), data_len, bin_file) !=
-          data_len) {
-        throw("Failed to read file data");
-      }
-
-      out_data->size = data_len;
-      fclose(bin_file);
-      return true;
-    } else {
-      /* No match — skip over data */
-      if (fseek(bin_file, data_len, SEEK_CUR) != 0) {
-        throw("Failed to skip file data");
-      }
-    }
+  size_t path_len;
+  if (fread(&path_len, 1, sizeof(size_t), bin_file) != sizeof(size_t)) {
+    throw("Failed to read path_len");
   }
 
-  /* File not found */
+  size_t data_len;
+  if (fread(&data_len, 1, sizeof(size_t), bin_file) != sizeof(size_t)) {
+    throw("Failed to read data_len");
+  }
+
+  fseek(bin_file, path_len, SEEK_CUR);
+
+  buf_free(out_data);
+  buf_init(out_data, data_len);
+  if (fread(out_data->data, sizeof(uint8_t), data_len, bin_file) != data_len) {
+    throw("Failed to read file data");
+  }
+
+  out_data->size = data_len;
   fclose(bin_file);
-  return false;
+  return true;
+}
+
+bool bin_removefile(bin_t *bin, const char *filename) {
+  if (!bin || !filename) {
+    throw("Arguments cannot be NULL");
+  }
+  if (!bin->open) {
+    error("The bin is not yet open");
+    return false;
+  }
+
+  int64_t location = bin_findfile(bin, filename);
+  if (location == -1) {
+    debug("Failed to find file");
+    return false;
+  }
+
+  buf_t randtext, randfile;
+  buf_init(&randtext, 16);
+  buf_init(&randfile, 32);
+  urandom_ascii(&randtext);
+  buf_append(&randfile, "/tmp/", 5);
+  buf_append(&randfile, randtext.data, randtext.size);
+  randfile.data[randfile.size - 1] = 0;
+
+  FILE *src = fopen(bin->decrypted_path, "rb");
+  FILE *dst = fopen(buf_to_cstr(&randfile), "wb+");
+
+  if (!src || !dst) {
+    throw("Failed to open bin file for read/write");
+  }
+
+  /* Copy all bytes up to the target file */
+  uint8_t buf[READFILE_CHUNK];
+  int64_t copied = 0;
+  while (copied < location) {
+    size_t to_read = (location - copied > READFILE_CHUNK)
+                         ? READFILE_CHUNK
+                         : (size_t)(location - copied);
+    size_t n = fread(buf, 1, to_read, src);
+    if (n == 0)
+      break;
+    fwrite(buf, 1, n, dst);
+    copied += n;
+    printf("Copied %lu bytes, total %lu\n", n, copied);
+  }
+
+  /* Skip the current file block (header + path + data) and read the header */
+  char magic[BIN_MAGIC_SIZE];
+  if (fread(magic, 1, BIN_MAGIC_SIZE, src) != BIN_MAGIC_SIZE) {
+    throw("Failed to read file magic");
+  }
+
+  size_t path_len = 0;
+  size_t data_len = 0;
+  if (fread(&path_len, 1, sizeof(path_len), src) != sizeof(path_len) ||
+      fread(&data_len, 1, sizeof(data_len), src) != sizeof(data_len)) {
+    throw("Failed to read file lengths");
+  }
+
+  /* Skip over path and file data and copy the rest of the file */
+  fseek(src, path_len + data_len, SEEK_CUR);
+  size_t n;
+  while ((n = fread(buf, 1, READFILE_CHUNK, src)) > 0) {
+    fwrite(buf, 1, n, dst);
+  }
+
+  fclose(src);
+
+  /* Rewind dst and overwrite original file */
+  rewind(dst);
+  FILE *out = fopen(bin->decrypted_path, "wb");
+  if (!out) {
+    fclose(dst);
+    throw("Failed to reopen original file for writing");
+  }
+
+  size_t acc = 0;
+  while ((n = fread(buf, 1, READFILE_CHUNK, dst)) > 0) {
+    fwrite(buf, 1, n, out);
+    acc += n;
+    printf("Wrote %lu bytes, total %lu\n", n, acc);
+  }
+  printf("Copied data!\n");
+
+  fclose(out);
+  fclose(dst);
+  remove(buf_to_cstr(&randfile));
+  bin->dirty = true;
+  return true;
 }

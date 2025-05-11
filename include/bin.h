@@ -132,7 +132,8 @@ void bin_addfile(bin_t *bin, const buf_t *fq_path, const buf_t *data);
 void bin_listfiles(const bin_t *bin, buf_t *paths);
 
 /**
- * Searches for a file by its name in the bin, and returns its contents if found.
+ * Searches for a file by its name in the bin, and returns its contents if
+ * found.
  * @param bin An initialised bin object
  * @param path The path of the file in the bin
  * @param out_data The buffer containing the output data
@@ -140,6 +141,17 @@ void bin_listfiles(const bin_t *bin, buf_t *paths);
  * @author Aryan Jassal
  */
 bool bin_fetchfile(const bin_t *bin, const char *path, buf_t *out_data);
+
+/**
+ * Removes a file with a given name in the archive. Does nothing if the file
+ * wasn't found. After removing the file, all other chunks will be moved back to
+ * reclaim the newly-available space.
+ * @param bin An initialised bin object
+ * @param path The path of the file in the bin
+ * @returns True if file was found, false otherwise
+ * @author Aryan Jassal
+ */
+bool bin_removefile(bin_t *bin, const char *path);
 
 /**
  * Frees memory consumed by the bin object. This is mostly to free the buffers.

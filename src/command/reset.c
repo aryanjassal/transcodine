@@ -23,7 +23,10 @@ static void update_password(buf_t *old_password, buf_t *new_password) {
 
   /* Create new password and derive new RK */
   auth_t new_auth;
-  buf_initf(&new_auth.pass_salt, SHA256_HASH_SIZE);
+  buf_initf(&new_auth.pass_salt, PASSWORD_SALT_SIZE);
+  buf_initf(&new_auth.pass_hash, SHA256_HASH_SIZE);
+  buf_initf(&new_auth.kek_salt, PASSWORD_SALT_SIZE);
+  buf_initf(&new_auth.kek_hash, KEK_SIZE);
   buf_copy(&new_auth.pass_salt, &auth.pass_salt);
   buf_copy(&new_auth.kek_salt, &auth.kek_salt);
   hash_password(new_password, &new_auth.pass_salt, &new_auth.pass_hash);
@@ -44,6 +47,19 @@ static void update_password(buf_t *old_password, buf_t *new_password) {
 
   /* Store new auth details */
   write_auth(&new_auth);
+
+  /* Release resources */
+  buf_free(&auth.pass_hash);
+  buf_free(&auth.pass_salt);
+  buf_free(&auth.kek_hash);
+  buf_free(&auth.kek_salt);
+  buf_free(&new_auth.pass_hash);
+  buf_free(&new_auth.pass_salt);
+  buf_free(&new_auth.kek_hash);
+  buf_free(&new_auth.kek_salt);
+  buf_free(&rk_old);
+  buf_free(&rk_new);
+  buf_free(&kek);
 }
 
 int cmd_reset(int argc, char **argv) {
@@ -82,5 +98,7 @@ int cmd_reset(int argc, char **argv) {
   update_password(&password_current, &password_new_1);
 
   buf_free(&password_current);
+  buf_free(&password_new_1);
+  buf_free(&password_new_2);
   return 0;
 }
