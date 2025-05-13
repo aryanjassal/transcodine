@@ -141,6 +141,6 @@ void buf_free(buf_t *buf);
  * @returns A char pointer to the beginning of the buffer data
  * @author Aryan Jassal
  */
-char *buf_to_cstr(buf_t *buf);
+char *buf_to_cstr(const buf_t *buf);
 
 #endif

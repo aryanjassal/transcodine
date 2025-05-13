@@ -11,6 +11,10 @@
 #include "utils/io.h"
 #include "utils/throw.h"
 
+/**
+ * Print the usage guidelines of this commands.
+ * @author Aryan Jassal
+ */
 static void flag_help();
 
 static flag_handler_t flags[] = {
@@ -69,8 +73,8 @@ int cmd_bin_add(int argc, char *argv[]) {
   buf_t aes_key;
   buf_init(&aes_key, AES_KEY_SIZE);
   readfilef(".key", &aes_key);
-
   bin_open(&bin, argv[0], "/tmp/filebin", &aes_key);
+  debug("Opened bin");
 
   buf_t fq_path;
   buf_init(&fq_path, strlen(argv[2]) + 1);
@@ -82,8 +86,10 @@ int cmd_bin_add(int argc, char *argv[]) {
   readfile(argv[1], &data);
 
   bin_addfile(&bin, &fq_path, &data);
+  debug("Wrote file to bin");
 
   /* Cleanup */
   bin_close(&bin, &aes_key);
+  debug("Opened closed");
   return 0;
 }

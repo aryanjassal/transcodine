@@ -11,6 +11,10 @@
 #include "utils/io.h"
 #include "utils/throw.h"
 
+/**
+ * Print the usage guidelines of this commands.
+ * @author Aryan Jassal
+ */
 static void flag_help();
 
 static flag_handler_t flags[] = {
@@ -58,20 +62,24 @@ int cmd_bin_ls(int argc, char *argv[]) {
     return 1;
   }
 
+  /* Initialise and open the bin */
   bin_t bin;
   bin_init(&bin);
 
   buf_t aes_key;
   buf_init(&aes_key, AES_KEY_SIZE);
   readfilef(".key", &aes_key);
-
   bin_open(&bin, argv[0], "/tmp/filebin", &aes_key);
+  debug("Opened bin");
 
+  /* Close the bin as early as possible */
   buf_t paths;
   buf_init(&paths, 32);
-
   bin_listfiles(&bin, &paths);
+  bin_close(&bin, &aes_key);
+  debug("Closed bin");
 
+  /* List out all files in the bin */
   if (paths.size == 0) {
     printf("No files in bin\n");
     return 0;
@@ -86,7 +94,6 @@ int cmd_bin_ls(int argc, char *argv[]) {
   }
 
   /* Cleanup */
-  bin_close(&bin, &aes_key);
   buf_free(&aes_key);
   buf_free(&paths);
   bin_free(&bin);

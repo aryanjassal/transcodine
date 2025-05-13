@@ -21,7 +21,7 @@
  *   [16-byte BIN_ID]: Like "abcd1234wxyz68789"
  *   [16-byte AES_IV]
  * [8-byte Magic Block]
- *   [8-byte MAGIC]: "UNLOCKED
+ *   [8-byte MAGIC]: "UNLOCKED"
  * [24-byte File Header]
  *   [8-byte MAGIC]: "ARCHVFLE"
  *   [8-byte PATH_LEN]: Null-terminated
@@ -115,7 +115,7 @@ void bin_close(bin_t *bin, const buf_t *aes_key);
  * tree by the program instead by the archival system. Note that the file paths
  * must be null-terminated.
  * @param bin An initialised bin object
- * @param fq_path The fully-qualified path relative to bin root
+ * @param fq_path The virtual fully-qualified path relative to bin root
  * @param data The data of the file to be written
  * @author Aryan Jassal
  */
@@ -135,23 +135,23 @@ void bin_listfiles(const bin_t *bin, buf_t *paths);
  * Searches for a file by its name in the bin, and returns its contents if
  * found.
  * @param bin An initialised bin object
- * @param path The path of the file in the bin
+ * @param fq_path The virtual fully-qualified path of the file in the bin
  * @param out_data The buffer containing the output data
  * @returns True if file was found, false otherwise
  * @author Aryan Jassal
  */
-bool bin_fetchfile(const bin_t *bin, const char *path, buf_t *out_data);
+bool bin_fetchfile(const bin_t *bin, const buf_t *path, buf_t *out_data);
 
 /**
  * Removes a file with a given name in the archive. Does nothing if the file
  * wasn't found. After removing the file, all other chunks will be moved back to
  * reclaim the newly-available space.
  * @param bin An initialised bin object
- * @param path The path of the file in the bin
+ * @param fq_path The virtual fully-qualified path of the file in the bin
  * @returns True if file was found, false otherwise
  * @author Aryan Jassal
  */
-bool bin_removefile(bin_t *bin, const char *path);
+bool bin_removefile(bin_t *bin, const buf_t *fq_path);
 
 /**
  * Frees memory consumed by the bin object. This is mostly to free the buffers.

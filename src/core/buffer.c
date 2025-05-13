@@ -8,6 +8,9 @@
 #include "utils/throw.h"
 
 static void buf_resize(buf_t *buf, size_t new_capacity) {
+  if (new_capacity == 0) {
+    throw("Initial capacity cannot be zer");
+  }
   if (buf->fixed) {
     throw("Cannot resize fixed buffer");
   }
@@ -20,6 +23,9 @@ static void buf_resize(buf_t *buf, size_t new_capacity) {
 }
 
 void buf_init(buf_t *buf, size_t initial_capacity) {
+  if (initial_capacity == 0) {
+    throw("Initial capacity cannot be zer");
+  }
   buf->data = (uint8_t *)malloc(initial_capacity);
   if (!buf->data) {
     throw("Malloc failed");
@@ -30,6 +36,9 @@ void buf_init(buf_t *buf, size_t initial_capacity) {
 }
 
 void buf_initf(buf_t *buf, size_t initial_capacity) {
+  if (initial_capacity == 0) {
+    throw("Initial capacity cannot be zer");
+  }
   buf->data = (uint8_t *)malloc(initial_capacity);
   if (!buf->data) {
     throw("Malloc failed");
@@ -68,6 +77,9 @@ void buf_view(buf_t *buf, void *data, const size_t len) {
 
 void buf_append(buf_t *buf, const void *data, size_t len) {
   if (buf->size + len > buf->capacity) {
+    if (buf->fixed) {
+      throw("Cannot resize fixed buffer");
+    }
     size_t new_capacity = buf->capacity;
     while (buf->size + len > new_capacity) {
       new_capacity *= BUFFER_GROWTH_FACTOR;
@@ -115,4 +127,4 @@ void buf_free(buf_t *buf) {
   buf->data = NULL;
 }
 
-char *buf_to_cstr(buf_t *buf) { return (char *)buf->data; }
+char *buf_to_cstr(const buf_t *buf) { return (char *)buf->data; }

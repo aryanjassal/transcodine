@@ -12,6 +12,10 @@
 #include "utils/io.h"
 #include "utils/throw.h"
 
+/**
+ * Print the usage guidelines of this commands.
+ * @author Aryan Jassal
+ */
 static void flag_help();
 
 static flag_handler_t flags[] = {
@@ -76,9 +80,8 @@ int cmd_bin_cat(int argc, char *argv[]) {
   buf_t data;
   buf_init(&data, 32);
 
-  bool result = bin_fetchfile(&bin, buf_to_cstr(&fq_path), &data);
+  bool result = bin_fetchfile(&bin, &fq_path, &data);
   if (result) {
-    printf("size: %lu\n", data.size);
     fwrite(data.data, sizeof(uint8_t), data.size, stdout);
     fflush(stdout);
   } else {

@@ -72,7 +72,7 @@ int cmd_bin_rm(int argc, char *argv[]) {
   buf_append(&fq_path, argv[1], strlen(argv[1]));
   buf_write(&fq_path, 0);
 
-  bin_removefile(&bin, buf_to_cstr(&fq_path));
+  bin_removefile(&bin, &fq_path);
 
   /* Cleanup */
   bin_close(&bin, &aes_key);

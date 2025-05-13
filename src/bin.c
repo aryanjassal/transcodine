@@ -22,8 +22,8 @@ static void bin_remove(bin_t *bin) {
 /**
  * Find a file by its name. Returns the location as a 64-bit signed integer.
  */
-static int64_t bin_findfile(const bin_t *bin, const char *filename) {
-  if (!bin || !filename) {
+static int64_t bin_findfile(const bin_t *bin, const buf_t *fq_path) {
+  if (!bin || !fq_path) {
     throw("Bin cannot be NULL");
   }
   if (!bin->open) {
@@ -70,8 +70,7 @@ static int64_t bin_findfile(const bin_t *bin, const char *filename) {
     temp_path.size = path_len;
     buf_write(&temp_path, 0);
 
-
-    if (strcmp(buf_to_cstr(&temp_path), filename) == 0) {
+    if (strcmp(buf_to_cstr(&temp_path), buf_to_cstr(fq_path)) == 0) {
       /* Go back to the start of the header and return that address */
       debug("Found file");
       fseek(bin_file,
@@ -319,8 +318,13 @@ void bin_addfile(bin_t *bin, const buf_t *fq_path, const buf_t *data) {
     return;
   }
 
-  /* Generate the file header */
-  buf_t file_header;
+  if (bin_findfile(bin, fq_path) != -1) {
+    error("The file already exists in the bin");
+    return;
+  }
+
+    /* Generate the file header */
+    buf_t file_header;
   buf_init(&file_header, BIN_FILE_HEADER_SIZE);
   buf_append(&file_header, BIN_MAGIC_FILE, BIN_MAGIC_SIZE);
   buf_append(&file_header, &fq_path->size, sizeof(size_t));
@@ -373,7 +377,6 @@ void bin_listfiles(const bin_t *bin, buf_t *paths) {
     }
 
     if (memcmp(type, BIN_MAGIC_END, BIN_MAGIC_SIZE) == 0) {
-      debug("Reached footer");
       break;
     }
     if (memcmp(type, BIN_MAGIC_FILE, BIN_MAGIC_SIZE) != 0) {
@@ -402,12 +405,19 @@ void bin_listfiles(const bin_t *bin, buf_t *paths) {
   fclose(bin_file);
 }
 
-bool bin_fetchfile(const bin_t *bin, const char *filename, buf_t *out_data) {
-  if (!bin || !filename || !out_data) {
+bool bin_fetchfile(const bin_t *bin, const buf_t *fq_path, buf_t *out_data) {
+  if (!bin || !fq_path || !out_data) {
     throw("Arguments cannot be NULL");
   }
   if (!bin->open) {
     error("The bin is not yet open");
+    return false;
+  }
+
+  /* Find the location of the header of the file we need */
+  int64_t location = bin_findfile(bin, fq_path);
+  if (location == -1) {
+    debug("Failed to find file");
     return false;
   }
 
@@ -416,14 +426,7 @@ bool bin_fetchfile(const bin_t *bin, const char *filename, buf_t *out_data) {
     throw("Failed to open bin file");
   }
 
-  /* Find the location of the header of the file we need */
-  int64_t location = bin_findfile(bin, filename);
-  if (location == -1) {
-    fclose(bin_file);
-    return false;
-  }
-
-  fseek(bin_file, location, SEEK_SET);
+  fseek(bin_file, location + BIN_MAGIC_SIZE, SEEK_SET);
 
   size_t path_len;
   if (fread(&path_len, 1, sizeof(size_t), bin_file) != sizeof(size_t)) {
@@ -448,8 +451,8 @@ bool bin_fetchfile(const bin_t *bin, const char *filename, buf_t *out_data) {
   return true;
 }
 
-bool bin_removefile(bin_t *bin, const char *filename) {
-  if (!bin || !filename) {
+bool bin_removefile(bin_t *bin, const buf_t *fq_path) {
+  if (!bin || !fq_path) {
     throw("Arguments cannot be NULL");
   }
   if (!bin->open) {
@@ -457,7 +460,7 @@ bool bin_removefile(bin_t *bin, const char *filename) {
     return false;
   }
 
-  int64_t location = bin_findfile(bin, filename);
+  int64_t location = bin_findfile(bin, fq_path);
   if (location == -1) {
     debug("Failed to find file");
     return false;
@@ -490,7 +493,6 @@ bool bin_removefile(bin_t *bin, const char *filename) {
       break;
     fwrite(buf, 1, n, dst);
     copied += n;
-    printf("Copied %lu bytes, total %lu\n", n, copied);
   }
 
   /* Skip the current file block (header + path + data) and read the header */
@@ -523,13 +525,9 @@ bool bin_removefile(bin_t *bin, const char *filename) {
     throw("Failed to reopen original file for writing");
   }
 
-  size_t acc = 0;
   while ((n = fread(buf, 1, READFILE_CHUNK, dst)) > 0) {
     fwrite(buf, 1, n, out);
-    acc += n;
-    printf("Wrote %lu bytes, total %lu\n", n, acc);
   }
-  printf("Copied data!\n");
 
   fclose(out);
   fclose(dst);
