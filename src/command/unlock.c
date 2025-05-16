@@ -13,6 +13,7 @@
 #include "stddefs.h"
 #include "typedefs.h"
 #include "utils/args.h"
+#include "utils/cli.h"
 #include "utils/io.h"
 #include "utils/throw.h"
 

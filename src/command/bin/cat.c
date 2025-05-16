@@ -9,6 +9,7 @@
 #include "core/buffer.h"
 #include "stddefs.h"
 #include "utils/args.h"
+#include "utils/cli.h"
 #include "utils/io.h"
 #include "utils/throw.h"
 

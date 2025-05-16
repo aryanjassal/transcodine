@@ -7,6 +7,7 @@
 #include "constants.h"
 #include "core/buffer.h"
 #include "utils/args.h"
+#include "utils/cli.h"
 #include "utils/io.h"
 #include "utils/throw.h"
 

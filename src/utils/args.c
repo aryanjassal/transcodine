@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "core/buffer.h"
-#include "utils/io.h"
+#include "utils/cli.h"
 
 const char *prefix = "Ignoring extra argument: ";
 

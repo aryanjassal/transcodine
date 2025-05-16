@@ -6,10 +6,11 @@
 #include "constants.h"
 #include "stddefs.h"
 #include "utils/throw.h"
+#include "utils/cli.h"
 
 static void buf_resize(buf_t *buf, size_t new_capacity) {
   if (new_capacity == 0) {
-    throw("Initial capacity cannot be zer");
+    throw("Initial capacity cannot be zero");
   }
   if (buf->fixed) {
     throw("Cannot resize fixed buffer");
@@ -24,7 +25,7 @@ static void buf_resize(buf_t *buf, size_t new_capacity) {
 
 void buf_init(buf_t *buf, size_t initial_capacity) {
   if (initial_capacity == 0) {
-    throw("Initial capacity cannot be zer");
+    throw("Initial capacity cannot be zero");
   }
   buf->data = (uint8_t *)malloc(initial_capacity);
   if (!buf->data) {
@@ -37,7 +38,7 @@ void buf_init(buf_t *buf, size_t initial_capacity) {
 
 void buf_initf(buf_t *buf, size_t initial_capacity) {
   if (initial_capacity == 0) {
-    throw("Initial capacity cannot be zer");
+    throw("Initial capacity cannot be zero");
   }
   buf->data = (uint8_t *)malloc(initial_capacity);
   if (!buf->data) {
@@ -52,21 +53,37 @@ void buf_copy(buf_t *dst, const buf_t *src) {
   if (!src->data) {
     throw("Source must be initialised");
   }
+
   if (!dst->data) {
     buf_init(dst, src->size);
     dst->fixed = src->fixed;
+  } else if (dst->capacity < src->size) {
+    if (dst->fixed) {
+      throw("Cannot resize fixed buffer");
+    }
+    buf_resize(dst, src->size);
   }
+
   memcpy(dst->data, src->data, src->size);
   dst->size = src->size;
+  dst->fixed = src->fixed;
 }
 
-void buf_from(buf_t *buf, const void *data, const size_t len) {
+
+void buf_from(buf_t *buf, const void *data, size_t len) {
   if (!buf->data) {
     buf_init(buf, len);
+  } else if (buf->capacity < len) {
+    if (buf->fixed) {
+      throw("Cannot resize fixed buffer");
+    }
+    buf_resize(buf, len);
   }
+
   memcpy(buf->data, data, len);
   buf->size = len;
 }
+
 
 void buf_view(buf_t *buf, void *data, const size_t len) {
   buf->data = data;
@@ -127,4 +144,9 @@ void buf_free(buf_t *buf) {
   buf->data = NULL;
 }
 
-char *buf_to_cstr(const buf_t *buf) { return (char *)buf->data; }
+char *buf_to_cstr(const buf_t *buf) {
+  if (buf->size == 0 || buf->data[buf->size - 1] != '\0') {
+    warn("Buffer not null-terminated");
+  }
+  return (char *)buf->data;
+}

@@ -9,6 +9,7 @@
 #include "crypto/aes_ctr.h"
 #include "stddefs.h"
 #include "utils/io.h"
+#include "utils/cli.h"
 #include "utils/throw.h"
 
 static void bin_remove(bin_t *bin) {
