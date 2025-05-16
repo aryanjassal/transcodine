@@ -42,5 +42,7 @@
 
 /* Library method parameters */
 #define BUFFER_GROWTH_FACTOR 2
+#define MAP_LOAD_FACTOR 0.75f
+#define MAP_GROWTH_FACTOR 2
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef __LIB_BUFFER_H__
-#define __LIB_BUFFER_H__
+#ifndef __CORE_BUFFER_H__
+#define __CORE_BUFFER_H__
 
 #include "stddefs.h"
 
@@ -37,6 +37,8 @@ void buf_initf(buf_t *buf, size_t initial_capacity);
  * The buffer also copies the state of the fixed parameter. If the source buffer
  * was fixed, so will be the destination one. This parameter can be changed
  * manually later during runtime.
+ * 
+ * The destination buffer should ideally be initialised before being used.
  *
  * @param dst The destination buffer
  * @param src The source buffer

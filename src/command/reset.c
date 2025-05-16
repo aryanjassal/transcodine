@@ -10,6 +10,7 @@
 #include "globals.h"
 #include "typedefs.h"
 #include "utils/args.h"
+#include "utils/cli.h"
 #include "utils/io.h"
 
 static void update_password(buf_t *old_password, buf_t *new_password) {
