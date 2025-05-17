@@ -33,6 +33,11 @@ static void flag_help() {
   }
 }
 
+void print_data(const buf_t *data) {
+  fwrite(data->data, sizeof(uint8_t), data->size, stdout);
+  fflush(stdout);
+}
+
 int cmd_bin_cat(int argc, char *argv[]) {
   /* Dispatch flag handler */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
@@ -78,18 +83,15 @@ int cmd_bin_cat(int argc, char *argv[]) {
   buf_append(&fq_path, argv[1], strlen(argv[1]));
   buf_write(&fq_path, 0);
 
-  buf_t data;
-  buf_init(&data, 32);
-
-  bool result = bin_fetchfile(&bin, &fq_path, &data);
-  if (result) {
-    fwrite(data.data, sizeof(uint8_t), data.size, stdout);
-    fflush(stdout);
-  } else {
+  bool result = bin_fetchfile(&bin, &fq_path, print_data);
+  if (!result) {
     error("Could not find file in bin");
   }
 
   /* Cleanup */
-  bin_close(&bin, &aes_key);
+  buf_free(&fq_path);
+  buf_free(&aes_key);
+  bin_close(&bin);
+  bin_free(&bin);
   return 0;
 }

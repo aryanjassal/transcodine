@@ -49,22 +49,37 @@
 #ifndef __BIN_H__
 #define __BIN_H__
 
+#include <stdio.h>
+
 #include "core/buffer.h"
+#include "crypto/aes.h"
 #include "stddefs.h"
 
-/**
- * Opening a bin means decrypting the bin and storing it in the decrypted path.
- * To read the contents of the bin, you need to manually read the file at
- * decrypted path.
- */
+typedef struct {
+  FILE *fd;
+  const aes_ctx_t *aes;
+  buf_t *counter;
+  size_t file_offset;
+  size_t stream_offset;
+} bin_iostream_t;
+
+typedef struct {
+  size_t header_size;
+  size_t bytes_written;
+  bin_iostream_t io;
+} bin_filectx_t;
+
 typedef struct {
   buf_t id;
   buf_t aes_iv;
+  aes_ctx_t aes_ctx;
   const char *encrypted_path;
-  const char *decrypted_path;
+  const char *working_path;
   bool open;
-  bool dirty;
+  bin_filectx_t write_ctx;
 } bin_t;
+
+typedef void (*bin_stream_cb)(const buf_t *data);
 
 /**
  * Initialise the buffers for the bin object. Sets the paths to null.
@@ -89,37 +104,26 @@ void bin_create(bin_t *bin, const char *encrypted_path, buf_t *aes_key);
  * decrypted bin path.
  * @param bin An intialised bin object
  * @param encrypted_path The path where to find the encrypted bin file
- * @param decrypted_path The path where to store the decryprted bin file
+ * @param working_path The path where to store the temporary bin file
  * @param aes_key The private AES key to use to decrypt the bin file
  * @author Aryan Jassal
  */
-void bin_open(bin_t *bin, const char *encrypted_path,
-              const char *decrypted_path, const buf_t *aes_key);
+void bin_open(bin_t *bin, const char *encrypted_path, const char *working_path,
+              const buf_t *aes_key);
 
 /**
- * Takes a populated bin object with the encrypted and decrypted path and closes
- * the bin. The closing operation involves encrypting the bin and storing the
- * file back to the encrypted path. The encryption operation also requires an
- * AES key. If the bin is dirty, then the IV is re-calculated. Otherwise, the IV
- * is used as-is. Note that the bin object must be freed manually to prevent any
- * memory leaks.
+ * Saves all the changes made on the open bin back to the resting bin. Note that
+ * the bin object must be freed manually to prevent any memory leaks.
  * @param bin An intialised bin object
- * @param aes_key The private AES key to use to decrypt the bin file
  * @author Aryan Jassal
  */
-void bin_close(bin_t *bin, const buf_t *aes_key);
+void bin_close(bin_t *bin);
 
-/**
- * Writes data from a buffer into a specified path on the disk. Note that the
- * path can be a fully-qualified path and it will be parsed and processed into a
- * tree by the program instead by the archival system. Note that the file paths
- * must be null-terminated.
- * @param bin An initialised bin object
- * @param fq_path The virtual fully-qualified path relative to bin root
- * @param data The data of the file to be written
- * @author Aryan Jassal
- */
-void bin_addfile(bin_t *bin, const buf_t *fq_path, const buf_t *data);
+void bin_openfile(bin_t *bin, const buf_t *fq_path);
+
+void bin_writefile(bin_t *bin, const buf_t *data);
+
+void bin_closefile(bin_t *bin, buf_t *aes_key);
 
 /**
  * Lists all the files in a bin recursively. The files are stored flatly, so
@@ -136,11 +140,11 @@ void bin_listfiles(const bin_t *bin, buf_t *paths);
  * found.
  * @param bin An initialised bin object
  * @param fq_path The virtual fully-qualified path of the file in the bin
- * @param out_data The buffer containing the output data
+ * @param callback The callback run to process data chunks
  * @returns True if file was found, false otherwise
  * @author Aryan Jassal
  */
-bool bin_fetchfile(const bin_t *bin, const buf_t *path, buf_t *out_data);
+bool bin_fetchfile(const bin_t *bin, const buf_t *path, bin_stream_cb callback);
 
 /**
  * Removes a file with a given name in the archive. Does nothing if the file
@@ -151,7 +155,7 @@ bool bin_fetchfile(const bin_t *bin, const buf_t *path, buf_t *out_data);
  * @returns True if file was found, false otherwise
  * @author Aryan Jassal
  */
-bool bin_removefile(bin_t *bin, const buf_t *fq_path);
+bool bin_removefile(bin_t *bin, const buf_t *fq_path, const buf_t *aes_key);
 
 /**
  * Frees memory consumed by the bin object. This is mostly to free the buffers.
@@ -161,5 +165,8 @@ bool bin_removefile(bin_t *bin, const buf_t *fq_path);
  * @author Aryan Jassal
  */
 void bin_free(bin_t *bin);
+
+
+void bin_dump_decrypted(const bin_t *bin, const char *out_path, const buf_t *aes_key);
 
 #endif

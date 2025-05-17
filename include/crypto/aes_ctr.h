@@ -20,14 +20,14 @@
  * urandom.
  *
  * @param ctx An initialised AES context
- * @param counter A 16-byte buffer tracking the counter. Will be mutated during
- * operation. Should have initial value of the IV.
+ * @param iv A 16-byte buffer tracking the counter. Will be mutated.
+ * @param offset The offset of the cipher to start decryption from
  * @param input The input buffer
  * @param output The output buffer
  * @author Aryan Jassal
  */
-void aes_ctr_crypt(const aes_ctx_t *ctx, buf_t *counter, const buf_t *input,
-                   buf_t *output);
+void aes_ctr_crypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
+                   const buf_t *input, buf_t *output);
 
 /**
  * Alias of aes_ctr_crypt()
@@ -40,14 +40,14 @@ void aes_ctr_crypt(const aes_ctx_t *ctx, buf_t *counter, const buf_t *input,
  * urandom.
  *
  * @param ctx An initialised AES context
- * @param counter A 16-byte buffer tracking the counter. Will be mutated during
- * operation. Should have initial value of the IV.
+ * @param iv A 16-byte buffer tracking the counter. Will be mutated.
+ * @param offset The offset of the cipher to start decryption from
  * @param input The input buffer
  * @param output The output buffer
  * @author Aryan Jassal
  */
-void aes_ctr_encrypt(const aes_ctx_t *ctx, buf_t *counter, const buf_t *input,
-                     buf_t *output);
+void aes_ctr_encrypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
+                     const buf_t *input, buf_t *output);
 
 /**
  * Alias of aes_ctr_crypt()
@@ -60,13 +60,13 @@ void aes_ctr_encrypt(const aes_ctx_t *ctx, buf_t *counter, const buf_t *input,
  * urandom.
  *
  * @param ctx An initialised AES context
- * @param counter A 16-byte buffer tracking the counter. Will be mutated during
- * operation. Should have initial value of the IV.
+ * @param iv A 16-byte buffer tracking the counter. Will be mutated.
+ * @param offset The offset of the cipher to start decryption from
  * @param input The input buffer
  * @param output The output buffer
  * @author Aryan Jassal
  */
-void aes_ctr_decrypt(const aes_ctx_t *ctx, buf_t *counter, const buf_t *input,
-                     buf_t *output);
+void aes_ctr_decrypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
+                     const buf_t *input, buf_t *output);
 
 #endif

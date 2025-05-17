@@ -5,7 +5,7 @@
 #include "constants.h"
 #include "core/buffer.h"
 #include "crypto/hmac.h"
-#include "typedefs.h"
+#include "stddefs.h"
 
 static void write_u32_be(uint8_t out[4], uint32_t val) {
   out[0] = (uint8_t)(val >> 24);

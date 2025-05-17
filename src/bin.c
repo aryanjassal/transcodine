@@ -8,16 +8,152 @@
 #include "crypto/aes.h"
 #include "crypto/aes_ctr.h"
 #include "stddefs.h"
-#include "utils/io.h"
 #include "utils/cli.h"
+#include "utils/io.h"
 #include "utils/throw.h"
 
-static void bin_remove(bin_t *bin) {
-  if (!bin->id.data || !bin->aes_iv.data || !bin->encrypted_path ||
-      !bin->decrypted_path) {
-    throw("Bin is not correctly initialised");
+static void bin_io_init(bin_iostream_t *io, FILE *f, const aes_ctx_t *ctx,
+                        buf_t *counter) {
+  io->fd = f;
+  io->aes = ctx;
+  io->counter = counter;
+  io->file_offset = BIN_GLOBAL_HEADER_SIZE;
+  io->stream_offset = 0;
+}
+
+static void bin_io_read(bin_iostream_t *io, size_t len, buf_t *clear_out) {
+  buf_t cipher;
+  buf_init(&cipher, len);
+  fseek(io->fd, io->file_offset, SEEK_SET);
+  size_t n = fread(cipher.data, sizeof(uint8_t), len, io->fd);
+  if (n != len) {
+    throw("Unexpected EOF");
   }
-  remove(bin->decrypted_path);
+
+  cipher.size = n;
+  aes_ctr_crypt(io->aes, io->counter, io->stream_offset, &cipher, clear_out);
+  clear_out->size = n;
+
+  io->file_offset += n;
+  io->stream_offset += n;
+  buf_free(&cipher);
+}
+
+static void bin_io_write(bin_iostream_t *io, const buf_t *clear_in) {
+  buf_t cipher;
+  buf_init(&cipher, clear_in->size);
+  aes_ctr_crypt(io->aes, io->counter, io->stream_offset, clear_in, &cipher);
+
+  fseek(io->fd, io->file_offset, SEEK_SET);
+  fwrite(cipher.data, 1, cipher.size, io->fd);
+
+  io->file_offset += cipher.size;
+  io->stream_offset += cipher.size;
+  buf_free(&cipher);
+}
+
+static void bin_io_skip(bin_iostream_t *io, size_t len) {
+  io->file_offset += len;
+  io->stream_offset += len;
+}
+
+static void bin_rotate_iv(bin_t *bin, const buf_t *aes_key) {
+  if (!bin || !bin->open || !aes_key) {
+    throw("Invalid arguments");
+  }
+
+  /* Prepare temp path */
+  buf_t rand, tmp_path;
+  buf_init(&rand, 16);
+  buf_init(&tmp_path, 64);
+  urandom_ascii(&rand);
+  buf_append(&tmp_path, "/tmp/bin_reencrypt_", 19);
+  buf_append(&tmp_path, rand.data, rand.size);
+  buf_write(&tmp_path, 0);
+
+  FILE *in = fopen(bin->working_path, "rb");
+  FILE *out = fopen(buf_to_cstr(&tmp_path), "wb+");
+  if (!in || !out) {
+    throw("Failed to open bin files for IV rotation");
+  }
+
+  /* Read and write global header */
+  uint8_t header[BIN_GLOBAL_HEADER_SIZE];
+  fread(header, 1, BIN_GLOBAL_HEADER_SIZE, in);
+  fwrite(header, 1, BIN_GLOBAL_HEADER_SIZE, out);
+
+  /* Set up AES contexts */
+  aes_ctx_t ctx_old, ctx_new;
+  aes_init(&ctx_old, aes_key);
+
+  buf_t new_iv;
+  buf_init(&new_iv, AES_IV_SIZE);
+  urandom(&new_iv);
+  aes_init(&ctx_new, aes_key);
+
+  /* Init iostreams */
+  bin_iostream_t r, w;
+  bin_io_init(&r, in, &ctx_old, &bin->aes_iv);
+  bin_io_init(&w, out, &ctx_new, &new_iv);
+
+  r.file_offset = w.file_offset = BIN_GLOBAL_HEADER_SIZE;
+  r.stream_offset = w.stream_offset = 0;
+
+  /* Stream decrypt + re-encrypt */
+  uint8_t raw[READFILE_CHUNK];
+  buf_t raw_buf, clear_buf;
+
+  while (true) {
+    fseek(r.fd, r.file_offset, SEEK_SET);
+    size_t n = fread(raw, 1, READFILE_CHUNK, r.fd);
+    if (n == 0) {
+      break;
+    }
+
+    buf_view(&raw_buf, raw, n);
+    buf_init(&clear_buf, n);
+    aes_ctr_crypt(r.aes, r.counter, r.stream_offset, &raw_buf, &clear_buf);
+    bin_io_write(&w, &clear_buf);
+    buf_free(&clear_buf);
+
+    r.file_offset += n;
+    r.stream_offset += n;
+  }
+
+  fclose(in);
+  fclose(out);
+
+  /* Patch new IV into header */
+  FILE *patched = fopen(buf_to_cstr(&tmp_path), "rb+");
+  if (!patched)
+    throw("Failed to reopen temp bin to patch IV");
+  fseek(patched, BIN_MAGIC_SIZE + BIN_ID_SIZE, SEEK_SET);
+  fwrite(new_iv.data, 1, new_iv.size, patched);
+  fclose(patched);
+
+  /* Replace original with updated */
+  FILE *src = fopen(buf_to_cstr(&tmp_path), "rb");
+  FILE *dst = fopen(bin->working_path, "wb");
+  if (!src || !dst)
+    throw("Failed to overwrite original bin");
+
+  uint8_t buf[READFILE_CHUNK];
+  size_t n;
+  while ((n = fread(buf, 1, READFILE_CHUNK, src)) > 0) {
+    fwrite(buf, 1, n, dst);
+  }
+
+  fclose(src);
+  fclose(dst);
+  remove(buf_to_cstr(&tmp_path));
+
+  /* Update bin state */
+  buf_copy(&bin->aes_iv, &new_iv);
+  aes_init(&bin->aes_ctx, aes_key);
+
+  buf_free(&new_iv);
+  buf_free(&rand);
+  buf_free(&tmp_path);
 }
 
 /**
@@ -31,62 +167,66 @@ static int64_t bin_findfile(const bin_t *bin, const buf_t *fq_path) {
     throw("Bin must be open");
   }
 
-  /* Setup bin file and skip global header */
-  FILE *bin_file = fopen(bin->decrypted_path, "rb");
+  FILE *bin_file = fopen(bin->working_path, "rb");
   if (!bin_file) {
-    throw("Failed to open bin at encrypted path");
+    throw("Failed to open bin at working path");
   }
-  fseek(bin_file, BIN_GLOBAL_HEADER_SIZE + BIN_MAGIC_SIZE, SEEK_SET);
+
+  buf_t counter;
+  buf_init(&counter, AES_IV_SIZE);
+  buf_copy(&counter, &bin->aes_iv);
+
+  bin_iostream_t io;
+  bin_io_init(&io, bin_file, &bin->aes_ctx, &counter);
+  bin_io_skip(&io, BIN_MAGIC_SIZE);
 
   int64_t location = -1;
-  char type[BIN_MAGIC_SIZE];
-  while (true) {
-    if (fread(type, 1, BIN_MAGIC_SIZE, bin_file) != BIN_MAGIC_SIZE) {
-      throw("Unexpected EOF");
-    }
 
-    if (memcmp(type, BIN_MAGIC_END, BIN_MAGIC_SIZE) == 0) {
+  while (true) {
+    int64_t record_start = io.file_offset;
+
+    buf_t type;
+    buf_init(&type, BIN_MAGIC_SIZE);
+    bin_io_read(&io, BIN_MAGIC_SIZE, &type);
+    if (memcmp(type.data, BIN_MAGIC_END, BIN_MAGIC_SIZE) == 0) {
+      buf_free(&type);
       break;
     }
-    if (memcmp(type, BIN_MAGIC_FILE, BIN_MAGIC_SIZE) != 0) {
+    if (memcmp(type.data, BIN_MAGIC_FILE, BIN_MAGIC_SIZE) != 0) {
+      buf_free(&type);
+      buf_free(&counter);
+      fclose(bin_file);
       throw("Unexpected record type in bin");
     }
+    buf_free(&type);
 
-    size_t path_len;
-    if (fread(&path_len, 1, sizeof(size_t), bin_file) != sizeof(size_t)) {
-      throw("Failed to read path_len");
-    }
+    /* Read path_len */
+    buf_t len_buf;
+    buf_init(&len_buf, sizeof(size_t));
+    bin_io_read(&io, sizeof(size_t), &len_buf);
+    size_t path_len = *(size_t *)len_buf.data;
 
-    size_t data_len;
-    if (fread(&data_len, 1, sizeof(size_t), bin_file) != sizeof(size_t)) {
-      throw("Failed to read data_len");
-    }
+    /* Read data_len */
+    bin_io_read(&io, sizeof(size_t), &len_buf);
+    size_t data_len = *(size_t *)len_buf.data;
+    buf_free(&len_buf);
 
-    buf_t temp_path;
-    buf_init(&temp_path, path_len);
-    if (fread(temp_path.data, 1, path_len, bin_file) != path_len) {
-      buf_free(&temp_path);
-      throw("Failed to read path string");
-    }
-    temp_path.size = path_len;
-    buf_write(&temp_path, 0);
+    /* Read path */
+    buf_t path;
+    buf_init(&path, path_len);
+    bin_io_read(&io, path_len, &path);
 
-    if (strcmp(buf_to_cstr(&temp_path), buf_to_cstr(fq_path)) == 0) {
-      /* Go back to the start of the header and return that address */
-      debug("Found file");
-      fseek(bin_file,
-            -(sizeof(path_len) + sizeof(data_len) + path_len + BIN_MAGIC_SIZE),
-            SEEK_CUR);
-      location = ftell(bin_file);
+    if (buf_equal(&path, fq_path)) {
+      buf_free(&path);
+      location = record_start;
       break;
-    } else {
-      if (fseek(bin_file, data_len, SEEK_CUR) != 0) {
-        throw("Failed to skip file data");
-      }
     }
+
+    buf_free(&path);
+    bin_io_skip(&io, data_len);
   }
 
-  /* Cleanup */
+  buf_free(&counter);
   fclose(bin_file);
   return location;
 }
@@ -95,9 +235,12 @@ void bin_init(bin_t *bin) {
   buf_initf(&bin->id, BIN_ID_SIZE);
   buf_initf(&bin->aes_iv, AES_IV_SIZE);
   bin->encrypted_path = NULL;
-  bin->decrypted_path = NULL;
+  bin->working_path = NULL;
   bin->open = false;
-  bin->dirty = false;
+
+  bin->write_ctx.bytes_written = 0;
+  bin->write_ctx.header_size = 0;
+  memset(&bin->write_ctx, 0, sizeof(bin_filectx_t));
 }
 
 void bin_free(bin_t *bin) {
@@ -148,7 +291,7 @@ void bin_create(bin_t *bin, const char *encrypted_path, buf_t *aes_key) {
   buf_copy(&counter, &bin->aes_iv);
 
   /* Encrypt the data and write that to the bin */
-  aes_ctr_crypt(&ctx, &counter, &cleartext, &ciphertext);
+  aes_ctr_crypt(&ctx, &counter, 0, &cleartext, &ciphertext);
   fwrite(ciphertext.data, sizeof(uint8_t), ciphertext.size, bin_file);
 
   /* Cleanup */
@@ -158,8 +301,8 @@ void bin_create(bin_t *bin, const char *encrypted_path, buf_t *aes_key) {
   fclose(bin_file);
 }
 
-void bin_open(bin_t *bin, const char *encrypted_path,
-              const char *decrypted_path, const buf_t *aes_key) {
+void bin_open(bin_t *bin, const char *encrypted_path, const char *working_path,
+              const buf_t *aes_key) {
   if (bin->open) {
     debug("Bin already open");
     return;
@@ -169,11 +312,11 @@ void bin_open(bin_t *bin, const char *encrypted_path,
   buf_clear(&bin->aes_iv);
   buf_clear(&bin->id);
   bin->encrypted_path = encrypted_path;
-  bin->decrypted_path = decrypted_path;
+  bin->working_path = working_path;
 
   uint8_t global_header[BIN_GLOBAL_HEADER_SIZE];
 
-  /* Read the global header and upate the bin state */
+  /* Read the global header and update the bin state */
   FILE *bin_file = fopen(encrypted_path, "rb");
   if (!bin_file) {
     throw("Failed to open bin at encrypted path");
@@ -187,130 +330,118 @@ void bin_open(bin_t *bin, const char *encrypted_path,
   buf_append(&bin->aes_iv, global_header + BIN_MAGIC_SIZE + BIN_ID_SIZE,
              AES_IV_SIZE);
 
-  /* Write the unencrypted archive to the decrypted path */
-  FILE *dec_bin_file = fopen(decrypted_path, "wb");
-  if (!dec_bin_file) {
-    throw("Failed to open bin at decrypted path");
-  }
-  fwrite(global_header, sizeof(uint8_t), BIN_GLOBAL_HEADER_SIZE, dec_bin_file);
+  /* Write the encrypted archive to the working path */
+  fcopy(working_path, encrypted_path);
 
   /* Setup AES-CTR decryption */
   buf_t counter;
   buf_init(&counter, AES_IV_SIZE);
   buf_copy(&counter, &bin->aes_iv);
+  aes_init(&bin->aes_ctx, aes_key);
 
-  aes_ctx_t ctx;
-  aes_init(&ctx, aes_key);
-
-  /* Stream the rest of the data, decrypt it, and write it to the end of the
-   * file */
-  buf_t ciphertext;
-  buf_t cleartext;
-  buf_init(&ciphertext, READFILE_CHUNK);
-  buf_init(&cleartext, READFILE_CHUNK);
-  uint8_t buf[READFILE_CHUNK];
-  size_t b_read = 0;
-  while ((b_read = fread(buf, sizeof(uint8_t), READFILE_CHUNK, bin_file)) > 0) {
-    buf_clear(&ciphertext);
-    buf_append(&ciphertext, buf, b_read);
-    buf_clear(&cleartext);
-    aes_ctr_crypt(&ctx, &counter, &ciphertext, &cleartext);
-    fwrite(cleartext.data, sizeof(uint8_t), cleartext.size, dec_bin_file);
-  }
-
-  /* Cleanup resources */
-  buf_free(&counter);
-  buf_free(&ciphertext);
-  buf_free(&cleartext);
-  fclose(dec_bin_file);
-  fclose(bin_file);
-
-  /* Check if unlock succeeded */
-  FILE *tmp = fopen(decrypted_path, "rb");
+  /* Check if decryption succeeds */
+  FILE *tmp = fopen(working_path, "rb");
   if (!tmp) {
-    throw("Failed to open temp decrypted bin");
+    throw("Failed to open encrypted bin");
   }
-  fseek(tmp, BIN_GLOBAL_HEADER_SIZE, SEEK_SET);
-  char magic_check[BIN_MAGIC_SIZE];
-  fread(magic_check, sizeof(char), BIN_MAGIC_SIZE, tmp);
-  if (memcmp(magic_check, BIN_MAGIC_UNLOCKED, BIN_MAGIC_SIZE) != 0) {
-    throw("Decryption failed: bin not unlocked");
+
+  bin_iostream_t io;
+  bin_io_init(&io, tmp, &bin->aes_ctx, &counter);
+
+  buf_t magic;
+  buf_init(&magic, BIN_MAGIC_SIZE);
+
+  bin_io_read(&io, BIN_MAGIC_SIZE, &magic);
+  if (memcmp(magic.data, BIN_MAGIC_UNLOCKED, BIN_MAGIC_SIZE) != 0) {
+    error("Decryption failed: bin not unlocked");
   }
-  fclose(tmp);
+
+  buf_free(&magic);
+  buf_free(&counter);
 
   /* Mark the bin as opened */
   bin->open = true;
 }
 
-void bin_close(bin_t *bin, const buf_t *aes_key) {
+void bin_close(bin_t *bin) {
   if (!bin->open) {
     debug("Bin already closed");
     return;
   }
-
-  /* Open the main bin file to write the re-encrypted data into */
-  FILE *bin_file = fopen(bin->encrypted_path, "wb");
-  if (!bin_file) {
-    throw("Failed to read encrypted bin file");
+  if (bin->write_ctx.io.fd != NULL) {
+    throw("Cannot close bin with open file descriptor");
   }
-
-  buf_t aes_iv;
-  buf_init(&aes_iv, AES_IV_SIZE);
-  buf_copy(&aes_iv, &bin->aes_iv);
-
-  if (bin->dirty) {
-    urandom(&aes_iv);
-  }
-
-  /* Write the already-cached global header */
-  fwrite(BIN_MAGIC_VERSION, sizeof(uint8_t), BIN_MAGIC_SIZE, bin_file);
-  fwrite(bin->id.data, sizeof(uint8_t), bin->id.size, bin_file);
-  fwrite(aes_iv.data, sizeof(uint8_t), aes_iv.size, bin_file);
-
-  /* Setup AES-CTR to encrypt the data */
-  buf_t counter;
-  buf_init(&counter, AES_IV_SIZE);
-  buf_copy(&counter, &aes_iv);
-
-  aes_ctx_t ctx;
-  aes_init(&ctx, aes_key);
-
-  /* Open the decrypted bin file and set it just after the global header */
-  FILE *dec_bin_file = fopen(bin->decrypted_path, "rb");
-  if (!dec_bin_file) {
-    bin_remove(bin);
-    throw("Failed to open decrypted bin file");
-  }
-  fseek(dec_bin_file, BIN_GLOBAL_HEADER_SIZE, SEEK_SET);
-
-  /* Stream the rest of the data while encrypting it to the file */
-  buf_t ciphertext;
-  buf_t cleartext;
-  buf_init(&ciphertext, READFILE_CHUNK);
-  buf_init(&cleartext, READFILE_CHUNK);
-  uint8_t buf[READFILE_CHUNK];
-  size_t b_read = 0;
-  while ((b_read = fread(buf, sizeof(uint8_t), READFILE_CHUNK, dec_bin_file)) >
-         0) {
-    buf_clear(&ciphertext);
-    buf_append(&ciphertext, buf, b_read);
-    buf_clear(&cleartext);
-    aes_ctr_crypt(&ctx, &counter, &ciphertext, &cleartext);
-    fwrite(cleartext.data, sizeof(uint8_t), cleartext.size, bin_file);
-  }
+  fcopy(bin->encrypted_path, bin->working_path);
+  remove(bin->working_path);
+  bin->working_path = NULL;
   bin->open = false;
-
-  /* Cleanup resources */
-  buf_free(&aes_iv);
-  buf_free(&counter);
-  buf_free(&ciphertext);
-  buf_free(&cleartext);
-  fclose(bin_file);
-  fclose(dec_bin_file);
 }
 
-void bin_addfile(bin_t *bin, const buf_t *fq_path, const buf_t *data) {
-  if (!bin || !fq_path || !data) {
+void bin_openfile(bin_t *bin, const buf_t *fq_path) {
+  if (!bin || !fq_path) {
+    throw("Arguments cannot be NULL");
+  }
+  if (!bin->open) {
+    error("The bin is not yet open");
+    return;
+  }
+  if (bin->write_ctx.io.fd != NULL) {
+    error("A write operation is already running");
+    return;
+  }
+  if (bin_findfile(bin, fq_path) != -1) {
+    error("The file already exists in the bin");
+    return;
+  }
+  FILE *f = fopen(bin->working_path, "rb+");
+  if (!f) {
+    throw("Failed to open bin");
+  }
+
+  fseek(f, -BIN_MAGIC_SIZE, SEEK_END);
+  bin_iostream_t *io = &bin->write_ctx.io;
+  bin_io_init(io, f, &bin->aes_ctx, &bin->aes_iv);
+  io->file_offset = ftell(f);
+  io->stream_offset = io->file_offset - BIN_GLOBAL_HEADER_SIZE;
+
+  /* Construct file header with placeholder data_len = 0 */
+  buf_t header;
+  buf_init(&header, BIN_FILE_HEADER_SIZE);
+  buf_append(&header, BIN_MAGIC_FILE, BIN_MAGIC_SIZE);
+  buf_append(&header, &fq_path->size, sizeof(size_t));
+
+  size_t placeholder_len = 0;
+  buf_append(&header, &placeholder_len, sizeof(size_t));
+
+  bin_io_write(io, &header);
+  bin_io_write(io, fq_path);
+
+  /* Populate write context */
+  bin->write_ctx.bytes_written = header.size + fq_path->size;
+  bin->write_ctx.header_size = bin->write_ctx.bytes_written;
+
+  buf_free(&header);
+}
+
+void bin_writefile(bin_t *bin, const buf_t *data) {
+  if (!bin || !data) {
+    throw("Arguments cannot be NULL");
+  }
+  if (!bin->open) {
+    error("The bin is not yet open");
+    return;
+  }
+  if (bin->write_ctx.io.fd == NULL) {
+    error("A write operation must be in progress");
+    return;
+  }
+
+  bin_io_write(&bin->write_ctx.io, data);
+  bin->write_ctx.bytes_written += data->size;
+}
+
+void bin_closefile(bin_t *bin, buf_t *aes_key) {
+  if (!bin) {
     throw("Arguments cannot be NULL");
   }
 
@@ -319,37 +450,49 @@ void bin_addfile(bin_t *bin, const buf_t *fq_path, const buf_t *data) {
     return;
   }
 
-  if (bin_findfile(bin, fq_path) != -1) {
-    error("The file already exists in the bin");
+  if (bin->write_ctx.io.fd == NULL) {
+    error("A write operation must be in progress");
     return;
   }
 
-    /* Generate the file header */
-    buf_t file_header;
-  buf_init(&file_header, BIN_FILE_HEADER_SIZE);
-  buf_append(&file_header, BIN_MAGIC_FILE, BIN_MAGIC_SIZE);
-  buf_append(&file_header, &fq_path->size, sizeof(size_t));
-  buf_append(&file_header, &data->size, sizeof(size_t));
+  /* Get the header offsets before writing the archive end */
+  size_t header_offset =
+      bin->write_ctx.io.file_offset - bin->write_ctx.bytes_written;
+  size_t data_len = bin->write_ctx.bytes_written - bin->write_ctx.header_size;
 
-  /* Write the data to the end of the file */
-  FILE *bin_file = fopen(bin->decrypted_path, "rb+");
-  if (!bin_file) {
-    throw("Failed to open bin file");
+  /* Write end marker */
+  buf_t end_marker;
+  buf_view(&end_marker, BIN_MAGIC_END, BIN_MAGIC_SIZE);
+  bin_io_write(&bin->write_ctx.io, &end_marker);
+  fclose(bin->write_ctx.io.fd);
+
+  /* Patch file header with correct data length */
+  FILE *f = fopen(bin->working_path, "rb+");
+  if (!f) {
+    throw("Failed to reopen bin for patching");
   }
-  fseek(bin_file, -BIN_MAGIC_SIZE, SEEK_END);
-  fwrite(file_header.data, sizeof(uint8_t), file_header.size, bin_file);
-  fwrite(fq_path->data, sizeof(uint8_t), fq_path->size, bin_file);
-  fwrite(data->data, sizeof(uint8_t), data->size, bin_file);
 
-  /* Re-insert the archive end flag */
-  fwrite(BIN_MAGIC_END, sizeof(uint8_t), BIN_MAGIC_SIZE, bin_file);
+  bin_iostream_t io;
+  bin_io_init(&io, f, &bin->aes_ctx, &bin->aes_iv);
+  bin_io_skip(&io, header_offset - BIN_GLOBAL_HEADER_SIZE);
+  bin_io_skip(&io, BIN_MAGIC_SIZE + sizeof(size_t));
 
-  /* As we have updated the file, we need to set the dirty flag */
-  bin->dirty = true;
+  buf_t len_buf;
+  buf_view(&len_buf, &data_len, sizeof(size_t));
 
-  /* Cleanup */
-  fclose(bin_file);
-  buf_free(&file_header);
+  char msg[64];
+  sprintf(msg, "Patching data_len = %zu at offset %zu", data_len,
+          io.file_offset);
+  debug(msg);
+  bin_io_write(&io, &len_buf);
+
+  fclose(io.fd);
+
+  bin->write_ctx.io.fd = NULL;
+  bin->write_ctx.header_size = 0;
+  bin->write_ctx.bytes_written = 0;
+
+  bin_rotate_iv(bin, aes_key);
 }
 
 void bin_listfiles(const bin_t *bin, buf_t *paths) {
@@ -362,97 +505,61 @@ void bin_listfiles(const bin_t *bin, buf_t *paths) {
     return;
   }
 
-  FILE *bin_file = fopen(bin->decrypted_path, "rb");
+  FILE *bin_file = fopen(bin->working_path, "rb");
   if (!bin_file) {
     throw("Failed to open bin file");
   }
 
-  /* Skip global header and UNLOCKED magic */
-  fseek(bin_file, BIN_GLOBAL_HEADER_SIZE + BIN_MAGIC_SIZE, SEEK_SET);
+  buf_t counter;
+  buf_init(&counter, AES_IV_SIZE);
+  buf_copy(&counter, &bin->aes_iv);
+
+  bin_iostream_t io;
+  bin_io_init(&io, bin_file, &bin->aes_ctx, &counter);
+  bin_io_skip(&io, BIN_MAGIC_SIZE);
 
   /* Keep reading entries until we encounter the end marker */
-  char type[BIN_MAGIC_SIZE];
   while (true) {
-    if (fread(type, 1, BIN_MAGIC_SIZE, bin_file) != BIN_MAGIC_SIZE) {
-      throw("Unexpected EOF");
-    }
+    buf_t type;
+    buf_init(&type, BIN_MAGIC_SIZE);
+    bin_io_read(&io, BIN_MAGIC_SIZE, &type);
 
-    if (memcmp(type, BIN_MAGIC_END, BIN_MAGIC_SIZE) == 0) {
+    if (memcmp(type.data, BIN_MAGIC_END, BIN_MAGIC_SIZE) == 0) {
+      buf_free(&type);
       break;
     }
-    if (memcmp(type, BIN_MAGIC_FILE, BIN_MAGIC_SIZE) != 0) {
-      throw("Unknown record type in bin");
+    if (memcmp(type.data, BIN_MAGIC_FILE, BIN_MAGIC_SIZE) != 0) {
+      buf_write(&type, 0);
+      fclose(io.fd);
+      throw("Unknown record type");
     }
+    buf_free(&type);
 
-    size_t path_len;
-    if (fread(&path_len, 1, sizeof(size_t), bin_file) != sizeof(size_t)) {
-      throw("Failed to read PATH_LEN");
-    }
+    buf_t len_buf;
+    buf_init(&len_buf, sizeof(size_t));
+    bin_io_read(&io, sizeof(size_t), &len_buf);
+    size_t path_len = *(size_t *)len_buf.data;
 
-    /* Read data length to skip that many bytes later */
-    size_t data_len;
-    if (fread(&data_len, 1, sizeof(size_t), bin_file) != sizeof(size_t)) {
-      throw("Failed to read DATA_LEN");
-    }
+    bin_io_read(&io, sizeof(size_t), &len_buf);
+    size_t data_len = *(size_t *)len_buf.data;
+    buf_free(&len_buf);
 
-    /* Read path from file directly into buffer */
-    char tmp_path[path_len];
-    fread(tmp_path, sizeof(uint8_t), path_len, bin_file);
-    buf_append(paths, tmp_path, path_len);
-    fseek(bin_file, data_len, SEEK_CUR);
+    buf_t path;
+    buf_init(&path, path_len);
+    bin_io_read(&io, path_len, &path);
+    buf_append(paths, path.data, path.size);
+    buf_free(&path);
+
+    bin_io_skip(&io, data_len);
   }
 
   /* Cleanup */
+  buf_free(&counter);
   fclose(bin_file);
 }
 
-bool bin_fetchfile(const bin_t *bin, const buf_t *fq_path, buf_t *out_data) {
-  if (!bin || !fq_path || !out_data) {
-    throw("Arguments cannot be NULL");
-  }
-  if (!bin->open) {
-    error("The bin is not yet open");
-    return false;
-  }
-
-  /* Find the location of the header of the file we need */
-  int64_t location = bin_findfile(bin, fq_path);
-  if (location == -1) {
-    debug("Failed to find file");
-    return false;
-  }
-
-  FILE *bin_file = fopen(bin->decrypted_path, "rb");
-  if (!bin_file) {
-    throw("Failed to open bin file");
-  }
-
-  fseek(bin_file, location + BIN_MAGIC_SIZE, SEEK_SET);
-
-  size_t path_len;
-  if (fread(&path_len, 1, sizeof(size_t), bin_file) != sizeof(size_t)) {
-    throw("Failed to read path_len");
-  }
-
-  size_t data_len;
-  if (fread(&data_len, 1, sizeof(size_t), bin_file) != sizeof(size_t)) {
-    throw("Failed to read data_len");
-  }
-
-  fseek(bin_file, path_len, SEEK_CUR);
-
-  buf_free(out_data);
-  buf_init(out_data, data_len);
-  if (fread(out_data->data, sizeof(uint8_t), data_len, bin_file) != data_len) {
-    throw("Failed to read file data");
-  }
-
-  out_data->size = data_len;
-  fclose(bin_file);
-  return true;
-}
-
-bool bin_removefile(bin_t *bin, const buf_t *fq_path) {
+bool bin_fetchfile(const bin_t *bin, const buf_t *fq_path,
+                   bin_stream_cb callback) {
   if (!bin || !fq_path) {
     throw("Arguments cannot be NULL");
   }
@@ -461,78 +568,234 @@ bool bin_removefile(bin_t *bin, const buf_t *fq_path) {
     return false;
   }
 
-  int64_t location = bin_findfile(bin, fq_path);
-  if (location == -1) {
+  /* Find the location of the header of the file we need */
+  int64_t offset = bin_findfile(bin, fq_path);
+  if (offset == -1) {
     debug("Failed to find file");
     return false;
   }
 
-  buf_t randtext, randfile;
+  FILE *bin_file = fopen(bin->working_path, "rb");
+  if (!bin_file) {
+    throw("Failed to open bin file");
+  }
+
+  bin_iostream_t io;
+  buf_t counter;
+  buf_init(&counter, AES_IV_SIZE);
+  buf_copy(&counter, &bin->aes_iv);
+  bin_io_init(&io, bin_file, &bin->aes_ctx, &counter);
+
+  bin_io_skip(&io, offset - BIN_GLOBAL_HEADER_SIZE);
+  bin_io_skip(&io, BIN_MAGIC_SIZE);
+
+  /* Read path_len */
+  buf_t len_buf;
+  buf_init(&len_buf, sizeof(size_t));
+  bin_io_read(&io, sizeof(size_t), &len_buf);
+  size_t path_len = *(size_t *)len_buf.data;
+
+  /* Read data_len */
+  bin_io_read(&io, sizeof(size_t), &len_buf);
+  size_t data_len = *(size_t *)len_buf.data;
+  buf_free(&len_buf);
+
+  /* Skip path */
+  bin_io_skip(&io, path_len);
+
+  /* Stream the file contents via a callback */
+  size_t remaining = data_len;
+  buf_t cleartext;
+  buf_init(&cleartext, 32);
+  while (remaining > 0) {
+    size_t chunk = remaining < READFILE_CHUNK ? remaining : READFILE_CHUNK;
+    bin_io_read(&io, chunk, &cleartext);
+    callback(&cleartext);
+    remaining -= chunk;
+  }
+  buf_free(&cleartext);
+  buf_free(&counter);
+  fclose(bin_file);
+  return true;
+}
+
+bool bin_removefile(bin_t *bin, const buf_t *fq_path, const buf_t *aes_key) {
+  if (!bin || !fq_path) {
+    throw("Arguments cannot be NULL");
+  }
+  if (!bin->open) {
+    error("The bin is not yet open");
+    return false;
+  }
+
+  /* First check if the file exists */
+  int64_t match_offset = bin_findfile(bin, fq_path);
+  if (match_offset == -1) {
+    debug("File not found, nothing to remove");
+    return false;
+  }
+
+  buf_t randtext, tmp_path;
   buf_init(&randtext, 16);
-  buf_init(&randfile, 32);
+  buf_init(&tmp_path, 64);
   urandom_ascii(&randtext);
-  buf_append(&randfile, "/tmp/", 5);
-  buf_append(&randfile, randtext.data, randtext.size);
-  randfile.data[randfile.size - 1] = 0;
+  buf_append(&tmp_path, "/tmp/bin_rebuild_", 17);
+  buf_append(&tmp_path, randtext.data, randtext.size);
+  buf_write(&tmp_path, 0);
 
-  FILE *src = fopen(bin->decrypted_path, "rb");
-  FILE *dst = fopen(buf_to_cstr(&randfile), "wb+");
-
+  FILE *src = fopen(bin->working_path, "rb");
+  FILE *dst = fopen(buf_to_cstr(&tmp_path), "wb+");
   if (!src || !dst) {
-    throw("Failed to open bin file for read/write");
+    throw("Failed to open bin files");
   }
 
-  /* Copy all bytes up to the target file */
-  uint8_t buf[READFILE_CHUNK];
-  int64_t copied = 0;
-  while (copied < location) {
-    size_t to_read = (location - copied > READFILE_CHUNK)
-                         ? READFILE_CHUNK
-                         : (size_t)(location - copied);
-    size_t n = fread(buf, 1, to_read, src);
-    if (n == 0)
+  uint8_t header[BIN_GLOBAL_HEADER_SIZE];
+  fread(header, sizeof(uint8_t), BIN_GLOBAL_HEADER_SIZE, src);
+  fwrite(header, sizeof(uint8_t), BIN_GLOBAL_HEADER_SIZE, dst);
+
+  /* Initialize streams */
+  bin_iostream_t r, w;
+  bin_io_init(&r, src, &bin->aes_ctx, &bin->aes_iv);
+  bin_io_init(&w, dst, &bin->aes_ctx, &bin->aes_iv);
+  r.file_offset = w.file_offset = BIN_GLOBAL_HEADER_SIZE;
+  r.stream_offset = w.stream_offset = 0;
+
+  /* Copy and validate UNLOCKED */
+  buf_t magic;
+  buf_init(&magic, BIN_MAGIC_SIZE);
+  bin_io_read(&r, BIN_MAGIC_SIZE, &magic);
+  bin_io_write(&w, &magic);
+  buf_free(&magic);
+
+  /* Process and rewrite file entries */
+  while (true) {
+    /* Read & decrypt type */
+    buf_t type;
+    buf_init(&type, BIN_MAGIC_SIZE);
+    bin_io_read(&r, BIN_MAGIC_SIZE, &type);
+    if (memcmp(type.data, BIN_MAGIC_END, BIN_MAGIC_SIZE) == 0) {
+      bin_io_write(&w, &type);
+      buf_free(&type);
       break;
-    fwrite(buf, 1, n, dst);
-    copied += n;
-  }
+    }
+    if (memcmp(type.data, BIN_MAGIC_FILE, BIN_MAGIC_SIZE) != 0) {
+      buf_free(&type);
+      throw("Corrupted bin: invalid block");
+    }
 
-  /* Skip the current file block (header + path + data) and read the header */
-  char magic[BIN_MAGIC_SIZE];
-  if (fread(magic, 1, BIN_MAGIC_SIZE, src) != BIN_MAGIC_SIZE) {
-    throw("Failed to read file magic");
-  }
+    /* Read path_len */
+    buf_t len_buf;
+    buf_init(&len_buf, sizeof(size_t));
+    bin_io_read(&r, sizeof(size_t), &len_buf);
+    size_t path_len = *(size_t *)len_buf.data;
 
-  size_t path_len = 0;
-  size_t data_len = 0;
-  if (fread(&path_len, 1, sizeof(path_len), src) != sizeof(path_len) ||
-      fread(&data_len, 1, sizeof(data_len), src) != sizeof(data_len)) {
-    throw("Failed to read file lengths");
-  }
+    /* Read data_len */
+    buf_t data_len_buf;
+    buf_init(&data_len_buf, sizeof(size_t));
+    bin_io_read(&r, sizeof(size_t), &data_len_buf);
+    size_t data_len = *(size_t *)data_len_buf.data;
 
-  /* Skip over path and file data and copy the rest of the file */
-  fseek(src, path_len + data_len, SEEK_CUR);
-  size_t n;
-  while ((n = fread(buf, 1, READFILE_CHUNK, src)) > 0) {
-    fwrite(buf, 1, n, dst);
+    /* Read path */
+    buf_t path;
+    buf_init(&path, path_len);
+    bin_io_read(&r, path_len, &path);
+    bool is_match = buf_equal(&path, fq_path);
+
+    if (is_match) {
+      /* Skip file data; don't write anything */
+      bin_io_skip(&r, data_len);
+    } else {
+      /* Write type + path_len + data_len + path */
+      bin_io_write(&w, &type);
+      bin_io_write(&w, &len_buf);
+      bin_io_write(&w, &data_len_buf);
+      bin_io_write(&w, &path);
+
+      /* Stream file data */
+      size_t remaining = data_len;
+      buf_t data;
+      buf_init(&data, 32);
+      while (remaining > 0) {
+        size_t chunk = remaining < READFILE_CHUNK ? remaining : READFILE_CHUNK;
+        bin_io_read(&r, chunk, &data);
+        bin_io_write(&w, &data);
+        remaining -= chunk;
+      }
+      buf_free(&data);
+    }
+
+    /* Clean up */
+    buf_free(&type);
+    buf_free(&len_buf);
+    buf_free(&data_len_buf);
+    buf_free(&path);
   }
 
   fclose(src);
-
-  /* Rewind dst and overwrite original file */
-  rewind(dst);
-  FILE *out = fopen(bin->decrypted_path, "wb");
-  if (!out) {
-    fclose(dst);
-    throw("Failed to reopen original file for writing");
-  }
-
-  while ((n = fread(buf, 1, READFILE_CHUNK, dst)) > 0) {
-    fwrite(buf, 1, n, out);
-  }
-
-  fclose(out);
   fclose(dst);
-  remove(buf_to_cstr(&randfile));
-  bin->dirty = true;
+
+  /* Replace original with temp */
+  FILE *final = fopen(bin->working_path, "wb");
+  FILE *rebuilt = fopen(buf_to_cstr(&tmp_path), "rb");
+  if (!final || !rebuilt) {
+    throw("Failed to finalize rewrite");
+  }
+
+  uint8_t buf[READFILE_CHUNK];
+  size_t n;
+  while ((n = fread(buf, 1, READFILE_CHUNK, rebuilt)) > 0) {
+    fwrite(buf, 1, n, final);
+  }
+  fclose(rebuilt);
+  fclose(final);
+  remove(buf_to_cstr(&tmp_path));
+
+  /* Rotate IV safely */
+  bin_rotate_iv(bin, aes_key);
+
+  buf_free(&randtext);
+  buf_free(&tmp_path);
   return true;
+}
+
+void bin_dump_decrypted(const bin_t *bin, const char *out_path,
+                        const buf_t *aes_key) {
+  if (!bin || !bin->open || !out_path || !aes_key) {
+    throw("Invalid arguments to bin_dump_decrypted");
+  }
+
+  FILE *in = fopen(bin->working_path, "rb");
+  FILE *out = fopen(out_path, "wb");
+  if (!in || !out) {
+    throw("Failed to open input/output files for bin dump");
+  }
+
+  uint8_t global[BIN_GLOBAL_HEADER_SIZE];
+  fread(global, 1, BIN_GLOBAL_HEADER_SIZE, in);
+  fwrite(global, 1, BIN_GLOBAL_HEADER_SIZE, out);
+
+  aes_ctx_t ctx;
+  aes_init(&ctx, aes_key);
+
+  buf_t counter;
+  buf_init(&counter, AES_IV_SIZE);
+  buf_copy(&counter, &bin->aes_iv);
+
+  uint8_t cipher[READFILE_CHUNK];
+  buf_t cipher_buf, clear_buf;
+  buf_init(&clear_buf, READFILE_CHUNK);
+
+  size_t stream_offset = 0;
+  size_t n;
+  while ((n = fread(cipher, 1, READFILE_CHUNK, in)) > 0) {
+    buf_view(&cipher_buf, cipher, n);
+    aes_ctr_crypt(&ctx, &counter, stream_offset, &cipher_buf, &clear_buf);
+    fwrite(clear_buf.data, 1, clear_buf.size, out);
+    stream_offset += n;
+  }
+
+  fclose(in);
+  fclose(out);
+  buf_free(&clear_buf);
+  buf_free(&counter);
 }

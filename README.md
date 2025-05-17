@@ -37,7 +37,7 @@ unreadable without explicit authorization**.
 
 ## Table of Contents
 
-- [Security Model](#security-model)
+- [Capabilities](#capabilities)
 - [Technical Details](#technical-details)
   - [Password Management](#password-management)
   - [Agent Management](#agent-management)
@@ -113,13 +113,6 @@ The file paths are stored as fully-qualified paths, meaning the files are not
 grouped by directories by architecture and needs to be done manually at
 parse-time. This also introduces a limitation where empty directories cannot be
 made, they can only be made implicitly via file creation.
-
-To minimise the impact of the bins in memory, the archive must be streamed to
-decrypt it. This streaming requires the archive to be written to a temporary
-directory, completely unlocked. This can be taken advantage of by malicious
-actors. Moreover, if the program crashed unexpectedly, chances are that the
-archive will remain decrypted. It needs to be manually cleaned up and does
-reflect a security breach.
 
 ### Notes
 

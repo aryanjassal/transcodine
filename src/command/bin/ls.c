@@ -77,21 +77,20 @@ int cmd_bin_ls(int argc, char *argv[]) {
   buf_t paths;
   buf_init(&paths, 32);
   bin_listfiles(&bin, &paths);
-  bin_close(&bin, &aes_key);
+  bin_close(&bin);
   debug("Closed bin");
 
   /* List out all files in the bin */
   if (paths.size == 0) {
     printf("No files in bin\n");
-    return 0;
-  }
-
-  size_t offset = 0;
-  while (offset < paths.size) {
-    const char *path = (const char *)&paths.data[offset];
-    printf("%s\n", path);
-    size_t len = strlen(path);
-    offset += len + 1;
+  } else {
+    size_t offset = 0;
+    while (offset < paths.size) {
+      const char *path = (const char *)&paths.data[offset];
+      printf("%s\n", path);
+      size_t len = strlen(path);
+      offset += len + 1;
+    }
   }
 
   /* Cleanup */

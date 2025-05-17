@@ -30,9 +30,11 @@
 #include "command/bin/bin.h"
 #include "command/reset.h"
 #include "command/unlock.h"
+#include "core/buffer.h"
 #include "stddefs.h"
 #include "utils/args.h"
 #include "utils/bootstrap.h"
+#include "utils/cli.h"
 
 /**
  * Print the usage guidelines and a list of available commands.
@@ -95,6 +97,11 @@ int main(int argc, char *argv[]) {
 
   /* Cleanup any resources here */
   teardown();
+
+  /* Stuff for debugging */
+  char msg[48];
+  sprintf(msg, "%lu buffers still in use", buf_inspect());
+  debug(msg);
 
   /* Return the command with the given status*/
   return status;

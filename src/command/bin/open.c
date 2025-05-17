@@ -52,6 +52,7 @@ int cmd_bin_open(int argc, char *argv[]) {
   readfile(".key", &aes_key);
 
   bin_open(&bin, argv[0], "/tmp/binfile", &aes_key);
+  bin_dump_decrypted(&bin, "/tmp/binfile2", &aes_key);
   printf("Opened bin %s (%s) successfully\n", argv[0], bin.id.data);
 
   return 0;

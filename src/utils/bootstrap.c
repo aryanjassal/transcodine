@@ -22,16 +22,19 @@ void bootstrap() {
 
   /* Write home path */
   buf_append(&HOME_PATH, home, strlen(home));
+  buf_write(&HOME_PATH, 0);
 
   /* Write password file path */
   buf_append(&AUTH_KEYS_PATH, home, strlen(home));
-  buf_append(&AUTH_KEYS_PATH, "/", sizeof(char));
+  buf_write(&AUTH_KEYS_PATH, '/');
   buf_append(&AUTH_KEYS_PATH, AUTH_KEYS_FILE_NAME, strlen(AUTH_KEYS_FILE_NAME));
+  buf_write(&AUTH_KEYS_PATH, 0);
 
   /* Write keyring file path */
   buf_append(&KEYRING_PATH, home, strlen(home));
-  buf_append(&KEYRING_PATH, "/", sizeof(char));
+  buf_write(&KEYRING_PATH, '/');
   buf_append(&KEYRING_PATH, KEYRING_FILE_NAME, strlen(KEYRING_FILE_NAME));
+  buf_write(&KEYRING_PATH, 0);
 }
 
 void teardown() {

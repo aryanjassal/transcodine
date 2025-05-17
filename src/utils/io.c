@@ -119,3 +119,29 @@ bool urandom_ascii(buf_t *buf) {
   }
   return true;
 }
+
+void fcopy(const char *dst_path, const char *src_path) {
+  FILE *src = fopen(src_path, "rb");
+  if (!src) {
+    throw("Failed to open source file");
+  }
+
+  FILE *dst = fopen(dst_path, "wb");
+  if (!dst) {
+    fclose(src);
+    throw("Failed to open destination file");
+  }
+
+  uint8_t chunk[READFILE_CHUNK];
+  size_t n;
+  while ((n = fread(chunk, sizeof(uint8_t), READFILE_CHUNK, src)) > 0) {
+    size_t written = fwrite(chunk, sizeof(uint8_t), n, dst);
+    if (written != n) {
+      fclose(src);
+      fclose(dst);
+      throw("Failed to write complete chunk to destination file");
+    }
+  }
+  fclose(src);
+  fclose(dst);
+}

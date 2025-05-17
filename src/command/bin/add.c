@@ -86,11 +86,17 @@ int cmd_bin_add(int argc, char *argv[]) {
   buf_init(&data, 32);
   readfile(argv[1], &data);
 
-  bin_addfile(&bin, &fq_path, &data);
+  bin_openfile(&bin, &fq_path);
+  bin_writefile(&bin, &data);
+  bin_closefile(&bin, &aes_key);
   debug("Wrote file to bin");
 
   /* Cleanup */
-  bin_close(&bin, &aes_key);
-  debug("Opened closed");
+  buf_free(&data);
+  buf_free(&fq_path);
+  buf_free(&aes_key);
+  bin_close(&bin);
+  bin_free(&bin);
+  debug("Closed bin");
   return 0;
 }

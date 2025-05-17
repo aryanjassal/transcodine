@@ -37,7 +37,7 @@ void buf_initf(buf_t *buf, size_t initial_capacity);
  * The buffer also copies the state of the fixed parameter. If the source buffer
  * was fixed, so will be the destination one. This parameter can be changed
  * manually later during runtime.
- * 
+ *
  * The destination buffer should ideally be initialised before being used.
  *
  * @param dst The destination buffer
@@ -144,5 +144,13 @@ void buf_free(buf_t *buf);
  * @author Aryan Jassal
  */
 char *buf_to_cstr(const buf_t *buf);
+
+/**
+ * Prints the number of buffers which have been initialised but not freed.
+ * Useful for debugging.
+ * @return The number of in-use buffers
+ * @author Aryan Jassal
+ */
+size_t buf_inspect();
 
 #endif

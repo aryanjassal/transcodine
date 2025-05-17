@@ -33,7 +33,16 @@ bool check_password(buf_t *password) {
   buf_t computed_hash;
   buf_initf(&computed_hash, SHA256_HASH_SIZE);
   hash_password(password, &stored.pass_salt, &computed_hash);
-  return buf_equal(&computed_hash, &stored.pass_hash);
+  bool result = buf_equal(&computed_hash, &stored.pass_hash);
+
+  /* Cleanup */
+  buf_free(&computed_hash);
+  buf_free(&stored.kek_hash);
+  buf_free(&stored.kek_salt);
+  buf_free(&stored.pass_hash);
+  buf_free(&stored.pass_salt);
+
+  return result;
 }
 
 void write_auth(const auth_t *auth) {

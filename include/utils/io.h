@@ -60,6 +60,15 @@ void readfilef(const char *filepath, buf_t *buf);
 void writefile(const char *filepath, buf_t *buf);
 
 /**
+ * Copies file content from source file to a destination file.
+ *
+ * @param dst_path The path of the file to be written to
+ * @param src_path The path of the file to be read
+ * @author Aryan Jassal
+ */
+void fcopy(const char *dst_path, const char *src_path);
+
+/**
  * Checks if a file is readable or not. Basically checks if a file exists or
  * not.
  * @param filepath The path of the file to check

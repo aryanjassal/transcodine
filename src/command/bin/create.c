@@ -69,5 +69,8 @@ int cmd_bin_create(int argc, char *argv[]) {
 
   printf("Created bin '%s' (%s) successfully\n", argv[0], bin.id.data);
 
+  /* Cleanup */
+  buf_free(&aes_key);
+  bin_free(&bin);
   return 0;
 }

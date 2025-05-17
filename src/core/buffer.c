@@ -5,8 +5,11 @@
 
 #include "constants.h"
 #include "stddefs.h"
-#include "utils/throw.h"
+#include "stdio.h"
 #include "utils/cli.h"
+#include "utils/throw.h"
+
+static size_t in_use = 0;
 
 static void buf_resize(buf_t *buf, size_t new_capacity) {
   if (new_capacity == 0) {
@@ -31,6 +34,9 @@ void buf_init(buf_t *buf, size_t initial_capacity) {
   if (!buf->data) {
     throw("Malloc failed");
   }
+#ifdef DEBUG
+  in_use++;
+#endif
   buf->size = 0;
   buf->capacity = initial_capacity;
   buf->fixed = false;
@@ -44,6 +50,9 @@ void buf_initf(buf_t *buf, size_t initial_capacity) {
   if (!buf->data) {
     throw("Malloc failed");
   }
+#ifdef DEBUG
+  in_use++;
+#endif
   buf->size = 0;
   buf->capacity = initial_capacity;
   buf->fixed = true;
@@ -69,7 +78,6 @@ void buf_copy(buf_t *dst, const buf_t *src) {
   dst->fixed = src->fixed;
 }
 
-
 void buf_from(buf_t *buf, const void *data, size_t len) {
   if (!buf->data) {
     buf_init(buf, len);
@@ -83,7 +91,6 @@ void buf_from(buf_t *buf, const void *data, size_t len) {
   memcpy(buf->data, data, len);
   buf->size = len;
 }
-
 
 void buf_view(buf_t *buf, void *data, const size_t len) {
   buf->data = data;
@@ -142,6 +149,9 @@ void buf_free(buf_t *buf) {
     free(buf->data);
   }
   buf->data = NULL;
+#ifdef DEBUG
+  in_use--;
+#endif
 }
 
 char *buf_to_cstr(const buf_t *buf) {
@@ -149,4 +159,10 @@ char *buf_to_cstr(const buf_t *buf) {
     warn("Buffer not null-terminated");
   }
   return (char *)buf->data;
+}
+
+size_t buf_inspect() {
+#ifdef DEBUG
+  return in_use;
+#endif
 }
