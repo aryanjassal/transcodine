@@ -77,6 +77,9 @@ void writefile(const char *filepath, buf_t *buf) {
 }
 
 bool access(const char *filepath) {
+  if (!filepath) {
+    return false;
+  }
   FILE *file = fopen(filepath, "rb");
   if (!file) {
     return false;
@@ -144,4 +147,22 @@ void fcopy(const char *dst_path, const char *src_path) {
   }
   fclose(src);
   fclose(dst);
+}
+
+void tempfile(buf_t *tmp_path) {
+  /* Create a consistent path prefix for the temporary file */
+  const char *path_prefix = "/tmp/";
+
+  /* Generate printable ASCII via urandom */
+  buf_t rand;
+  buf_init(&rand, 16);
+  urandom_ascii(&rand);
+
+  /* Write the full path with the path prefix and the urandom file name */
+  buf_append(tmp_path, path_prefix, strlen(path_prefix));
+  buf_concat(tmp_path, &rand);
+  buf_write(tmp_path, 0);
+
+  /* Cleanup */
+  buf_free(&rand);
 }

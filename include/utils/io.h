@@ -97,4 +97,12 @@ bool urandom(buf_t *buffer);
  */
 bool urandom_ascii(buf_t *buf);
 
+/**
+ * Creates a filename for a temporary file in the /tmp directory on Unix
+ * systems. This will not work on Windows systems.
+ * @param tmp_path The resulting local file path to the temporary file
+ * @autor Aryan Jassal
+ */
+void tempfile(buf_t *tmp_path);
+
 #endif

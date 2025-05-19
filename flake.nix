@@ -10,12 +10,7 @@
     in {
       devShells.${system}.default = pkgs.mkShell {
         name = "transcodine-devshell";
-        nativeBuildInputs = with pkgs; [
-          clang-tools
-          gcc
-          gdb
-          gnumake
-        ];
+        nativeBuildInputs = with pkgs; [ clang-tools gcc gdb gnumake ];
         shellHook = ''
           PATH=./build:$PATH
         '';

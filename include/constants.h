@@ -32,7 +32,14 @@
 #define BIN_MAGIC_UNLOCKED "UNLOCKED"
 #define BIN_MAGIC_FILE "ARCHVFLE"
 #define BIN_MAGIC_END "ARCHVEND"
-#define BIN_MAGIC_FILE "ARCHVFLE"
+
+/* Constants for handling db files */
+#define DB_MAGIC_SIZE 8
+#define DB_GLOBAL_HEADER_SIZE 24
+#define DB_MAGIC_VERSION "EDBASE64"
+#define DB_MAGIC_UNLOCKED "UNLOCKED"
+#define DB_MAGIC_FILE "DBASEFLE"
+#define DB_MAGIC_END "DBASEEND"
 
 /* Password handling parameters */
 #define PASSWORD_SALT_SIZE 16

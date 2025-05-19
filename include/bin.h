@@ -18,13 +18,13 @@
  *
  * [40-byte Global Header]
  *   [8-byte VERSION]: "ARCHV-64"
- *   [16-byte BIN_ID]: Like "abcd1234wxyz68789"
+ *   [16-byte BIN_ID]: Like "abcd1234wxyz6789"
  *   [16-byte AES_IV]
  * [8-byte Magic Block]
  *   [8-byte MAGIC]: "UNLOCKED"
  * [24-byte File Header]
  *   [8-byte MAGIC]: "ARCHVFLE"
- *   [8-byte PATH_LEN]: Null-terminated
+ *   [8-byte PATH_LEN]: Null-terminated path length
  *   [8-byte DATA_LEN]
  * [File Data]
  *   [... FILE_PATH_DATA]: Null-terminated
@@ -53,20 +53,13 @@
 
 #include "core/buffer.h"
 #include "crypto/aes.h"
+#include "iostream.h"
 #include "stddefs.h"
-
-typedef struct {
-  FILE *fd;
-  const aes_ctx_t *aes;
-  buf_t *counter;
-  size_t file_offset;
-  size_t stream_offset;
-} bin_iostream_t;
 
 typedef struct {
   size_t header_size;
   size_t bytes_written;
-  bin_iostream_t io;
+  iostream_t ios;
 } bin_filectx_t;
 
 typedef struct {
@@ -79,10 +72,16 @@ typedef struct {
   bin_filectx_t write_ctx;
 } bin_t;
 
+/* TODO: use this instead of defining new variables and shit */
+typedef struct {
+  size_t path_len;
+  size_t data_len;
+} bin_fheader_t;
+
 typedef void (*bin_stream_cb)(const buf_t *data);
 
 /**
- * Initialise the buffers for the bin object. Sets the paths to null.
+ * Initialise the buffers for the bin object. Sets the paths to NULL.
  * @param bin An uninitialised bin
  * @author Aryan Jassal
  */
@@ -166,7 +165,7 @@ bool bin_removefile(bin_t *bin, const buf_t *fq_path, const buf_t *aes_key);
  */
 void bin_free(bin_t *bin);
 
-
-void bin_dump_decrypted(const bin_t *bin, const char *out_path, const buf_t *aes_key);
+void bin_dump_decrypted(const bin_t *bin, const char *out_path,
+                        const buf_t *aes_key);
 
 #endif
