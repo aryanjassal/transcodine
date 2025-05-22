@@ -110,15 +110,15 @@ void db_open(db_t *db, const buf_t *kek, const char *encrypted_path);
 void db_write(db_t *db, const buf_t *key, const buf_t *value, const buf_t *kek);
 
 /**
- * Reads a key-value pair from the database. If the key doesn't exist, then
- * NULL is returned instead. The key-value pair is input as plaintext and is
- * automatically encrypted before writing.
+ * Reads a key-value pair from the database.  The key-value pair is input as
+ * plaintext and is automatically encrypted before writing.
  * @param db An initialised database
  * @param key
  * @param value
+ * @return True if the value was found, false otherwise
  * @author Aryan Jassal
  */
-void db_read(db_t *db, const buf_t *key, buf_t *value);
+bool db_read(db_t *db, const buf_t *key, buf_t *value);
 
 /**
  * Commits all the changes made from the temporary state to the permanent one.

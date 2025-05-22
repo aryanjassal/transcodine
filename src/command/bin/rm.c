@@ -57,6 +57,10 @@ int cmd_bin_rm(int argc, char *argv[]) {
     error("Incorrect password");
     return 1;
   }
+  buf_t key;
+  buf_initf(&key, AES_KEY_SIZE);
+  db_derive_key(&kek, &key);
+  buf_free(&kek);
 
   if (!access(argv[0])) {
     error("A bin with that name does not exist");
@@ -65,8 +69,8 @@ int cmd_bin_rm(int argc, char *argv[]) {
 
   db_t db;
   db_init(&db);
-  db_bootstrap(&db, &kek, buf_to_cstr(&DATABASE_PATH));
-  db_open(&db, &kek, buf_to_cstr(&DATABASE_PATH));
+  db_bootstrap(&db, &key, buf_to_cstr(&DATABASE_PATH));
+  db_open(&db, &key, buf_to_cstr(&DATABASE_PATH));
 
   bin_t bin;
   bin_init(&bin);
@@ -77,7 +81,17 @@ int cmd_bin_rm(int argc, char *argv[]) {
   bin_meta(argv[0], &buf_meta);
 
   bin_meta_t meta = *(bin_meta_t *)buf_meta.data;
-  db_read(&db, &meta.id, &aes_key);
+  buf_t id;
+  buf_view(&id, meta.id, BIN_ID_SIZE);
+  if (!db_read(&db, &id, &aes_key)) {
+    buf_free(&aes_key);
+    buf_free(&key);
+    buf_free(&buf_meta);
+    db_close(&db);
+    db_free(&db);
+    error("Failed to read key from database");
+    return 1;
+  }
   bin_open(&bin, argv[0], "/tmp/filebin", &aes_key);
   buf_free(&buf_meta);
 
@@ -91,7 +105,7 @@ int cmd_bin_rm(int argc, char *argv[]) {
   /* Cleanup */
   db_close(&db);
   db_free(&db);
-  buf_free(&kek);
+  buf_free(&key);
   buf_free(&aes_key);
   buf_free(&fq_path);
   bin_close(&bin);

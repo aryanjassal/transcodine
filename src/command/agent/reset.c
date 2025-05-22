@@ -1,5 +1,6 @@
 #include "command/agent/reset.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "auth/check.h"
@@ -44,6 +45,7 @@ static void update_password(buf_t *old_password, buf_t *new_password) {
   buf_t kek;
   buf_initf(&kek, KEK_SIZE);
   xor_decrypt(&auth.kek_hash, &rk_old, &kek);
+  printf("actual kek: %s\n", kek.data);
   xor_encrypt(&kek, &rk_new, &new_auth.kek_hash);
 
   /* Store new auth details */

@@ -1,6 +1,16 @@
 #ifndef __UTILS_CLI_H__
 #define __UTILS_CLI_H__
 
+#include "stddefs.h"
+
+/**
+ * Prints a hexdump of memory data. Useful for debugging.
+ * @param data A pointer to data
+ * @param len The length of the data
+ * @author Aryan Jassal
+ */
+void hexdump(const void *data, const size_t len);
+
 /**
  * Renders a info message string to the screen with gray text. Prints to
  * stdout.

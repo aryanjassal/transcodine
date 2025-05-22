@@ -79,8 +79,8 @@ typedef struct {
 } bin_header_t;
 
 typedef struct {
-  buf_t id;
-  buf_t aes_iv;
+  uint8_t id[BIN_ID_SIZE];
+  uint8_t aes_iv[AES_IV_SIZE];
 } bin_meta_t;
 
 typedef void (*bin_stream_cb)(const buf_t *data);

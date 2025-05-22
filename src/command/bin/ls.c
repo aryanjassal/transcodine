@@ -61,6 +61,10 @@ int cmd_bin_ls(int argc, char *argv[]) {
     error("Incorrect password");
     return 1;
   }
+  buf_t key;
+  buf_initf(&key, AES_KEY_SIZE);
+  db_derive_key(&kek, &key);
+  buf_free(&kek);
 
   if (!access(argv[0])) {
     error("A bin with that name does not exist");
@@ -70,21 +74,35 @@ int cmd_bin_ls(int argc, char *argv[]) {
   /* Unlock the encrypted database */
   db_t db;
   db_init(&db);
-  db_bootstrap(&db, &kek, buf_to_cstr(&DATABASE_PATH));
-  db_open(&db, &kek, buf_to_cstr(&DATABASE_PATH));
+  db_bootstrap(&db, &key, buf_to_cstr(&DATABASE_PATH));
+  db_open(&db, &key, buf_to_cstr(&DATABASE_PATH));
+  debug("Opened database");
 
   bin_t bin;
   bin_init(&bin);
 
   buf_t aes_key, buf_meta;
-  buf_init(&aes_key, AES_KEY_SIZE);
+  buf_initf(&aes_key, AES_KEY_SIZE);
   buf_init(&buf_meta, 32);
   bin_meta(argv[0], &buf_meta);
 
   bin_meta_t meta = *(bin_meta_t *)buf_meta.data;
-  db_read(&db, &meta.id, &aes_key);
-  bin_open(&bin, argv[0], "/tmp/filebin", &aes_key);
+  buf_t id;
+  buf_view(&id, meta.id, BIN_ID_SIZE);
+  if (!db_read(&db, &id, &aes_key)) {
+    buf_free(&aes_key);
+    buf_free(&key);
+    buf_free(&buf_meta);
+    db_close(&db);
+    db_free(&db);
+    error("Failed to read key from database");
+    return 1;
+  }
   buf_free(&buf_meta);
+  db_close(&db);
+  db_free(&db);
+  debug("Closed db");
+  bin_open(&bin, argv[0], "/tmp/filebin", &aes_key);
   debug("Opened bin");
 
   /* Close the bin as early as possible */
@@ -92,6 +110,7 @@ int cmd_bin_ls(int argc, char *argv[]) {
   buf_init(&paths, 32);
   bin_listfiles(&bin, &paths);
   bin_close(&bin);
+  bin_free(&bin);
   debug("Closed bin");
 
   /* List out all files in the bin */
@@ -108,11 +127,8 @@ int cmd_bin_ls(int argc, char *argv[]) {
   }
 
   /* Cleanup */
-  db_close(&db);
-  db_free(&db);
-  buf_free(&kek);
+  buf_free(&key);
   buf_free(&aes_key);
   buf_free(&paths);
-  bin_free(&bin);
   return 0;
 }

@@ -43,6 +43,7 @@ static void bin_rotate_iv(bin_t *bin, const buf_t *aes_key) {
   /* Calculate the total file size to be encrypted */
   fseek(in, 0, SEEK_END);
   size_t file_size = ftell(in) - BIN_GLOBAL_HEADER_SIZE;
+  fseek(in, 0, SEEK_SET);
 
   /* Set up AES contexts */
   aes_ctx_t ctx_old, ctx_new;
