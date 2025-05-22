@@ -1,36 +1,30 @@
-#include "command/bin/bin.h"
+#include "command/agent/agent.h"
 
 #include <stdio.h>
 #include <string.h>
 
-#include "command/bin/add.h"
-#include "command/bin/cat.h"
-#include "command/bin/create.h"
-#include "command/bin/ls.h"
-#include "command/bin/rm.h"
+#include "command/agent/reset.h"
+#include "command/agent/setup.h"
 #include "utils/args.h"
 
 /**
  * Print the usage guidelines and a list of available commands.
  * @param argc Number of parameters (unused)
  * @param argv Array of parameters (unused)
- * @author Aryan Jassal
+ * @author Alexandro Jauregui
  */
-static int cmd_bin_help(int argc, char *argv[]);
+static int cmd_agent_help(int argc, char *argv[]);
 
 static cmd_handler_t commands[] = {
-    {"create", "Create a new bin", cmd_bin_create},
-    {"ls", "Recursively list all the files in a bin", cmd_bin_ls},
-    {"add", "Adds a file from disk to the bin", cmd_bin_add},
-    {"cat", "Reads the contents of a file in the bin", cmd_bin_cat},
-    {"rm", "Removes a single file from the bin", cmd_bin_rm},
-    {"help", "Print usage guide", cmd_bin_help}};
+    {"setup", "Create an agent if it doesn't exist", cmd_agent_setup},
+    {"reset", "Reset the password of an agent", cmd_agent_reset},
+    {"help", "Print usage guide", cmd_agent_help}};
 
 static const int num_commands = sizeof(commands) / sizeof(cmd_handler_t);
 
-static int cmd_bin_help(int argc, char *argv[]) {
+static int cmd_agent_help(int argc, char *argv[]) {
   ignore_args(argc, argv);
-  printf("Usage: transcodine bin <command> [...options]\n");
+  printf("Usage: transcodine agent <command> [...options]\n");
   printf("Available commands:\n");
   int i;
   for (i = 0; i < num_commands; ++i) {
@@ -39,9 +33,9 @@ static int cmd_bin_help(int argc, char *argv[]) {
   return 0;
 }
 
-int cmd_bin(int argc, char *argv[]) {
+int cmd_agent(int argc, char *argv[]) {
   if (argc < 1) {
-    cmd_bin_help(0, NULL);
+    cmd_agent_help(0, NULL);
     return 1;
   }
 
@@ -62,7 +56,7 @@ int cmd_bin(int argc, char *argv[]) {
 
   if (!found) {
     printf("Invalid command: %s\n\n", argv[1]);
-    cmd_bin_help(0, NULL);
+    cmd_agent_help(0, NULL);
     status = 1;
   }
 

@@ -1,5 +1,4 @@
-#include "command/unlock.h"
-
+#include "command/agent/setup.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -17,14 +16,19 @@
 #include "utils/io.h"
 #include "utils/throw.h"
 
-void flag_help();
+/**
+ * Print the usage guidelines of this commands.
+ * @author Alexandro Jauregui
+ */
+static void flag_help();
 
-flag_handler_t flags[] = {{"--help", "Print usage guide", flag_help, true}};
+static flag_handler_t flags[] = {
+    {"--help", "Print usage guide", flag_help, true}};
 
-const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
+static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
 
-void flag_help() {
-  printf("Usage: transcodine unlock [...options]\n");
+static void flag_help() {
+  printf("Usage: transcodine agent setup [...options]\n");
   printf("Available options:\n");
   int i;
   for (i = 0; i < num_flags; ++i) {
@@ -82,53 +86,30 @@ static void save_password(buf_t *password) {
 
   /* Write the auth stuff into a file on disk */
   write_auth(&auth);
-  buf_free(&auth.kek_hash);
-  buf_free(&auth.kek_salt);
-  buf_free(&auth.pass_hash);
-  buf_free(&auth.pass_salt);
 }
 
-int cmd_unlock(int argc, char *argv[]) {
-  /* Match any arguments to their handler */
-  int i, j;
-  for (i = 0; i < argc; ++i) {
-    bool found = false;
-    for (j = 0; j < num_flags; ++j) {
-      if (strcmp(argv[i], flags[j].flag) == 0) {
-        /* Handle the flag. Exit if the flag requires early exit. */
-        found = true;
-        flags[j].handler();
-        if (flags[j].exit) {
-          return 0;
-        }
-        break;
-      }
-    }
+int cmd_agent_setup(int argc, char *argv[]) {
+  /* Dispatch flag handler */
+  switch (dispatch_flag(argc, argv, flags, num_flags)) {
+  case 1:
+    return 0;
+  case -1:
+    flag_help();
+    return 1;
+  case 0:
+    break;
+  }
 
-    /* If the flag was not found, then it is an invalid flag. */
-    if (!found) {
-      printf("Invalid flag: %s\n\n", argv[i]);
-      flag_help();
-      return 1;
-    }
+  if (access(buf_to_cstr(&AUTH_KEYS_PATH))) {
+    error("Agent is already setup");
+    return 1;
   }
 
   buf_t password;
   buf_init(&password, 32);
-
-  if (!access(buf_to_cstr(&AUTH_KEYS_PATH))) {
-    readline("Enter new password > ", &password);
-    save_password(&password);
-    buf_free(&password);
-    debug("Set new password");
-    return 0;
-  }
-
-  if (prompt_password(NULL)) {
-    debug("Unlocked agent");
-    return 0;
-  } else {
-    error("Incorrect password");
-    return 1;
-  }
+  readline("Enter new password > ", &password);
+  save_password(&password);
+  buf_free(&password);
+  printf("Agent setup complete!");
+  return 0;
 }

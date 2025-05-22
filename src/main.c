@@ -27,9 +27,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "command/agent/agent.h"
 #include "command/bin/bin.h"
-#include "command/reset.h"
-#include "command/unlock.h"
 #include "core/buffer.h"
 #include "stddefs.h"
 #include "utils/args.h"
@@ -45,9 +44,8 @@
 static int cmd_help(int argc, char *argv[]);
 
 static cmd_handler_t commands[] = {
-    {"unlock", "Unlock the agent or create a new agent state", cmd_unlock},
-    {"reset", "Change the agent password", cmd_reset},
     {"bin", "Operate on bins", cmd_bin},
+    {"agent", "operate on your agent", cmd_agent},
     {"help", "Print usage guide", cmd_help}};
 
 static const int num_commands = sizeof(commands) / sizeof(cmd_handler_t);

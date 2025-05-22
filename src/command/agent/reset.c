@@ -1,4 +1,4 @@
-#include "command/reset.h"
+#include "command/agent/reset.h"
 
 #include <string.h>
 
@@ -63,7 +63,7 @@ static void update_password(buf_t *old_password, buf_t *new_password) {
   buf_free(&kek);
 }
 
-int cmd_reset(int argc, char **argv) {
+int cmd_agent_reset(int argc, char **argv) {
   ignore_args(argc, argv);
 
   if (!access(buf_to_cstr(&AUTH_KEYS_PATH))) {
