@@ -1,8 +1,17 @@
 #ifndef __COMMAND_AGENT_AGENT_H__
 #define __COMMAND_AGENT_AGENT_H__
 
-/*Created by Alexandro Jauregui*/
-
-
+/**
+ * This subcommand groups all the operations involving the agent.
+ *
+ * A catch-all for the agent subcommand. This will dispatch the arguments to the
+ * relevant handlers as needed.
+ *
+ * @param argc The number of arguments
+ * @param argv The array of arguments
+ * @returns Exit code
+ * @author Alexandro Jauregui
+ */
 int cmd_agent(int argc, char *argv[]);
+
 #endif

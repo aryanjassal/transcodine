@@ -12,7 +12,6 @@
 #include "utils/args.h"
 #include "utils/cli.h"
 #include "utils/io.h"
-#include "utils/throw.h"
 
 /**
  * Print the usage guidelines of this commands.
@@ -44,8 +43,6 @@ int cmd_bin_add(int argc, char *argv[]) {
     return 1;
   case 0:
     break;
-  default:
-    throw("Invalid flag state");
   }
 
   /* Check argument options */

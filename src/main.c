@@ -29,8 +29,6 @@
 
 #include "command/agent/agent.h"
 #include "command/bin/bin.h"
-#include "command/reset.h"
-#include "command/unlock.h"
 #include "core/buffer.h"
 #include "stddefs.h"
 #include "utils/args.h"
@@ -46,7 +44,6 @@
 static int cmd_help(int argc, char *argv[]);
 
 static cmd_handler_t commands[] = {
-    {"reset", "Change the agent password", cmd_reset},
     {"bin", "Operate on bins", cmd_bin},
     {"agent", "operate on your agent", cmd_agent},
     {"help", "Print usage guide", cmd_help}};
