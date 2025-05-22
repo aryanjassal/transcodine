@@ -7,18 +7,20 @@
 /**
  * Prompts the user to enter their password. After getting the password, this
  * checks it and returns the result.
+ * @param kek The decrypted kek if needed. Set to NULL to ignore.
  * @returns True if the password was correct, false otherwise
  * @author Aryan Jassal
  */
-bool prompt_password();
+bool prompt_password(buf_t *kek);
 
 /**
  * Checks if the password is correct against the stored password.
  * @param password The buffer containing the raw password
+ * @param kek The decrypted kek if needed. Set to NULL to ignore.
  * @returns True if password is correct, false otherwise.
  * @author Aryan Jassal
  */
-bool check_password(buf_t *password);
+bool check_password(buf_t *password, buf_t *kek);
 
 /**
  * Writes the auth details stored by the auth_t struct.

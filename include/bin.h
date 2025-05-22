@@ -76,7 +76,12 @@ typedef struct {
 typedef struct {
   size_t path_len;
   size_t data_len;
-} bin_fheader_t;
+} bin_header_t;
+
+typedef struct {
+  buf_t id;
+  buf_t aes_iv;
+} bin_meta_t;
 
 typedef void (*bin_stream_cb)(const buf_t *data);
 
@@ -97,6 +102,16 @@ void bin_init(bin_t *bin);
  * @author Aryan Jassal
  */
 void bin_create(bin_t *bin, const char *encrypted_path, buf_t *aes_key);
+
+/**
+ * Takes an encrypted path and returns the metadata stored in the global header.
+ * As the data in the global header is decrypted, there is no need for state
+ * management or decryption.
+ * @param encrypted_path The path where to find the encrypted bin file
+ * @param data The output data returned by the bin's global header
+ * @author Aryan Jassal
+ */
+void bin_meta(const char *encrypted_path, buf_t *data);
 
 /**
  * Takes an encrypted path and an AES key to decrypt the bin and store it at the

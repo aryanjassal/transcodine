@@ -7,6 +7,8 @@
 #include "bin.h"
 #include "constants.h"
 #include "core/buffer.h"
+#include "db.h"
+#include "globals.h"
 #include "utils/args.h"
 #include "utils/cli.h"
 #include "utils/io.h"
@@ -49,7 +51,9 @@ int cmd_bin_rm(int argc, char *argv[]) {
   }
 
   /* Make sure only authenticated users can access this command */
-  if (!prompt_password()) {
+  buf_t kek;
+  buf_initf(&kek, KEK_SIZE);
+  if (!prompt_password(&kek)) {
     error("Incorrect password");
     return 1;
   }
@@ -59,14 +63,23 @@ int cmd_bin_rm(int argc, char *argv[]) {
     return 1;
   }
 
+  db_t db;
+  db_init(&db);
+  db_bootstrap(&db, &kek, buf_to_cstr(&DATABASE_PATH));
+  db_open(&db, &kek, buf_to_cstr(&DATABASE_PATH));
+
   bin_t bin;
   bin_init(&bin);
 
-  buf_t aes_key;
+  buf_t aes_key, buf_meta;
   buf_init(&aes_key, AES_KEY_SIZE);
-  readfilef(".key", &aes_key);
+  buf_init(&buf_meta, 32);
+  bin_meta(argv[0], &buf_meta);
 
+  bin_meta_t meta = *(bin_meta_t *)buf_meta.data;
+  db_read(&db, &meta.id, &aes_key);
   bin_open(&bin, argv[0], "/tmp/filebin", &aes_key);
+  buf_free(&buf_meta);
 
   buf_t fq_path;
   buf_init(&fq_path, strlen(argv[1]) + 1);
@@ -76,6 +89,9 @@ int cmd_bin_rm(int argc, char *argv[]) {
   bin_removefile(&bin, &fq_path, &aes_key);
 
   /* Cleanup */
+  db_close(&db);
+  db_free(&db);
+  buf_free(&kek);
   buf_free(&aes_key);
   buf_free(&fq_path);
   bin_close(&bin);

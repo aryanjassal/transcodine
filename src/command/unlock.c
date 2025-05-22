@@ -82,6 +82,10 @@ static void save_password(buf_t *password) {
 
   /* Write the auth stuff into a file on disk */
   write_auth(&auth);
+  buf_free(&auth.kek_hash);
+  buf_free(&auth.kek_salt);
+  buf_free(&auth.pass_hash);
+  buf_free(&auth.pass_salt);
 }
 
 int cmd_unlock(int argc, char *argv[]) {
@@ -120,7 +124,7 @@ int cmd_unlock(int argc, char *argv[]) {
     return 0;
   }
 
-  if (prompt_password()) {
+  if (prompt_password(NULL)) {
     debug("Unlocked agent");
     return 0;
   } else {

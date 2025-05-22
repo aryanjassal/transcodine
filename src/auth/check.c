@@ -5,22 +5,23 @@
 #include "auth/hash.h"
 #include "constants.h"
 #include "core/buffer.h"
+#include "crypto/xor.h"
 #include "globals.h"
 #include "stddefs.h"
 #include "typedefs.h"
 #include "utils/io.h"
 #include "utils/throw.h"
 
-bool prompt_password() {
+bool prompt_password(buf_t *kek) {
   buf_t password;
   buf_init(&password, 32);
   readline("Enter password > ", &password);
-  bool result = check_password(&password);
+  bool result = check_password(&password, kek);
   buf_free(&password);
   return result;
 }
 
-bool check_password(buf_t *password) {
+bool check_password(buf_t *password, buf_t *kek) {
   /* Retrieve stored password details */
   auth_t stored;
   buf_initf(&stored.pass_salt, PASSWORD_SALT_SIZE);
@@ -34,6 +35,15 @@ bool check_password(buf_t *password) {
   buf_initf(&computed_hash, SHA256_HASH_SIZE);
   hash_password(password, &stored.pass_salt, &computed_hash);
   bool result = buf_equal(&computed_hash, &stored.pass_hash);
+
+  /* Return the KEK if it is requested */
+  if (result && kek != NULL) {
+    buf_t root_key;
+    buf_initf(&root_key, SHA256_HASH_SIZE);
+    hash_password(password, &stored.kek_salt, &root_key);
+    xor_decrypt(&stored.kek_hash, &root_key, kek);
+    buf_free(&root_key);
+  }
 
   /* Cleanup */
   buf_free(&computed_hash);

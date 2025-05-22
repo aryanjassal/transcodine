@@ -18,7 +18,7 @@ void bootstrap() {
   /* Initialise global buffers */
   buf_init(&HOME_PATH, strlen(home));
   buf_init(&AUTH_KEYS_PATH, strlen(home) + strlen(AUTH_KEYS_FILE_NAME));
-  buf_init(&KEYRING_PATH, strlen(home) + strlen(KEYRING_FILE_NAME));
+  buf_init(&DATABASE_PATH, strlen(home) + strlen(DATABASE_FILE_NAME));
 
   /* Write home path */
   buf_append(&HOME_PATH, home, strlen(home));
@@ -31,14 +31,14 @@ void bootstrap() {
   buf_write(&AUTH_KEYS_PATH, 0);
 
   /* Write keyring file path */
-  buf_append(&KEYRING_PATH, home, strlen(home));
-  buf_write(&KEYRING_PATH, '/');
-  buf_append(&KEYRING_PATH, KEYRING_FILE_NAME, strlen(KEYRING_FILE_NAME));
-  buf_write(&KEYRING_PATH, 0);
+  buf_append(&DATABASE_PATH, home, strlen(home));
+  buf_write(&DATABASE_PATH, '/');
+  buf_append(&DATABASE_PATH, DATABASE_FILE_NAME, strlen(DATABASE_FILE_NAME));
+  buf_write(&DATABASE_PATH, 0);
 }
 
 void teardown() {
   buf_free(&HOME_PATH);
   buf_free(&AUTH_KEYS_PATH);
-  buf_free(&KEYRING_PATH);
+  buf_free(&DATABASE_PATH);
 }

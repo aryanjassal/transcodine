@@ -75,7 +75,7 @@ int cmd_reset(int argc, char **argv) {
   buf_init(&password_current, 32);
   readline("Enter current password > ", &password_current);
 
-  if (!check_password(&password_current)) {
+  if (!check_password(&password_current, NULL)) {
     buf_free(&password_current);
     error("The password is incorrect");
     return 1;

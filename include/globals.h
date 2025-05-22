@@ -6,6 +6,6 @@
 /* Bootstrap state */
 extern buf_t HOME_PATH;
 extern buf_t AUTH_KEYS_PATH;
-extern buf_t KEYRING_PATH;
+extern buf_t DATABASE_PATH;
 
 #endif

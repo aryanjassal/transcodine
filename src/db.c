@@ -7,13 +7,14 @@
 #include "core/buffer.h"
 #include "crypto/aes.h"
 #include "crypto/aes_ctr.h"
+#include "crypto/pbkdf2.h"
 #include "iostream.h"
 #include "stddefs.h"
 #include "utils/cli.h"
 #include "utils/io.h"
 #include "utils/throw.h"
 
-static void db_rotate_iv(db_t *db, const buf_t *kek) {
+void db_rotate_iv(db_t *db, const buf_t *kek) {
   if (!db || !kek) {
     throw("Arguments cannot be NULL");
   }
@@ -117,6 +118,7 @@ static int64_t db_find_entry(const db_t *db, const buf_t *key) {
 
     /* Validate entry type */
     buf_t type;
+    buf_initf(&type, DB_MAGIC_SIZE);
     iostream_read(&ios, DB_MAGIC_SIZE, &type);
     if (memcmp(type.data, DB_MAGIC_END, DB_MAGIC_SIZE) == 0) {
       buf_free(&type);
@@ -160,8 +162,16 @@ static int64_t db_find_entry(const db_t *db, const buf_t *key) {
   return location;
 }
 
+void db_derive_key(const buf_t *kek, buf_t *db_key) {
+  buf_t salt;
+  buf_init(&salt, 16);
+  buf_append(&salt, "aes-key-edb", strlen("aes-key-edb"));
+  pbkdf2_hmac_sha256_hash(kek, &salt, PBKDF2_ITERATIONS, db_key, AES_KEY_SIZE);
+  buf_free(&salt);
+}
+
 void db_init(db_t *db) {
-  buf_init(&db->aes_iv, AES_IV_SIZE);
+  buf_initf(&db->aes_iv, AES_IV_SIZE);
   db->encrypted_path = NULL;
   db->working_path = NULL;
 }
@@ -172,8 +182,8 @@ void db_free(db_t *db) {
   db->working_path = NULL;
 }
 
-void db_create(db_t *db, const buf_t *kek, const char *encrypted_path) {
-  if (!db || !kek || !encrypted_path) {
+void db_create(db_t *db, const buf_t *key, const char *encrypted_path) {
+  if (!db || !key || !encrypted_path) {
     throw("Arguments cannot be NULL");
   }
   if (access(encrypted_path)) {
@@ -188,11 +198,11 @@ void db_create(db_t *db, const buf_t *kek, const char *encrypted_path) {
 
   /* Write global header */
   fwrite(DB_MAGIC_VERSION, sizeof(uint8_t), DB_MAGIC_SIZE, db_file);
-  fwrite(&db->aes_iv, sizeof(uint8_t), db->aes_iv.size, db_file);
+  fwrite(db->aes_iv.data, sizeof(uint8_t), db->aes_iv.size, db_file);
 
   /* Rest of the chunks will be encrypted */
   buf_t cleartext;
-  buf_init(&cleartext, 32);
+  buf_init(&cleartext, 16);
   buf_append(&cleartext, DB_MAGIC_UNLOCKED, DB_MAGIC_SIZE);
   buf_append(&cleartext, DB_MAGIC_END, DB_MAGIC_SIZE);
   buf_t ciphertext;
@@ -200,7 +210,7 @@ void db_create(db_t *db, const buf_t *kek, const char *encrypted_path) {
 
   /* Setup AES contexts */
   aes_ctx_t ctx;
-  aes_init(&ctx, kek);
+  aes_init(&ctx, key);
   buf_t counter;
   buf_init(&counter, AES_IV_SIZE);
   buf_copy(&counter, &db->aes_iv);
@@ -216,19 +226,35 @@ void db_create(db_t *db, const buf_t *kek, const char *encrypted_path) {
   buf_free(&ciphertext);
 }
 
-void db_open(db_t *db, const buf_t *kek, const char *working_path) {
-  if (!db || !kek || !working_path) {
+void db_bootstrap(db_t *db, const buf_t *kek, const char *encrypted_path) {
+  if (!access(encrypted_path)) {
+    debug("Bootstrapping database");
+    db_create(db, kek, encrypted_path);
+    return;
+  }
+  debug("Database already exists");
+}
+
+void db_open(db_t *db, const buf_t *key, const char *encrypted_path) {
+  if (!db || !key || !encrypted_path) {
     throw("Arguments cannot be NULL");
   }
-  if (!access(db->encrypted_path)) {
+  if (!access(encrypted_path)) {
     throw("Database must be created before opening");
   }
 
   /* Create a working copy of the database file */
-  fcopy(working_path, db->encrypted_path);
+  buf_t working_path;
+  buf_init(&working_path, 32);
+  buf_append(&working_path, encrypted_path, strlen(encrypted_path));
+  buf_append(&working_path, ".new", strlen(".new"));
+  buf_write(&working_path, 0);
+  fcopy(buf_to_cstr(&working_path), encrypted_path);
+  db->encrypted_path = encrypted_path;
+  db->working_path = buf_to_cstr(&working_path);
 
   /* Check if the file is a valid database file */
-  FILE *db_file = fopen(working_path, "rb");
+  FILE *db_file = fopen(buf_to_cstr(&working_path), "rb");
   if (!db_file) {
     throw("Failed to open working file");
   }
@@ -239,22 +265,26 @@ void db_open(db_t *db, const buf_t *kek, const char *working_path) {
   if (n != DB_MAGIC_SIZE) {
     throw("Failed to read DB version");
   }
+  if (memcmp(version, DB_MAGIC_VERSION, DB_MAGIC_SIZE) != 0) {
+    printf("v: %s\n", version);
+    throw("File is not a database file");
+  }
 
   /* Set database state */
-  db->working_path = working_path;
   fread(db->aes_iv.data, sizeof(uint8_t), AES_IV_SIZE, db_file);
+  db->aes_iv.size = AES_IV_SIZE;
 
   /* Check unlock */
   buf_t counter;
   buf_init(&counter, AES_IV_SIZE);
   buf_copy(&counter, &db->aes_iv);
-  aes_init(&db->aes_ctx, kek);
+  aes_init(&db->aes_ctx, key);
 
   iostream_t ios;
   iostream_init(&ios, db_file, &db->aes_ctx, &counter, DB_GLOBAL_HEADER_SIZE);
 
   buf_t magic;
-  buf_init(&magic, DB_MAGIC_SIZE);
+  buf_initf(&magic, DB_MAGIC_SIZE);
   iostream_read(&ios, DB_MAGIC_SIZE, &magic);
 
   if (memcmp(magic.data, DB_MAGIC_UNLOCKED, DB_MAGIC_SIZE) != 0) {
@@ -326,8 +356,8 @@ void db_read(db_t *db, const buf_t *key, buf_t *value) {
   fclose(db_file);
 }
 
-
-void db_write(db_t *db, const buf_t *key, const buf_t *value, const buf_t *kek) {
+void db_write(db_t *db, const buf_t *key, const buf_t *value,
+              const buf_t *kek) {
   if (!db || !key || !value || !kek) {
     throw("Arguments cannot be NULL");
   }
@@ -343,11 +373,10 @@ void db_write(db_t *db, const buf_t *key, const buf_t *value, const buf_t *kek) 
   }
 
   /* Prepare for reading file */
-  FILE *db_file = fopen(db->working_path, "wb");
+  FILE *db_file = fopen(db->working_path, "rb+");
   if (!db_file) {
     throw("Failed to open working database");
   }
-  fseek(db_file, -DB_MAGIC_SIZE, SEEK_END);
 
   buf_t counter;
   buf_init(&counter, AES_IV_SIZE);
@@ -356,6 +385,7 @@ void db_write(db_t *db, const buf_t *key, const buf_t *value, const buf_t *kek) 
   /* Seek to the end of file to append new entry */
   iostream_t ios;
   iostream_init(&ios, db_file, &db->aes_ctx, &counter, DB_GLOBAL_HEADER_SIZE);
+  fseek(db_file, -DB_MAGIC_SIZE, SEEK_END);
   ios.file_offset = ftell(db_file);
   ios.stream_offset = ios.file_offset - DB_GLOBAL_HEADER_SIZE;
 
@@ -374,11 +404,11 @@ void db_write(db_t *db, const buf_t *key, const buf_t *value, const buf_t *kek) 
   buf_t end;
   buf_init(&end, DB_MAGIC_SIZE);
   buf_append(&end, DB_MAGIC_END, DB_MAGIC_SIZE);
-  iostream_write(&ios, value);
+  iostream_write(&ios, &end);
   buf_free(&end);
 
   /* Rotate the IV for security */
-  db_rotate_iv(db, kek);
+  /* db_rotate_iv(db, kek); */
 
   /* Cleanup */
   buf_free(&counter);

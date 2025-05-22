@@ -4,4 +4,4 @@
 
 buf_t HOME_PATH;
 buf_t AUTH_KEYS_PATH;
-buf_t KEYRING_PATH;
+buf_t DATABASE_PATH;

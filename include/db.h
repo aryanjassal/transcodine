@@ -57,6 +57,14 @@ typedef struct {
 void db_init(db_t *db);
 
 /**
+ * Derives the AES key for the database using the KEK.
+ * @param kek The input KEK
+ * @param key The output derived key
+ * @author Aryan Jassal
+ */
+void db_derive_key(const buf_t *kek, buf_t *key);
+
+/**
  * Create an encrypted database at the specified location. In the beginning, the
  * database will be empty. This should only be run at bootstrap time. Do not use
  * this to open an existing database.
@@ -68,15 +76,25 @@ void db_init(db_t *db);
 void db_create(db_t *db, const buf_t *kek, const char *encrypted_path);
 
 /**
+ * Checks if the database exists. If it does not exist, then the database is
+ * created, otherwise this is a noop.
+ * @param db An initialised database
+ * @param kek The key used to encrypt the database
+ * @param encrypted_path The location of the encrypted database state
+ * @author Aryan Jassal
+ */
+void db_bootstrap(db_t *db, const buf_t *kek, const char *encrypted_path);
+
+/**
  * Opens an encrypted database into a working path, then populates the in-memory
  * db object. The database state isn't affected and only updates once the
  * database is closed.
  * @param db An initialised database
  * @param kek The key used to decrypt the database
- * @param working_path The location of the temporary pre-commit state
+ * @param encrypted_path The location of the encrypted database state
  * @author Aryan Jassal
  */
-void db_open(db_t *db, const buf_t *kek, const char *working_path);
+void db_open(db_t *db, const buf_t *kek, const char *encrypted_path);
 
 /**
  * Writes a key-value pair at the end of the database. If the key already

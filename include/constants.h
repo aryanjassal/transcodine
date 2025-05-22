@@ -21,7 +21,7 @@
 
 /* Bootstrap file names */
 #define AUTH_KEYS_FILE_NAME ".tc-auth.db"
-#define KEYRING_FILE_NAME ".tc-keyring.db"
+#define DATABASE_FILE_NAME ".tc.db"
 
 /* Constants for handling bin files */
 #define BIN_ID_SIZE 16

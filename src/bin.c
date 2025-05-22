@@ -7,11 +7,11 @@
 #include "core/buffer.h"
 #include "crypto/aes.h"
 #include "crypto/aes_ctr.h"
+#include "iostream.h"
 #include "stddefs.h"
 #include "utils/cli.h"
 #include "utils/io.h"
 #include "utils/throw.h"
-#include "iostream.h"
 
 /**
  * Rotates the IV for this bin and re-encrypts it with the new IV. This is
@@ -116,7 +116,8 @@ static int64_t bin_findfile(const bin_t *bin, const buf_t *fq_path) {
   buf_copy(&counter, &bin->aes_iv);
 
   iostream_t ios;
-  iostream_init(&ios, bin_file, &bin->aes_ctx, &counter, BIN_GLOBAL_HEADER_SIZE);
+  iostream_init(&ios, bin_file, &bin->aes_ctx, &counter,
+                BIN_GLOBAL_HEADER_SIZE);
   iostream_skip(&ios, BIN_MAGIC_SIZE);
 
   int64_t location = -1;
@@ -192,8 +193,8 @@ void bin_create(bin_t *bin, const char *encrypted_path, buf_t *aes_key) {
   if (!bin || !encrypted_path || !aes_key) {
     throw("Argument cannot be NULL");
   }
-  if (!bin->open) {
-    throw("Bin must be open");
+  if (access(encrypted_path)) {
+    throw("A file at that path already exists");
   }
 
   FILE *bin_file = fopen(encrypted_path, "wb");
@@ -236,6 +237,23 @@ void bin_create(bin_t *bin, const char *encrypted_path, buf_t *aes_key) {
   buf_free(&ciphertext);
   buf_free(&counter);
   fclose(bin_file);
+}
+
+void bin_meta(const char *encrypted_path, buf_t *meta) {
+  /* Read the global header and update the bin state */
+  FILE *bin_file = fopen(encrypted_path, "rb");
+  if (!bin_file) {
+    throw("Failed to open bin at encrypted path");
+  }
+  buf_free(meta);
+  buf_initf(meta, BIN_GLOBAL_HEADER_SIZE - BIN_MAGIC_SIZE);
+  fseek(bin_file, BIN_MAGIC_SIZE, SEEK_SET);
+  size_t to_read = BIN_GLOBAL_HEADER_SIZE - BIN_MAGIC_SIZE;
+  size_t n = fread(meta->data, sizeof(uint8_t), to_read, bin_file);
+  if (n != to_read) {
+    throw("Failed to read full global header");
+  }
+  meta->size = n;
 }
 
 void bin_open(bin_t *bin, const char *encrypted_path, const char *working_path,
@@ -458,7 +476,8 @@ void bin_listfiles(const bin_t *bin, buf_t *paths) {
   buf_copy(&counter, &bin->aes_iv);
 
   iostream_t ios;
-  iostream_init(&ios, bin_file, &bin->aes_ctx, &counter, BIN_GLOBAL_HEADER_SIZE);
+  iostream_init(&ios, bin_file, &bin->aes_ctx, &counter,
+                BIN_GLOBAL_HEADER_SIZE);
   iostream_skip(&ios, BIN_MAGIC_SIZE);
 
   /* Keep reading entries until we encounter the end marker */
@@ -527,7 +546,8 @@ bool bin_fetchfile(const bin_t *bin, const buf_t *fq_path,
   buf_t counter;
   buf_init(&counter, AES_IV_SIZE);
   buf_copy(&counter, &bin->aes_iv);
-  iostream_init(&ios, bin_file, &bin->aes_ctx, &counter, BIN_GLOBAL_HEADER_SIZE);
+  iostream_init(&ios, bin_file, &bin->aes_ctx, &counter,
+                BIN_GLOBAL_HEADER_SIZE);
 
   iostream_skip(&ios, offset - BIN_GLOBAL_HEADER_SIZE);
   iostream_skip(&ios, BIN_MAGIC_SIZE);
