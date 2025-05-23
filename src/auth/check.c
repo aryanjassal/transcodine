@@ -13,6 +13,7 @@
 #include "utils/throw.h"
 
 bool prompt_password(buf_t *kek) {
+  if (!access(buf_to_cstr(&AUTH_DB_PATH))) throw("Agent not setup");
   buf_t password;
   buf_init(&password, 32);
   readline("Enter password > ", &password);
@@ -57,9 +58,7 @@ bool check_password(buf_t *password, buf_t *kek) {
 
 void write_auth(const auth_t *auth) {
   FILE *file = fopen(buf_to_cstr(&AUTH_DB_PATH), "wb");
-  if (!file) {
-    throw("Failed to write to file");
-  }
+  if (!file) throw("Failed to write to file");
   fwrite(auth->pass_salt.data, sizeof(uint8_t), auth->pass_salt.capacity, file);
   fwrite(auth->pass_hash.data, sizeof(uint8_t), auth->pass_hash.capacity, file);
   fwrite(auth->kek_salt.data, sizeof(uint8_t), auth->kek_salt.capacity, file);
@@ -69,9 +68,7 @@ void write_auth(const auth_t *auth) {
 
 void read_auth(auth_t *auth) {
   FILE *file = fopen(buf_to_cstr(&AUTH_DB_PATH), "rb");
-  if (!file) {
-    throw("Failed to open auth file");
-  }
+  if (!file) throw("Agent not setup");
 
   buf_clear(&auth->pass_salt);
   buf_clear(&auth->pass_hash);
