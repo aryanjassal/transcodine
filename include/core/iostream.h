@@ -1,5 +1,5 @@
-#ifndef __IOSTREAM__
-#define __IOSTREAM__
+#ifndef __CORE_IOSTREAM_H__
+#define __CORE_IOSTREAM_H__
 
 #include <stdio.h>
 

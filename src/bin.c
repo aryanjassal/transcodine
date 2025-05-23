@@ -5,9 +5,9 @@
 
 #include "constants.h"
 #include "core/buffer.h"
+#include "core/iostream.h"
 #include "crypto/aes.h"
 #include "crypto/urandom.h"
-#include "iostream.h"
 #include "stddefs.h"
 #include "utils/cli.h"
 #include "utils/io.h"

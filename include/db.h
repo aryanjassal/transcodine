@@ -35,6 +35,7 @@
 #define __DB_H__
 
 #include "core/buffer.h"
+#include "core/iostream.h"
 #include "crypto/aes.h"
 
 typedef struct {
@@ -48,6 +49,12 @@ typedef struct {
   size_t key_len;
   size_t data_len;
 } db_entry_t;
+
+typedef struct {
+  iostream_t ios;
+  db_t *db;
+  bool finished;
+} db_iter_t;
 
 /**
  * Initialise the buffers for the db object. Sets the paths to NULL.
@@ -205,5 +212,58 @@ void db_close(db_t *db);
  * @author Aryan Jassal
  */
 void db_free(db_t *db);
+
+/**
+ * Initialise the buffers for the db iterator object. This will start a new read
+ * stream from the beginning of the db. Each value can be consumed on demand.
+ * Note that if the database is updated concurrently, this would invalidate the
+ * read data and result in undefined behaviour.
+ * @param it
+ * @param db
+ * @author Aryan Jassal
+ */
+void db_iter_init(db_iter_t *it, db_t *db);
+
+/**
+ * Get the next key-value pair from the database. If the database is empty,
+ * nothing is changed.
+ * @param it
+ * @param key
+ * @param value
+ * @return True if the database was read correctly, false otherwise
+ * @author Aryan Jassal
+ */
+bool db_iter_next(db_iter_t *it, buf_t *key, buf_t *value);
+
+/**
+ * Get the next namespaced key-value pair from the database. If the database is
+ * empty, nothing is changed. The namespace is omitted from the read key.
+ * @param it
+ * @param namespace
+ * @param key
+ * @param value
+ * @return True if the database was read correctly, false otherwise
+ * @author Aryan Jassal
+ */
+bool db_iter_nextns(db_iter_t *it, const buf_t *namespace, buf_t *key,
+                    buf_t *value);
+
+/**
+ * Free the memory consumed by the db iterator object. This will make the
+ * iterator unusable.
+ * @param it
+ * @param db
+ * @author Aryan Jassal
+ */
+void db_iter_free(db_iter_t *it);
+
+/**
+ * Prints out a hexdump-like dump of the decrypted database contents. Note that
+ * this still needs the user to be authenticated and the database to be
+ * unlocked, so by itself this does nothing.
+ * @param db
+ * @author Aryan Jassal
+ */
+void db_hexdump(const db_t *db);
 
 #endif

@@ -5,15 +5,17 @@
 
 #include "constants.h"
 #include "core/buffer.h"
+#include "core/iostream.h"
 #include "crypto/aes.h"
 #include "crypto/pbkdf2.h"
 #include "crypto/urandom.h"
-#include "iostream.h"
 #include "stddefs.h"
 #include "utils/cli.h"
 #include "utils/io.h"
 #include "utils/system.h"
 #include "utils/throw.h"
+
+
 
 /**
  * Rotates the IV for the database and re-encrypts it with the new IV. This is
@@ -219,6 +221,38 @@ void db_create(db_t *db, const buf_t *db_key, const char *encrypted_path) {
   buf_free(&cleartext);
   fclose(db_file);
   debug("Created database");
+}
+
+void db_hexdump(const db_t *db) {
+  /* Open the db file */
+  FILE *db_file = fopen(db->working_path, "rb");
+  fseek(db_file, 0, SEEK_END);
+  size_t size = ftell(db_file) - DB_GLOBAL_HEADER_SIZE;
+  fseek(db_file, 0, SEEK_SET);
+
+  /* Prepare to read db */
+  buf_t file;
+  buf_init(&file, DB_GLOBAL_HEADER_SIZE);
+  file.size = fread(file.data, 1, DB_GLOBAL_HEADER_SIZE, db_file);
+  iostream_t io;
+  iostream_init(&io, db_file, &db->aes_ctx, &db->aes_iv, DB_GLOBAL_HEADER_SIZE);
+
+  /* Read data */
+  buf_t block;
+  buf_init(&block, READFILE_CHUNK);
+  size_t c, rem = size;
+  while (rem > 0) {
+    c = rem > READFILE_CHUNK ? READFILE_CHUNK : rem;
+    iostream_read(&io, c, &block);
+    buf_concat(&file, &block);
+    rem -= c;
+  }
+  
+  /* Cleanup */
+  buf_free(&block);
+  fclose(db_file);
+  hexdump(file.data, file.size);
+  buf_free(&file);
 }
 
 void db_bootstrap(db_t *db, const buf_t *db_key, const char *encrypted_path) {
@@ -431,7 +465,7 @@ void db_remove(db_t *db, const buf_t *key, const buf_t *db_key) {
 
     /* Extract header data from database */
     buf_t header;
-    buf_initf(&header, DB_MAGIC_SIZE);
+    buf_initf(&header, sizeof(size_t) * 2);
     iostream_read(&r, sizeof(size_t) * 2, &header);
     db_entry_t entry = *(db_entry_t *)header.data;
 
@@ -440,7 +474,7 @@ void db_remove(db_t *db, const buf_t *key, const buf_t *db_key) {
     buf_initf(&k, entry.key_len);
     buf_initf(&v, entry.data_len);
     iostream_read(&r, entry.key_len, &k);
-    iostream_read(&w, entry.data_len, &v);
+    iostream_read(&r, entry.data_len, &v);
 
     /* If we don't have a match, then copy the data. Otherwise, noop */
     if (!buf_equal(key, &k)) {
@@ -508,4 +542,87 @@ void db_removens(db_t *db, const buf_t *namespace, const buf_t *key,
   db_ns_key(key, namespace, &ns_key);
   db_remove(db, &ns_key, db_key);
   buf_free(&ns_key);
+}
+
+void db_iter_init(db_iter_t *it, db_t *db) {
+  it->db = db;
+  it->finished = false;
+  FILE *db_file = fopen(db->working_path, "rb");
+  iostream_init(&it->ios, db_file, &db->aes_ctx, &db->aes_iv,
+                DB_GLOBAL_HEADER_SIZE);
+  iostream_skip(&it->ios, DB_MAGIC_SIZE);
+}
+
+void db_iter_free(db_iter_t *it) {
+  it->db = NULL;
+  it->finished = true;
+  fclose(it->ios.fd);
+  iostream_free(&it->ios);
+}
+
+bool db_iter_next(db_iter_t *it, buf_t *key, buf_t *value) {
+  if (!it) throw("Arguments cannot be NULL");
+  if (it->finished) return false;
+
+  /* Confirm the next entry */
+  buf_t type;
+  buf_initf(&type, DB_MAGIC_SIZE);
+  iostream_read(&it->ios, DB_MAGIC_SIZE, &type);
+  if (memcmp(type.data, DB_MAGIC_END, DB_MAGIC_SIZE) == 0) {
+    buf_free(&type);
+    it->finished = true;
+    return false;
+  }
+  if (memcmp(type.data, DB_MAGIC_FILE, DB_MAGIC_SIZE) != 0) {
+    throw("Invalid block");
+  }
+  buf_free(&type);
+
+  /* Extract header data from database */
+  buf_t header;
+  buf_initf(&header, sizeof(size_t) * 2);
+  iostream_read(&it->ios, sizeof(size_t) * 2, &header);
+  db_entry_t entry = *(db_entry_t *)header.data;
+
+  /* Read data if requested */
+  if (key) {
+    iostream_read(&it->ios, entry.key_len, key);
+  } else {
+    iostream_skip(&it->ios, entry.key_len);
+  }
+  if (value) {
+    iostream_read(&it->ios, entry.data_len, value);
+  } else {
+    iostream_skip(&it->ios, entry.data_len);
+  }
+
+  /* Cleaup */
+  buf_free(&header);
+  return true;
+}
+
+bool db_iter_nextns(db_iter_t *it, const buf_t *namespace, buf_t *key,
+                    buf_t *value) {
+  buf_t full_key, ns;
+  buf_init(&full_key, 32);
+  buf_initf(&ns, namespace->size + 1);
+  buf_copy(&ns, namespace);
+  buf_write(&ns, ':');
+
+  /* Keep looping until either we find the next value or break */
+  while (db_iter_next(it, &full_key, value)) {
+    if (full_key.size <= ns.size) continue;
+    if (memcmp(full_key.data, ns.data, ns.size) != 0) continue;
+    /* Match found */
+    if (key) {
+      buf_clear(key);
+      buf_append(key, full_key.data + ns.size, full_key.size - ns.size);
+    }
+    buf_free(&ns);
+    buf_free(&full_key);
+    return true;
+  }
+  buf_free(&ns);
+  buf_free(&full_key);
+  return false;
 }

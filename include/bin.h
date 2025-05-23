@@ -52,8 +52,8 @@
 #include <stdio.h>
 
 #include "core/buffer.h"
+#include "core/iostream.h"
 #include "crypto/aes.h"
-#include "iostream.h"
 #include "stddefs.h"
 
 typedef struct {
@@ -100,7 +100,8 @@ void bin_init(bin_t *bin);
  * @param encrypted_path The path where to create the encrypted bin file
  * @author Aryan Jassal
  */
-void bin_create(bin_t *bin, const buf_t *bin_id, buf_t *aes_key, const char *encrypted_path);
+void bin_create(bin_t *bin, const buf_t *bin_id, buf_t *aes_key,
+                const char *encrypted_path);
 
 /**
  * Takes an encrypted path and returns the metadata stored in the global header.
