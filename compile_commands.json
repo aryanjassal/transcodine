@@ -68,6 +68,25 @@
       "-g",
       "-c",
       "-o",
+      "build/core/iostream.o",
+      "src/core/iostream.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/core/iostream.c",
+    "output": "/home/aryanj/Projects/transcodine/build/core/iostream.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/f0m6caffiykyvsjim9376a3hx2yj2ghj-gcc-wrapper-14.2.1.20250322/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-g",
+      "-c",
+      "-o",
       "build/core/list.o",
       "src/core/list.c"
     ],
@@ -131,25 +150,6 @@
     "directory": "/home/aryanj/Projects/transcodine",
     "file": "/home/aryanj/Projects/transcodine/src/bin.c",
     "output": "/home/aryanj/Projects/transcodine/build/bin.o"
-  },
-  {
-    "arguments": [
-      "/nix/store/f0m6caffiykyvsjim9376a3hx2yj2ghj-gcc-wrapper-14.2.1.20250322/bin/cc",
-      "-Wall",
-      "-Wextra",
-      "-Werror",
-      "-ansi",
-      "-Iinclude",
-      "-Wno-unused-result",
-      "-g",
-      "-c",
-      "-o",
-      "build/iostream.o",
-      "src/iostream.c"
-    ],
-    "directory": "/home/aryanj/Projects/transcodine",
-    "file": "/home/aryanj/Projects/transcodine/src/iostream.c",
-    "output": "/home/aryanj/Projects/transcodine/build/iostream.o"
   },
   {
     "arguments": [
@@ -315,6 +315,101 @@
       "-g",
       "-c",
       "-o",
+      "build/command/file/rm.o",
+      "src/command/file/rm.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/command/file/rm.c",
+    "output": "/home/aryanj/Projects/transcodine/build/command/file/rm.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/f0m6caffiykyvsjim9376a3hx2yj2ghj-gcc-wrapper-14.2.1.20250322/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-g",
+      "-c",
+      "-o",
+      "build/command/file/add.o",
+      "src/command/file/add.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/command/file/add.c",
+    "output": "/home/aryanj/Projects/transcodine/build/command/file/add.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/f0m6caffiykyvsjim9376a3hx2yj2ghj-gcc-wrapper-14.2.1.20250322/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-g",
+      "-c",
+      "-o",
+      "build/command/file/file.o",
+      "src/command/file/file.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/command/file/file.c",
+    "output": "/home/aryanj/Projects/transcodine/build/command/file/file.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/f0m6caffiykyvsjim9376a3hx2yj2ghj-gcc-wrapper-14.2.1.20250322/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-g",
+      "-c",
+      "-o",
+      "build/command/file/cat.o",
+      "src/command/file/cat.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/command/file/cat.c",
+    "output": "/home/aryanj/Projects/transcodine/build/command/file/cat.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/f0m6caffiykyvsjim9376a3hx2yj2ghj-gcc-wrapper-14.2.1.20250322/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-g",
+      "-c",
+      "-o",
+      "build/command/file/ls.o",
+      "src/command/file/ls.c"
+    ],
+    "directory": "/home/aryanj/Projects/transcodine",
+    "file": "/home/aryanj/Projects/transcodine/src/command/file/ls.c",
+    "output": "/home/aryanj/Projects/transcodine/build/command/file/ls.o"
+  },
+  {
+    "arguments": [
+      "/nix/store/f0m6caffiykyvsjim9376a3hx2yj2ghj-gcc-wrapper-14.2.1.20250322/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ansi",
+      "-Iinclude",
+      "-Wno-unused-result",
+      "-g",
+      "-c",
+      "-o",
       "build/command/bin/rm.o",
       "src/command/bin/rm.c"
     ],
@@ -359,44 +454,6 @@
     "directory": "/home/aryanj/Projects/transcodine",
     "file": "/home/aryanj/Projects/transcodine/src/command/bin/bin.c",
     "output": "/home/aryanj/Projects/transcodine/build/command/bin/bin.o"
-  },
-  {
-    "arguments": [
-      "/nix/store/f0m6caffiykyvsjim9376a3hx2yj2ghj-gcc-wrapper-14.2.1.20250322/bin/cc",
-      "-Wall",
-      "-Wextra",
-      "-Werror",
-      "-ansi",
-      "-Iinclude",
-      "-Wno-unused-result",
-      "-g",
-      "-c",
-      "-o",
-      "build/command/bin/add.o",
-      "src/command/bin/add.c"
-    ],
-    "directory": "/home/aryanj/Projects/transcodine",
-    "file": "/home/aryanj/Projects/transcodine/src/command/bin/add.c",
-    "output": "/home/aryanj/Projects/transcodine/build/command/bin/add.o"
-  },
-  {
-    "arguments": [
-      "/nix/store/f0m6caffiykyvsjim9376a3hx2yj2ghj-gcc-wrapper-14.2.1.20250322/bin/cc",
-      "-Wall",
-      "-Wextra",
-      "-Werror",
-      "-ansi",
-      "-Iinclude",
-      "-Wno-unused-result",
-      "-g",
-      "-c",
-      "-o",
-      "build/command/bin/cat.o",
-      "src/command/bin/cat.c"
-    ],
-    "directory": "/home/aryanj/Projects/transcodine",
-    "file": "/home/aryanj/Projects/transcodine/src/command/bin/cat.c",
-    "output": "/home/aryanj/Projects/transcodine/build/command/bin/cat.o"
   },
   {
     "arguments": [
