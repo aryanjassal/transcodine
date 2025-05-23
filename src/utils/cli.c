@@ -44,9 +44,15 @@ void error(const char *message) {
 }
 
 void _debug(const char *message, const char *file, int line, const char *func) {
-#ifdef DEBUG
+#if defined(DEBUG_WITH_LINE)
   fprintf(stderr, "\033[2;37mDEBUG: %s\n  at %s:%d (%s)\033[0m\n", message,
           file, line, func);
+#elif defined(DEBUG)
+  fprintf(stderr, "\033[2;37mDEBUG: %s\033[0m\n", message);
+  /* Ignoring location parameters if disabled */
+  (void)file;
+  (void)line;
+  (void)func;
 #else
   /* Ignoring parameters if debug is disabled */
   (void)message;

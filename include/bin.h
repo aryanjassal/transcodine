@@ -24,10 +24,10 @@
  *   [8-byte MAGIC]: "UNLOCKED"
  * [24-byte File Header]
  *   [8-byte MAGIC]: "ARCHVFLE"
- *   [8-byte PATH_LEN]: Null-terminated path length
+ *   [8-byte PATH_LEN]
  *   [8-byte DATA_LEN]
  * [File Data]
- *   [... FILE_PATH_DATA]: Null-terminated
+ *   [... FILE_PATH_DATA]
  *   [... FILE_DATA]
  * [Footer]
  *   [8-byte END]: "ARCHVEND"
@@ -68,11 +68,9 @@ typedef struct {
   aes_ctx_t aes_ctx;
   const char *encrypted_path;
   const char *working_path;
-  bool open;
   bin_filectx_t write_ctx;
 } bin_t;
 
-/* TODO: use this instead of defining new variables and shit */
 typedef struct {
   size_t path_len;
   size_t data_len;
@@ -87,7 +85,7 @@ typedef void (*bin_stream_cb)(const buf_t *data);
 
 /**
  * Initialise the buffers for the bin object. Sets the paths to NULL.
- * @param bin An uninitialised bin
+ * @param bin
  * @author Aryan Jassal
  */
 void bin_init(bin_t *bin);
@@ -96,12 +94,12 @@ void bin_init(bin_t *bin);
  * Takes an encrypted path and creates a new bin at that path. Updates the
  * relevant parameters on the bin container. Do not use this to open an existing
  * bin file. This should only be used to create a new bin.
- * @param bin An intialised bin object
- * @param encrypted_path The path where to create the encrypted bin file
+ * @param bin
  * @param aes_key An initialised buffer to store the generated AES key in
+ * @param encrypted_path The path where to create the encrypted bin file
  * @author Aryan Jassal
  */
-void bin_create(bin_t *bin, const char *encrypted_path, buf_t *aes_key);
+void bin_create(bin_t *bin, buf_t *aes_key, const char *encrypted_path);
 
 /**
  * Takes an encrypted path and returns the metadata stored in the global header.
@@ -116,71 +114,90 @@ void bin_meta(const char *encrypted_path, buf_t *data);
 /**
  * Takes an encrypted path and an AES key to decrypt the bin and store it at the
  * decrypted bin path.
- * @param bin An intialised bin object
+ * @param bin
+ * @param aes_key The private AES key to use to decrypt the bin file
  * @param encrypted_path The path where to find the encrypted bin file
  * @param working_path The path where to store the temporary bin file
- * @param aes_key The private AES key to use to decrypt the bin file
  * @author Aryan Jassal
  */
-void bin_open(bin_t *bin, const char *encrypted_path, const char *working_path,
-              const buf_t *aes_key);
+void bin_open(bin_t *bin, const buf_t *aes_key, const char *encrypted_path,
+              const char *working_path);
 
 /**
  * Saves all the changes made on the open bin back to the resting bin. Note that
  * the bin object must be freed manually to prevent any memory leaks.
- * @param bin An intialised bin object
+ * @param bin
  * @author Aryan Jassal
  */
 void bin_close(bin_t *bin);
 
-void bin_openfile(bin_t *bin, const buf_t *fq_path);
+/**
+ * Opens a virtual file in the bin and holds the context until it is closed.
+ * This allows for data to be streamed into the bin chunk-by-chunk. Only one
+ * write context can be held per bin at a time, and any attempts to open another
+ * virtual file will fail.
+ * @param bin
+ * @param fq_path The fully-qualified path to the virtual file in th bin
+ * @author Aryan Jassal
+ */
+void bin_open_file(bin_t *bin, const buf_t *fq_path);
 
-void bin_writefile(bin_t *bin, const buf_t *data);
+/**
+ * Writes data into an open virtual file. Attempts to use this before opening a
+ * file will fail.
+ * @param bin
+ * @param data
+ * @author Aryan Jassal
+ */
+void bin_write_file(bin_t *bin, const buf_t *data);
 
-void bin_closefile(bin_t *bin, buf_t *aes_key);
+/**
+ * Closes an open virtual file. This will finalise the write and release the
+ * write context, so other files can be written to.
+ * @param bin
+ * @param aes_key To rotate the IV
+ */
+void bin_close_file(bin_t *bin, buf_t *aes_key);
 
 /**
  * Lists all the files in a bin recursively. The files are stored flatly, so
  * there is no real way to only read files in a specific directory - they need
  * to be converted at runtime.
- * @param bin An initialised bin object
+ * @param bin
  * @param paths The buffer storing const char* pointers for each path
  * @author Aryan Jassal
  */
-void bin_listfiles(const bin_t *bin, buf_t *paths);
+void bin_list_files(const bin_t *bin, buf_t *paths);
 
 /**
  * Searches for a file by its name in the bin, and returns its contents if
  * found.
- * @param bin An initialised bin object
+ * @param bin
  * @param fq_path The virtual fully-qualified path of the file in the bin
  * @param callback The callback run to process data chunks
  * @returns True if file was found, false otherwise
  * @author Aryan Jassal
  */
-bool bin_fetchfile(const bin_t *bin, const buf_t *path, bin_stream_cb callback);
+bool bin_cat_file(const bin_t *bin, const buf_t *path, bin_stream_cb callback);
 
 /**
  * Removes a file with a given name in the archive. Does nothing if the file
  * wasn't found. After removing the file, all other chunks will be moved back to
  * reclaim the newly-available space.
- * @param bin An initialised bin object
+ * @param bin
  * @param fq_path The virtual fully-qualified path of the file in the bin
  * @returns True if file was found, false otherwise
  * @author Aryan Jassal
  */
-bool bin_removefile(bin_t *bin, const buf_t *fq_path, const buf_t *aes_key);
+bool bin_remove_file(bin_t *bin, const buf_t *fq_path, const buf_t *aes_key);
 
 /**
  * Frees memory consumed by the bin object. This is mostly to free the buffers.
  * Note that this does not remove any files from disk, just frees the memory
  * consumed by the bin object.
- * @param bin The bin object to free
+ * @param bin
  * @author Aryan Jassal
  */
 void bin_free(bin_t *bin);
-
-void bin_dump_decrypted(const bin_t *bin, const char *out_path,
-                        const buf_t *aes_key);
 
 #endif

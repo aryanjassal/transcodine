@@ -5,24 +5,27 @@
 
 #include "constants.h"
 #include "core/buffer.h"
+#include "crypto/urandom.h"
 #include "stddefs.h"
+#include "utils/system.h"
 #include "utils/throw.h"
 
 void readline(const char *prompt, buf_t *buf) {
-  if (!buf->data) {
-    throw("Uninitialised buffer");
-  }
+  if (!prompt || !buf) throw("Arguments cannot be NULL");
+  if (!buf->data) throw("Uninitialised buffer");
+
   printf("%s", prompt);
 
-  /* As fgets needs a fixed-length buffer, we loop with a temp buffer to read
-   * arbitrary length strings from the user. */
+  /* Rotate stack buffer until fgets reads the entire line */
   char temp[64];
   while (fgets(temp, sizeof(temp), stdin)) {
     size_t len = strlen(temp);
 
-    /* If we encountered a newline, then we have reached the end of user input.
+    /**
+     * If we encountered a newline, then we have reached the end of user input.
      * Clean up by removing the trailing newline, update the buffer, and
-     * return. */
+     * return.
+     */
     if (temp[len - 1] == '\n') {
       temp[strcspn(temp, "\n")] = 0;
       buf_append(buf, temp, len);
@@ -35,9 +38,7 @@ void readline(const char *prompt, buf_t *buf) {
 void readfile(const char *filepath, buf_t *buf) {
   uint8_t chunk[READFILE_CHUNK];
   FILE *file = fopen(filepath, "rb");
-  if (!file) {
-    throw("Failed to open file");
-  }
+  if (!file) throw("Failed to open file");
   size_t n;
   while ((n = fread(chunk, sizeof(uint8_t), sizeof(chunk), file)) > 0) {
     buf_append(buf, chunk, n);
@@ -48,16 +49,12 @@ void readfile(const char *filepath, buf_t *buf) {
 void readfilef(const char *filepath, buf_t *buf) {
   uint8_t chunk[READFILE_CHUNK];
   FILE *file = fopen(filepath, "rb");
-  if (!file) {
-    throw("Failed to open file");
-  }
+  if (!file) throw("Failed to open file");
   size_t remaining = buf->capacity - buf->size;
   while (remaining > 0) {
     size_t to_read = (remaining < READFILE_CHUNK) ? remaining : READFILE_CHUNK;
     size_t n = fread(chunk, sizeof(uint8_t), to_read, file);
-    if (n == 0)
-      break;
-
+    if (n == 0) break;
     buf_append(buf, chunk, n);
     remaining -= n;
   }
@@ -66,74 +63,24 @@ void readfilef(const char *filepath, buf_t *buf) {
 
 void writefile(const char *filepath, buf_t *buf) {
   FILE *file = fopen(filepath, "wb");
-  if (!file) {
-    throw("Failed to write to file");
-  }
-  size_t bytes_written = fwrite(buf->data, sizeof(uint8_t), buf->size, file);
-  if (bytes_written != buf->size) {
-    throw("Failed to write entire buffer to file");
-  }
+  if (!file) throw("Failed to write to file");
+  fwrites(buf->data, buf->size, file);
   fclose(file);
 }
 
 bool access(const char *filepath) {
-  if (!filepath) {
-    return false;
-  }
+  if (!filepath) return false;
   FILE *file = fopen(filepath, "rb");
-  if (!file) {
-    return false;
-  }
+  if (!file) return false;
   fclose(file);
-  return true;
-}
-
-bool urandom(buf_t *buf) {
-  if (!access("/dev/urandom")) {
-    return false;
-  }
-  buf_clear(buf);
-  readfilef("/dev/urandom", buf);
-  if (buf->size != buf->capacity) {
-    throw("Did not read enough data");
-  }
-  return true;
-}
-
-bool urandom_ascii(buf_t *buf) {
-  if (!access("/dev/urandom")) {
-    return false;
-  }
-  buf_clear(buf);
-  readfilef("/dev/urandom", buf);
-  if (buf->size != buf->capacity) {
-    throw("Did not read enough data");
-  }
-  size_t i;
-  for (i = 0; i < buf->size; ++i) {
-    uint8_t v = buf->data[i] % 62; /* 26 + 26 + 10 = 62 characters */
-    if (v < 26) {
-      buf->data[i] = 'A' + v; /* 0-25 => 'A'-'Z' */
-    } else if (v < 52) {
-      buf->data[i] = 'a' + (v - 26); /* 26-51 => 'a'-'z' */
-    } else {
-      buf->data[i] = '0' + (v - 52); /* 52-61 => '0'-'9' */
-    }
-  }
   return true;
 }
 
 void fcopy(const char *dst_path, const char *src_path) {
   FILE *src = fopen(src_path, "rb");
-  if (!src) {
-    throw("Failed to open source file");
-  }
-
+  if (!src) throw("Failed to open source file");
   FILE *dst = fopen(dst_path, "wb");
-  if (!dst) {
-    fclose(src);
-    throw("Failed to open destination file");
-  }
+  if (!dst) throw("Failed to open destination file");
 
   uint8_t chunk[READFILE_CHUNK];
   size_t n;
@@ -149,20 +96,22 @@ void fcopy(const char *dst_path, const char *src_path) {
   fclose(dst);
 }
 
-void tempfile(buf_t *tmp_path) {
-  /* Create a consistent path prefix for the temporary file */
-  const char *path_prefix = "/tmp/";
+size_t fsize(const char *path) {
+  FILE *f = fopen(path, "rb");
+  if (!f) throw("Failed to open file");
+  fseek(f, 0, SEEK_END);
+  size_t size = ftell(f);
+  fclose(f);
+  return size;
+}
 
-  /* Generate printable ASCII via urandom */
+void tempfile(buf_t *tmp_path) {
+  const char *path_prefix = "/tmp/";
   buf_t rand;
   buf_init(&rand, 16);
-  urandom_ascii(&rand);
-
-  /* Write the full path with the path prefix and the urandom file name */
+  urandom_ascii(&rand, 16);
   buf_append(tmp_path, path_prefix, strlen(path_prefix));
   buf_concat(tmp_path, &rand);
   buf_write(tmp_path, 0);
-
-  /* Cleanup */
   buf_free(&rand);
 }

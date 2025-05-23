@@ -52,7 +52,6 @@ void readfilef(const char *filepath, buf_t *buf);
 
 /**
  * Writes the entire contents of a buffer into a file.
- *
  * @param filepath The path of the file to be read
  * @param buf An initialised buffer
  * @author Aryan Jassal
@@ -61,12 +60,18 @@ void writefile(const char *filepath, buf_t *buf);
 
 /**
  * Copies file content from source file to a destination file.
- *
  * @param dst_path The path of the file to be written to
  * @param src_path The path of the file to be read
  * @author Aryan Jassal
  */
 void fcopy(const char *dst_path, const char *src_path);
+
+/**
+ * Returns the size of a file in bytes.
+ * @param path The path to the file 
+ * @author Aryan Jassal
+ */
+size_t fsize(const char *path);
 
 /**
  * Checks if a file is readable or not. Basically checks if a file exists or
@@ -75,27 +80,6 @@ void fcopy(const char *dst_path, const char *src_path);
  * @author Aryan Jassal
  */
 bool access(const char *filepath);
-
-/**
- * Reads random bytes from /dev/urandom. Returns false if the file wasn't
- * accessible, otherwise throws if not enough data could be read. The length is
- * assumed to be the buffer capacity as the buffer is assumed to be fixed.
- * @param buffer The buffer to store the data in
- * @returns False if the file couldn't be opened, true otherwise
- * @author Aryan Jassal
- */
-bool urandom(buf_t *buffer);
-
-/**
- * Reads random bytes from /dev/urandom. Returns false if the file wasn't
- * accessible, otherwise throws if not enough data could be read. The length is
- * assumed to be the buffer capacity as the buffer is assumed to be fixed. All
- * output characters are alphanumeric (ie [A-Za-z0-9]).
- * @param buffer The buffer to store the data in
- * @returns False if the file couldn't be opened, true otherwise
- * @author Aryan Jassal
- */
-bool urandom_ascii(buf_t *buf);
 
 /**
  * Creates a filename for a temporary file in the /tmp directory on Unix

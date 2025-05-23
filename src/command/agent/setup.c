@@ -7,6 +7,7 @@
 #include "constants.h"
 #include "core/buffer.h"
 #include "crypto/salt.h"
+#include "crypto/urandom.h"
 #include "crypto/xor.h"
 #include "globals.h"
 #include "stddefs.h"
@@ -38,7 +39,7 @@ static void flag_help() {
 
 static void generate_salt(buf_t *salt) {
   /* Attempt to generate salt via urandom */
-  bool using_urandom = urandom(salt);
+  bool using_urandom = urandom(salt, salt->capacity);
   if (using_urandom) {
     debug("Using /dev/urandom to generate salt");
     return;
@@ -70,7 +71,7 @@ static void save_password(buf_t *password) {
   /* This is a new agent, so write the key encryption key */
   buf_t kek;
   buf_initf(&kek, KEK_SIZE);
-  bool using_urandom = urandom(&kek);
+  bool using_urandom = urandom(&kek, KEK_SIZE);
   if (using_urandom) {
     debug("Using urandom for KEK");
   } else {

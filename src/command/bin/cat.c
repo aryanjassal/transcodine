@@ -13,12 +13,7 @@
 #include "utils/args.h"
 #include "utils/cli.h"
 #include "utils/io.h"
-#include "utils/throw.h"
 
-/**
- * Print the usage guidelines of this commands.
- * @author Aryan Jassal
- */
 static void flag_help();
 
 static flag_handler_t flags[] = {
@@ -27,12 +22,8 @@ static flag_handler_t flags[] = {
 static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
 
 static void flag_help() {
-  printf("Usage: transcodine bin cat <bin_name> <virtual_path>\n");
-  printf("Available options:\n");
-  int i;
-  for (i = 0; i < num_flags; ++i) {
-    printf("  %-10s %s\n", flags[i].flag, flags[i].description);
-  }
+  print_help("transcodine bin cat <bin_name> <virtual_path> [...options]",
+             flags, num_flags);
 }
 
 void print_data(const buf_t *data) {
@@ -41,85 +32,71 @@ void print_data(const buf_t *data) {
 }
 
 int cmd_bin_cat(int argc, char *argv[]) {
-  /* Dispatch flag handler */
+  /* Flag handling */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
-  case 1:
-    return 0;
-  case -1:
-    flag_help();
-    return 1;
-  case 0:
-    break;
-  default:
-    throw("Invalid flag state");
+  case 1: return 0;
+  case -1: return flag_help(), 1;
+  case 0: break;
   }
+  if (argc < 2) return flag_help(), 1;
 
-  /* Check argument options */
-  if (argc < 2) {
-    flag_help();
-    return 1;
-  }
-
-  /* Make sure only authenticated users can access this command */
-  buf_t kek;
+  /* Authentication */
+  buf_t kek, db_key;
   buf_initf(&kek, KEK_SIZE);
-  if (!prompt_password(&kek)) {
-    error("Incorrect password");
-    return 1;
-  }
-  buf_t key;
-  buf_initf(&key, AES_KEY_SIZE);
-  db_derive_key(&kek, &key);
+  buf_initf(&db_key, AES_KEY_SIZE);
+  if (!prompt_password(&kek)) return error("Incorrect password"), 1;
+  db_derive_key(&kek, &db_key);
   buf_free(&kek);
 
-  if (!access(argv[0])) {
-    error("A bin with that name does not exist");
-    return 1;
-  }
-
-  /* Unlock the encrypted database */
+  /* Database setup */
+  buf_t path;
+  buf_init(&path, 32);
+  tempfile(&path);
   db_t db;
   db_init(&db);
-  db_bootstrap(&db, &key, buf_to_cstr(&DATABASE_PATH));
-  db_open(&db, &key, buf_to_cstr(&DATABASE_PATH));
+  db_bootstrap(&db, &db_key, buf_to_cstr(&DATABASE_PATH));
+  db_open(&db, &db_key, buf_to_cstr(&DATABASE_PATH), buf_to_cstr(&path));
 
+  if (!access(argv[0])) return error("A bin with that name does not exist"), 1;
+
+  /* Bin loading */
   bin_t bin;
+  buf_t aes_key, buf_meta, id;
   bin_init(&bin);
-
-  buf_t aes_key, buf_meta;
-  buf_init(&aes_key, AES_KEY_SIZE);
-  buf_init(&buf_meta, 32);
+  buf_initf(&aes_key, AES_KEY_SIZE);
+  buf_initf(&buf_meta, BIN_GLOBAL_HEADER_SIZE - BIN_MAGIC_SIZE);
   bin_meta(argv[0], &buf_meta);
-
   bin_meta_t meta = *(bin_meta_t *)buf_meta.data;
-  buf_t id;
   buf_view(&id, meta.id, BIN_ID_SIZE);
+
+  /* Read database */
   if (!db_read(&db, &id, &aes_key)) {
-    buf_free(&aes_key);
-    buf_free(&key);
+    bin_free(&bin);
     buf_free(&buf_meta);
+    buf_free(&aes_key);
     db_close(&db);
     db_free(&db);
+    buf_free(&path);
+    buf_free(&db_key);
     error("Failed to read key from database");
     return 1;
   }
-  bin_open(&bin, argv[0], "/tmp/filebin", &aes_key);
   buf_free(&buf_meta);
+  db_close(&db);
+  db_free(&db);
+  buf_free(&path);
+  buf_free(&db_key);
 
+  /* Read contents of a file */
   buf_t fq_path;
-  buf_init(&fq_path, strlen(argv[1]) + 1);
+  buf_initf(&fq_path, strlen(argv[1]) + 1);
   buf_append(&fq_path, argv[1], strlen(argv[1]));
-  buf_write(&fq_path, 0);
-
-  bool result = bin_fetchfile(&bin, &fq_path, print_data);
-  if (!result) {
-    error("Could not find file in bin");
+  bin_open(&bin, &aes_key, argv[0], "/tmp/filebin");
+  if (!bin_cat_file(&bin, &fq_path, print_data)) {
+    error("Could not find file in bin"); 
   }
 
   /* Cleanup */
-  db_close(&db);
-  db_free(&db);
-  buf_free(&kek);
   buf_free(&fq_path);
   buf_free(&aes_key);
   bin_close(&bin);
