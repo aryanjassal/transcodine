@@ -20,6 +20,7 @@
  * Available commands:
  *   agent      Manage the user agent
  *   bin        Operate on bins
+ *   file       Operate on files within bins
  *   help       Print usage guide
  * ```
  */
@@ -29,30 +30,26 @@
 
 #include "command/agent/agent.h"
 #include "command/bin/bin.h"
+#include "command/file/file.h"
 #include "core/buffer.h"
 #include "stddefs.h"
 #include "utils/args.h"
 #include "utils/bootstrap.h"
 #include "utils/cli.h"
 
-/**
- * Print the usage guidelines and a list of available commands.
- * @param argc Number of parameters (unused)
- * @param argv Array of parameters (unused)
- * @author Aryan Jassal
- */
 static int cmd_help(int argc, char *argv[]);
 
 static cmd_handler_t commands[] = {
-    {"bin", "Operate on bins", cmd_bin},
     {"agent", "operate on your agent", cmd_agent},
+    {"bin", "Operate on bins", cmd_bin},
+    {"file", "Operate on files within bins", cmd_file},
     {"help", "Print usage guide", cmd_help}};
 
 static const int num_commands = sizeof(commands) / sizeof(cmd_handler_t);
 
 static int cmd_help(int argc, char *argv[]) {
   ignore_args(argc, argv);
-  printf("Usage: transcodine <command> [options...]\n");
+  printf("Usage: transcodine <command> [...options]\n");
   printf("Available commands:\n");
   int i;
   for (i = 0; i < num_commands; ++i) {

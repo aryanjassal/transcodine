@@ -3,9 +3,9 @@
 
 #include "core/buffer.h"
 
-/* Bootstrap state */
 extern buf_t HOME_PATH;
-extern buf_t AUTH_KEYS_PATH;
-extern buf_t DATABASE_PATH;
+extern buf_t AUTH_DB_PATH;
+extern buf_t STATE_DB_PATH;
+extern buf_t BINS_PATH;
 
 #endif

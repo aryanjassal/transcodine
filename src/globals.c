@@ -3,5 +3,6 @@
 #include "core/buffer.h"
 
 buf_t HOME_PATH;
-buf_t AUTH_KEYS_PATH;
-buf_t DATABASE_PATH;
+buf_t AUTH_DB_PATH;
+buf_t STATE_DB_PATH;
+buf_t BINS_PATH;

@@ -142,6 +142,55 @@ bool db_has(db_t *db, const buf_t *key);
 void db_remove(db_t *db, const buf_t *key, const buf_t *db_key);
 
 /**
+ * Writes a namespaced key-value pair at the end of the database. If the key
+ * already exists, then it is removed and a new entry with the given key and
+ * value is appended at the end of the file. The key-value pair is input as
+ * plaintext and is automatically encrypted before writing.
+ * @param db
+ * @param namespace
+ * @param key
+ * @param value
+ * @param db_key The encryption key is needed to rotate the AES IV after changes
+ * @author Aryan Jassal
+ */
+void db_writens(db_t *db, const buf_t *namespace, const buf_t *key,
+                const buf_t *value, const buf_t *db_key);
+
+/**
+ * Reads a namespaced key-value pair from the database. The key-value pair is
+ * input as plaintext and is automatically encrypted before writing.
+ * @param db
+ * @param namespace
+ * @param key
+ * @param value
+ * @return True if the value was found, false otherwise
+ * @author Aryan Jassal
+ */
+bool db_readns(db_t *db, const buf_t *namespace, const buf_t *key,
+               buf_t *value);
+
+/**
+ * Checks if a particular namespaced key exists inside the database.
+ * @param db
+ * @param namespace
+ * @param key
+ * @return True if the key exists, false otherwise
+ */
+bool db_hasns(db_t *db, const buf_t *namespace, const buf_t *key);
+
+/**
+ * Removes a particular namespaced key from the database. If the key didn't
+ * exist, then it is a noop.
+ * @param db
+ * @param namespace
+ * @param key
+ * @param db_key The encryption key is needed to rotate the AES IV after changes
+ * @return True if the key exists, false otherwise
+ */
+void db_removens(db_t *db, const buf_t *namespace, const buf_t *key,
+                 const buf_t *db_key);
+
+/**
  * Commits all the changes made from the temporary state to the permanent one.
  * This will irreversibly modify the database contents!
  * @param db

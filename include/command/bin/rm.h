@@ -3,12 +3,11 @@
 
 /**
  * Removes a single file stored in a bin
- * @param argc The number of arguments
- * @param argv The array of arguments
+ * @param argc
+ * @param argv
  * @returns Exit code
  * @author Aryan Jassal
  */
 int cmd_bin_rm(int argc, char *argv[]);
 
 #endif
-

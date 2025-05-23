@@ -13,8 +13,8 @@ typedef struct {
 /**
  * Initialise a buffer with a given capacity. This will run malloc under the
  * hood to initialise some memory on the heap.
- * @param buf An uninitialised buffer
- * @param initial_capacity The initial capacity of the buffer
+ * @param buf
+ * @param initial_capacity
  * @author Aryan Jassal
  */
 void buf_init(buf_t *buf, size_t initial_capacity);
@@ -22,11 +22,21 @@ void buf_init(buf_t *buf, size_t initial_capacity);
 /**
  * Initialise a fixed buffer with a given capacity. This will run malloc under
  * the hood to initialise some memory on the heap.
- * @param buf An uninitialised buffer
- * @param initial_capacity The initial capacity of the buffer
+ * @param buf
+ * @param initial_capacity
  * @author Aryan Jassal
  */
 void buf_initf(buf_t *buf, size_t initial_capacity);
+
+/**
+ * Resize a buffer to the given capacity. This will run malloc under the hood to
+ * initialise some memory on the heap. This will throw if there is an attempt to
+ * resize a fixed buffer. the hood to initialise some memory on the heap.
+ * @param buf
+ * @param new_capacity
+ * @author Aryan Jassal
+ */
+void buf_resize(buf_t *buf, size_t new_capacity);
 
 /**
  * Copies the data from source to destination. Note that this is not an exact

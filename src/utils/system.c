@@ -10,7 +10,8 @@
 
 static bool shell_sanitised_c(char c) {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-         (c >= '0' && c <= '9') || c == ' ' || c == '.' || c == '-' || c == '_';
+         (c >= '0' && c <= '9') || c == ' ' || c == '.' || c == '-' ||
+         c == '_' || c == '/';
 }
 
 void newdir(const char *path) {
@@ -25,6 +26,7 @@ void newdir(const char *path) {
   buf_init(&cmd, len + strlen("mkdir -p \"\""));
   cmd.size = sprintf((char *)cmd.data, "mkdir -p \"%s\"", path);
   if (system((char *)cmd.data) != 0) throw("Failed to create directory");
+  buf_free(&cmd);
 }
 
 void freads(void *data, const size_t len, FILE *file) {

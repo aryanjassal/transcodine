@@ -153,6 +153,20 @@ static int64_t db_find_entry(const db_t *db, const buf_t *key) {
   return location;
 }
 
+/**
+ * Convert a key to its namespaced format. The resultant key will be in this
+ * format: "namespace:key".
+ * @param key
+ * @param namespace
+ * @param ns_key The resulting namespaced key
+ * @author Aryan Jassal
+ */
+static void db_ns_key(const buf_t *key, const buf_t *namespace, buf_t *ns_key) {
+  buf_copy(ns_key, namespace);
+  buf_write(ns_key, ':');
+  buf_concat(ns_key, key);
+}
+
 void db_derive_key(const buf_t *kek, buf_t *db_key) {
   buf_t salt;
   buf_init(&salt, 16);
@@ -308,7 +322,7 @@ bool db_read(db_t *db, const buf_t *key, buf_t *value) {
 
 void db_write(db_t *db, const buf_t *key, const buf_t *value,
               const buf_t *db_key) {
-  if (!db || !key || !value || !db_key) throw("Arguments cannot be NULL");
+  if (!db || !key || !db_key) throw("Arguments cannot be NULL");
   if (!access(db->working_path)) throw("Database is not open");
 
   /* Prepare for writing file */
@@ -322,16 +336,26 @@ void db_write(db_t *db, const buf_t *key, const buf_t *value,
   fseek(db_file, -DB_MAGIC_SIZE, SEEK_END);
   iostream_skip(&ios, ftell(db_file) - DB_GLOBAL_HEADER_SIZE);
 
+  /* If the value is NULL, write a 0 */
+  buf_t v;
+  buf_init(&v, 32);
+  if (!value) {
+    buf_write(&v, 0);
+  } else {
+    buf_copy(&v, value);
+  }
+
   /* Write the entry at the end of the file */
   buf_t header;
   buf_initf(&header, DB_MAGIC_SIZE + sizeof(size_t) * 2);
   buf_append(&header, DB_MAGIC_FILE, DB_MAGIC_SIZE);
   buf_append(&header, &key->size, sizeof(size_t));
-  buf_append(&header, &value->size, sizeof(size_t));
+  buf_append(&header, &v.size, sizeof(size_t));
   iostream_write(&ios, &header);
   iostream_write(&ios, key);
-  iostream_write(&ios, value);
+  iostream_write(&ios, &v);
   buf_free(&header);
+  buf_free(&v);
 
   /* Write end marker */
   buf_t end;
@@ -447,4 +471,41 @@ void db_remove(db_t *db, const buf_t *key, const buf_t *db_key) {
 
   /* Rotate the IV upon change to the contents */
   db_rotate_iv(db, db_key);
+}
+
+void db_writens(db_t *db, const buf_t *namespace, const buf_t *key,
+                const buf_t *value, const buf_t *db_key) {
+  buf_t ns_key;
+  buf_initf(&ns_key, key->size + namespace->size + 1);
+  db_ns_key(key, namespace, &ns_key);
+  db_write(db, &ns_key, value, db_key);
+  buf_free(&ns_key);
+}
+
+bool db_readns(db_t *db, const buf_t *namespace, const buf_t *key,
+               buf_t *value) {
+  buf_t ns_key;
+  buf_initf(&ns_key, key->size + namespace->size + 1);
+  db_ns_key(key, namespace, &ns_key);
+  bool result = db_read(db, &ns_key, value);
+  buf_free(&ns_key);
+  return result;
+}
+
+bool db_hasns(db_t *db, const buf_t *namespace, const buf_t *key) {
+  buf_t ns_key;
+  buf_initf(&ns_key, key->size + namespace->size + 1);
+  db_ns_key(key, namespace, &ns_key);
+  bool result = db_has(db, &ns_key);
+  buf_free(&ns_key);
+  return result;
+}
+
+void db_removens(db_t *db, const buf_t *namespace, const buf_t *key,
+                 const buf_t *db_key) {
+  buf_t ns_key;
+  buf_initf(&ns_key, key->size + namespace->size + 1);
+  db_ns_key(key, namespace, &ns_key);
+  db_remove(db, &ns_key, db_key);
+  buf_free(&ns_key);
 }

@@ -95,11 +95,12 @@ void bin_init(bin_t *bin);
  * relevant parameters on the bin container. Do not use this to open an existing
  * bin file. This should only be used to create a new bin.
  * @param bin
+ * @param bin_id A buffer containing the bin ID for this bin
  * @param aes_key An initialised buffer to store the generated AES key in
  * @param encrypted_path The path where to create the encrypted bin file
  * @author Aryan Jassal
  */
-void bin_create(bin_t *bin, buf_t *aes_key, const char *encrypted_path);
+void bin_create(bin_t *bin, const buf_t *bin_id, buf_t *aes_key, const char *encrypted_path);
 
 /**
  * Takes an encrypted path and returns the metadata stored in the global header.
@@ -138,9 +139,10 @@ void bin_close(bin_t *bin);
  * virtual file will fail.
  * @param bin
  * @param fq_path The fully-qualified path to the virtual file in th bin
+ * @return True if the file was opened, false otherwise
  * @author Aryan Jassal
  */
-void bin_open_file(bin_t *bin, const buf_t *fq_path);
+bool bin_open_file(bin_t *bin, const buf_t *fq_path);
 
 /**
  * Writes data into an open virtual file. Attempts to use this before opening a

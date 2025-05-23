@@ -68,7 +68,7 @@ static void update_password(buf_t *old_password, buf_t *new_password) {
 int cmd_agent_reset(int argc, char **argv) {
   ignore_args(argc, argv);
 
-  if (!access(buf_to_cstr(&AUTH_KEYS_PATH))) {
+  if (!access(buf_to_cstr(&AUTH_DB_PATH))) {
     error("Create a new agent before attempting to reset password");
     return 1;
   }

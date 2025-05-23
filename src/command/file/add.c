@@ -1,4 +1,4 @@
-#include "command/bin/add.h"
+#include "command/file/add.h"
 
 #include <string.h>
 
@@ -22,12 +22,12 @@ static flag_handler_t flags[] = {
 static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
 
 static void flag_help() {
-  print_help(
-      "transcodine bin add <bin_name> <local_path> <virtual_path> [...options]",
-      flags, num_flags);
+  print_help("transcodine file add <bin_name> <local_path> <virtual_path> "
+             "[...options]",
+             flags, num_flags);
 }
 
-int cmd_bin_add(int argc, char *argv[]) {
+int cmd_file_add(int argc, char *argv[]) {
   /* Flag handling */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
   case 1: return 0;
@@ -50,10 +50,18 @@ int cmd_bin_add(int argc, char *argv[]) {
   tempfile(&path);
   db_t db;
   db_init(&db);
-  db_bootstrap(&db, &db_key, buf_to_cstr(&DATABASE_PATH));
-  db_open(&db, &db_key, buf_to_cstr(&DATABASE_PATH), buf_to_cstr(&path));
+  db_bootstrap(&db, &db_key, buf_to_cstr(&STATE_DB_PATH));
+  db_open(&db, &db_key, buf_to_cstr(&STATE_DB_PATH), buf_to_cstr(&path));
 
-  if (!access(argv[0])) return error("A bin with that name does not exist"), 1;
+  /* Initialise file paths */
+  buf_t bin_path;
+  buf_init(&bin_path, 32);
+  buf_concat(&bin_path, &BINS_PATH);
+  bin_path.size--;
+  buf_write(&bin_path, '/');
+  buf_append(&bin_path, argv[0], strlen(argv[0]));
+  buf_write(&bin_path, 0);
+  if (!access(buf_to_cstr(&bin_path))) return error("No such bin exists"), 1;
 
   /* Bin loading */
   bin_t bin;
@@ -61,12 +69,15 @@ int cmd_bin_add(int argc, char *argv[]) {
   bin_init(&bin);
   buf_initf(&aes_key, AES_KEY_SIZE);
   buf_initf(&buf_meta, BIN_GLOBAL_HEADER_SIZE - BIN_MAGIC_SIZE);
-  bin_meta(argv[0], &buf_meta);
+  bin_meta(buf_to_cstr(&bin_path), &buf_meta);
   bin_meta_t meta = *(bin_meta_t *)buf_meta.data;
   buf_view(&id, meta.id, BIN_ID_SIZE);
 
   /* Read database */
-  if (!db_read(&db, &id, &aes_key)) {
+  buf_t bin_id_ns;
+  buf_view(&bin_id_ns, NAMESPACE_BIN_ID, strlen(NAMESPACE_BIN_ID));
+  if (!db_readns(&db, &bin_id_ns, &id, &aes_key)) {
+    error("Failed to read key from database");
     bin_free(&bin);
     buf_free(&buf_meta);
     buf_free(&aes_key);
@@ -74,7 +85,6 @@ int cmd_bin_add(int argc, char *argv[]) {
     db_free(&db);
     buf_free(&path);
     buf_free(&db_key);
-    error("Failed to read key from database");
     return 1;
   }
   buf_free(&buf_meta);
@@ -84,11 +94,13 @@ int cmd_bin_add(int argc, char *argv[]) {
   buf_free(&db_key);
 
   /* Write a file to bin */
-  buf_t fq_path, data;
+  buf_t fq_path, bin_tpath, data;
   buf_initf(&fq_path, strlen(argv[2]) + 1);
+  buf_init(&bin_tpath, 32);
+  tempfile(&bin_tpath);
   buf_initf(&data, READFILE_CHUNK);
   buf_append(&fq_path, argv[2], strlen(argv[2]));
-  bin_open(&bin, &aes_key, argv[0], "/tmp/filebin");
+  bin_open(&bin, &aes_key, buf_to_cstr(&bin_path), buf_to_cstr(&bin_tpath));
 
   FILE *file = fopen(argv[1], "rb");
   if (!file) throw("Failed to open file");
@@ -96,7 +108,19 @@ int cmd_bin_add(int argc, char *argv[]) {
   size_t remaining = ftell(file);
   fseek(file, 0, SEEK_SET);
 
-  bin_open_file(&bin, &fq_path);
+  /* Attempt to open the file, or exit if it failed */
+  if (!bin_open_file(&bin, &fq_path)) {
+    fclose(file);
+    bin_close(&bin);
+    bin_free(&bin);
+    buf_free(&bin_path);
+    buf_free(&bin_tpath);
+    buf_free(&data);
+    buf_free(&fq_path);
+    buf_free(&aes_key);
+    return 1;
+  }
+
   while (remaining > 0) {
     size_t chunk = remaining < READFILE_CHUNK ? remaining : READFILE_CHUNK;
     freads(data.data, chunk, file);
@@ -108,10 +132,12 @@ int cmd_bin_add(int argc, char *argv[]) {
   fclose(file);
 
   /* Cleanup */
+  bin_close(&bin);
+  bin_free(&bin);
+  buf_free(&bin_path);
+  buf_free(&bin_tpath);
   buf_free(&data);
   buf_free(&fq_path);
   buf_free(&aes_key);
-  bin_close(&bin);
-  bin_free(&bin);
   return 0;
 }

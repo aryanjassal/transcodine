@@ -20,8 +20,10 @@
 #define AES_KEY_SCHEDULE_SIZE (AES_BLOCK_SIZE * (AES_NR + 1))
 
 /* Bootstrap file names */
-#define AUTH_KEYS_FILE_NAME ".tc-auth.db"
-#define DATABASE_FILE_NAME ".tc.db"
+#define CONFIG_DIR ".transcodine"
+#define BINS_DIR "bins"
+#define AUTH_DB_FILE_NAME "auth.db"
+#define STATE_DB_FILE_NAME "state.db"
 
 /* Constants for handling bin files */
 #define BIN_ID_SIZE 16
@@ -40,6 +42,10 @@
 #define DB_MAGIC_UNLOCKED "UNLOCKED"
 #define DB_MAGIC_FILE "DBASEFLE"
 #define DB_MAGIC_END "DBASEEND"
+
+/* Namespaces for database entries */
+#define NAMESPACE_BIN_ID "bin-id"
+#define NAMESPACE_BIN_FILE "bin-file"
 
 /* Password handling parameters */
 #define PASSWORD_SALT_SIZE 16

@@ -101,7 +101,7 @@ int cmd_agent_setup(int argc, char *argv[]) {
     break;
   }
 
-  if (access(buf_to_cstr(&AUTH_KEYS_PATH))) {
+  if (access(buf_to_cstr(&AUTH_DB_PATH))) {
     error("Agent is already setup");
     return 1;
   }
@@ -111,6 +111,6 @@ int cmd_agent_setup(int argc, char *argv[]) {
   readline("Enter new password > ", &password);
   save_password(&password);
   buf_free(&password);
-  printf("Agent setup complete!");
+  printf("Agent setup complete!\n");
   return 0;
 }

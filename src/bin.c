@@ -165,14 +165,16 @@ void bin_free(bin_t *bin) {
   buf_free(&bin->aes_iv);
 }
 
-void bin_create(bin_t *bin, buf_t *aes_key, const char *encrypted_path) {
+void bin_create(bin_t *bin, const buf_t *bin_id, buf_t *aes_key,
+                const char *encrypted_path) {
   if (!bin || !aes_key || !encrypted_path) throw("Argument cannot be NULL");
   if (access(encrypted_path)) throw("A file at that path already exists");
+  if (bin_id->size != BIN_ID_SIZE) throw("Invalid buffer state");
 
   FILE *bin_file = fopen(encrypted_path, "wb");
 
   /* Set bin parameters */
-  urandom_ascii(&bin->id, BIN_ID_SIZE);
+  buf_copy(&bin->id, bin_id);
   urandom(&bin->aes_iv, AES_IV_SIZE);
   urandom(aes_key, AES_KEY_SIZE);
   bin->encrypted_path = encrypted_path;
@@ -271,18 +273,16 @@ void bin_close(bin_t *bin) {
   bin->working_path = NULL;
 }
 
-void bin_open_file(bin_t *bin, const buf_t *fq_path) {
+bool bin_open_file(bin_t *bin, const buf_t *fq_path) {
   if (!bin || !fq_path) throw("Arguments cannot be NULL");
-  if (!access(bin->working_path)) return error("Bin is not open");
+  if (!access(bin->working_path)) return error("Bin is not open"), false;
   if (bin->write_ctx.ios.fd != NULL) {
-    error("A write operation is already running");
-    return;
+    return error("A write operation is already running"), false;
   }
 
   /* Prepare for writing to bin */
   if (bin_find_file(bin, fq_path) != -1) {
-    error("The file already exists in the bin");
-    return;
+    return error("The file already exists in the bin"), false;
   }
   FILE *bin_file = fopen(bin->working_path, "rb+");
   if (!bin_file) throw("Failed to open bin");
@@ -311,6 +311,7 @@ void bin_open_file(bin_t *bin, const buf_t *fq_path) {
   /* Cleanup */
   buf_free(&header);
   debug("Opened virtual file");
+  return true;
 }
 
 void bin_write_file(bin_t *bin, const buf_t *data) {
@@ -324,6 +325,7 @@ void bin_write_file(bin_t *bin, const buf_t *data) {
   /* Write data */
   iostream_write(&bin->write_ctx.ios, data);
   bin->write_ctx.bytes_written += data->size;
+  debug("Wrote data chunk to file");
 }
 
 void bin_close_file(bin_t *bin, buf_t *aes_key) {
@@ -466,6 +468,7 @@ bool bin_cat_file(const bin_t *bin, const buf_t *fq_path,
   }
 
   /* Cleanup */
+  buf_free(&header);
   buf_free(&cleartext);
   iostream_free(&ios);
   fclose(bin_file);

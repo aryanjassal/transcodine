@@ -56,7 +56,7 @@ bool check_password(buf_t *password, buf_t *kek) {
 }
 
 void write_auth(const auth_t *auth) {
-  FILE *file = fopen(buf_to_cstr(&AUTH_KEYS_PATH), "wb");
+  FILE *file = fopen(buf_to_cstr(&AUTH_DB_PATH), "wb");
   if (!file) {
     throw("Failed to write to file");
   }
@@ -68,7 +68,7 @@ void write_auth(const auth_t *auth) {
 }
 
 void read_auth(auth_t *auth) {
-  FILE *file = fopen(buf_to_cstr(&AUTH_KEYS_PATH), "rb");
+  FILE *file = fopen(buf_to_cstr(&AUTH_DB_PATH), "rb");
   if (!file) {
     throw("Failed to open auth file");
   }

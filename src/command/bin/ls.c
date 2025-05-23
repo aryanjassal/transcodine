@@ -1,17 +1,7 @@
 #include "command/bin/ls.h"
 
-#include <stdio.h>
-#include <string.h>
-
-#include "auth/check.h"
-#include "bin.h"
-#include "constants.h"
-#include "core/buffer.h"
-#include "db.h"
-#include "globals.h"
 #include "utils/args.h"
 #include "utils/cli.h"
-#include "utils/io.h"
 
 static void flag_help();
 
@@ -21,7 +11,7 @@ static flag_handler_t flags[] = {
 static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
 
 static void flag_help() {
-  print_help("transcodine bin ls <bin_name> [...options]", flags, num_flags);
+  print_help("transcodine bin ls [...options]", flags, num_flags);
 }
 
 int cmd_bin_ls(int argc, char *argv[]) {
@@ -31,77 +21,7 @@ int cmd_bin_ls(int argc, char *argv[]) {
   case -1: return flag_help(), 1;
   case 0: break;
   }
-  if (argc < 1) return flag_help(), 1;
 
-  /* Authentication */
-  buf_t kek, db_key;
-  buf_initf(&kek, KEK_SIZE);
-  buf_initf(&db_key, AES_KEY_SIZE);
-  if (!prompt_password(&kek)) return error("Incorrect password"), 1;
-  db_derive_key(&kek, &db_key);
-  buf_free(&kek);
-
-  /* Database setup */
-  buf_t path;
-  buf_init(&path, 32);
-  tempfile(&path);
-  db_t db;
-  db_init(&db);
-  db_bootstrap(&db, &db_key, buf_to_cstr(&DATABASE_PATH));
-  db_open(&db, &db_key, buf_to_cstr(&DATABASE_PATH), buf_to_cstr(&path));
-
-  if (!access(argv[0])) return error("A bin with that name does not exist"), 1;
-
-  /* Bin loading */
-  bin_t bin;
-  buf_t aes_key, buf_meta, id;
-  bin_init(&bin);
-  buf_initf(&aes_key, AES_KEY_SIZE);
-  buf_initf(&buf_meta, BIN_GLOBAL_HEADER_SIZE - BIN_MAGIC_SIZE);
-  bin_meta(argv[0], &buf_meta);
-  bin_meta_t meta = *(bin_meta_t *)buf_meta.data;
-  buf_view(&id, meta.id, BIN_ID_SIZE);
-
-  /* Read database */
-  if (!db_read(&db, &id, &aes_key)) {
-    bin_free(&bin);
-    buf_free(&buf_meta);
-    buf_free(&aes_key);
-    db_close(&db);
-    db_free(&db);
-    buf_free(&path);
-    buf_free(&db_key);
-    error("Failed to read key from database");
-    return 1;
-  }
-  buf_free(&buf_meta);
-  db_close(&db);
-  db_free(&db);
-  buf_free(&path);
-  buf_free(&db_key);
-
-  /* Read data from bin */
-  buf_t paths;
-  buf_init(&paths, 32);
-  bin_open(&bin, &aes_key, argv[0], "/tmp/filebin");
-  bin_list_files(&bin, &paths);
-  bin_close(&bin);
-  bin_free(&bin);
-
-  /* List out all files in the bin */
-  if (paths.size == 0) {
-    printf("No files in bin\n");
-  } else {
-    size_t offset = 0;
-    while (offset < paths.size) {
-      const char *path = (const char *)&paths.data[offset];
-      printf("%s\n", path);
-      offset += strlen(path) + 1;
-    }
-  }
-
-  /* Cleanup */
-  buf_free(&aes_key);
-  buf_free(&paths);
-  return 0;
+  error("Not yet implemented");
+  return 1;
 }

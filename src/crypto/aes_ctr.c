@@ -16,32 +16,18 @@ static void increment_counter_by(uint8_t counter[AES_BLOCK_SIZE], uint64_t n) {
     counter[i] = (uint8_t)(sum & 0xff);
     carry = sum >> 8;
     n >>= 8;
-    if (carry == 0 && n == 0) {
-      break;
-    }
+    if (carry == 0 && n == 0) break;
   }
 }
 
 void aes_ctr_crypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
                    const buf_t *input, buf_t *output) {
-  if (!ctx || !iv || !input || !output) {
-    throw("NULL arguments provided");
-  }
-  if (iv->size != AES_BLOCK_SIZE || !iv->data) {
-    throw("Invalid IV buffer");
-  }
-  if (!output->data) {
-    throw("Output buffer must be initialised");
-  }
-  if (input->size == 0) {
-    throw("Input data size cannot be zero");
-  }
-
-  buf_free(output);
-  buf_init(output, input->size);
-  if (input->size == 0) {
-    return;
-  }
+  if (!ctx || !iv || !input || !output) throw("Arguments cannot be NULL");
+  if (iv->size != AES_BLOCK_SIZE || !iv->data) throw("Invalid IV buffer");
+  if (!output->data) throw("Output buffer must be initialised");
+  if (input->size == 0) throw("Input data size cannot be zero");
+  if (input->size == 0) return;
+  if (output->capacity < input->size) buf_resize(output, input->size);
 
   /* Calculate offset alignment */
   uint64_t block_index = offset / AES_BLOCK_SIZE;
@@ -66,9 +52,7 @@ void aes_ctr_crypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
     aes_encrypt(ctx, &in, &keystream_buf);
 
     size_t first_chunk = AES_BLOCK_SIZE - block_offset;
-    if (first_chunk > input->size) {
-      first_chunk = input->size;
-    }
+    if (first_chunk > input->size) first_chunk = input->size;
 
     size_t i;
     for (i = 0; i < first_chunk; ++i) {

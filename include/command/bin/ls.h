@@ -2,9 +2,9 @@
 #define __COMMAND_BIN_LS_H__
 
 /**
- * Lists out all the paths of files stored in a bin
- * @param argc The number of arguments
- * @param argv The array of arguments
+ * Lists all available bins
+ * @param argc
+ * @param argv
  * @returns Exit code
  * @author Aryan Jassal
  */
