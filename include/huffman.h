@@ -34,28 +34,29 @@
 #ifndef __HUFFMAN_H__
 #define __HUFFMAN_H__
 
-#include "core/buffer.h"
+#include "core/map.h"
 #include "stddefs.h"
 
 /**
  * Uses a 2-pass huffman algorithm to compress all bins into a single file. This
  * will not encrypt the files, only archive them in a single compressed file.
  * The input files will not be loaded in memory, rather they will be streamed
- * over. The input files must be in a byte stream delimited by a single null
- * character.
+ * over. The input files must be in a map, with keys corresponding to real path
+ * and values corresponding to virtual paths.
  * @param input_files The list of files to archive
  * @param output_path The output location of the compressed archive
  * @return True if archive was compressed properly, false otherwise
  * @author Joya Sanghi
  */
-bool huffman_compress(const buf_t *input_files, const char *output_path);
+bool huffman_compress(const map_t *input_files, const char *output_path);
 
 /**
  * Decompresses a huffman-compressed archive back into individual files.
  * @param input_path The path to the compressed archive
  * @param root_dir The path at which to decompress all archives
+ * @return True if the archive was successfully decompressed, false otherwise
  * @author Joya Sanghi
  */
-void huffman_decompress(const buf_t *input_path, const char *root_dir);
+bool huffman_decompress(const char *input_path, const char *root_dir);
 
 #endif

@@ -4,8 +4,10 @@
 #include <string.h>
 
 #include "command/bin/create.h"
+#include "command/bin/load.h"
 #include "command/bin/ls.h"
 #include "command/bin/rm.h"
+#include "command/bin/save.h"
 #include "utils/args.h"
 
 /**
@@ -20,6 +22,8 @@ static cmd_handler_t commands[] = {
     {"create", "Create a new bin", cmd_bin_create},
     {"ls", "Recursively list all the files in a bin", cmd_bin_ls},
     {"rm", "Removes a single file from the bin", cmd_bin_rm},
+    {"save", "Saves the specified bins into a file", cmd_bin_save},
+    {"load", "Loads all bins from a huffman file", cmd_bin_load},
     {"help", "Print usage guide", cmd_bin_help}};
 
 static const int num_commands = sizeof(commands) / sizeof(cmd_handler_t);

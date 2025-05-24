@@ -44,6 +44,7 @@
 #define DB_MAGIC_END "DBASEEND"
 
 /* Constants for huffman compression */
+#define HUFFMAN_MAX_SYMBOLS 256
 #define HUFFMAN_MAGIC_SIZE 8
 #define HUFFMAN_FILE_HEADER_SIZE 33
 #define HUFFMAN_MAGIC_VERSION "HUFFMCOM"
