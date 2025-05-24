@@ -5,6 +5,7 @@
 
 #include "constants.h"
 #include "core/buffer.h"
+#include "stddefs.h"
 #include "utils/cli.h"
 #include "utils/throw.h"
 
@@ -12,17 +13,13 @@
 static size_t hash(const buf_t *key, size_t capacity) {
   size_t h = 5381;
   size_t i;
-  for (i = 0; i < key->size; ++i) {
-    h = ((h << 5) + h) + key->data[i];
-  }
+  for (i = 0; i < key->size; ++i) h = ((h << 5) + h) + key->data[i];
   return h % capacity;
 }
 
 static void map_rehash(map_t *map, size_t new_count) {
   map_bucket_t **new_buckets = calloc(new_count, sizeof(map_bucket_t *));
-  if (!new_buckets) {
-    throw("Calloc failed in map_rehash");
-  }
+  if (!new_buckets) throw("Calloc failed in map_rehash");
 
   /* Rehash the map */
   list_node_t *it = map->entries.head;
@@ -31,9 +28,7 @@ static void map_rehash(map_t *map, size_t new_count) {
     size_t index = hash(&entry->key, new_count);
 
     map_bucket_t *bucket = malloc(sizeof(map_bucket_t));
-    if (!bucket) {
-      throw("Malloc failed in map_rehash");
-    }
+    if (!bucket) throw("Malloc failed in map_rehash");
 
     bucket->entry_ref = it;
     bucket->next = new_buckets[index];
@@ -62,9 +57,7 @@ void map_init(map_t *map, const size_t initial_count) {
 
   map->bucket_count = initial_count;
   map->buckets = calloc(initial_count, sizeof(map_bucket_t *));
-  if (!map->buckets) {
-    throw("Calloc failed in map_init");
-  }
+  if (!map->buckets) throw("Calloc failed in map_init");
 }
 
 void map_free(map_t *map) {
@@ -97,9 +90,18 @@ void map_set(map_t *map, const buf_t *key, const buf_t *value) {
   map_bucket_t *chain = map->buckets[index];
 
   while (chain) {
-    map_entry_t *entry = (map_entry_t *)chain->entry_ref->data.data;
-    if (buf_equal(&entry->key, key)) {
-      buf_copy(&entry->value, value);
+    map_entry_t entry;
+    buf_init(&entry.key, 32);
+    buf_init(&entry.value, 32);
+    map_unpack_entry(&chain->entry_ref->data, &entry.key, &entry.value);
+    if (buf_equal(&entry.key, key)) {
+      buf_t new_entry;
+      buf_init(&new_entry, key->size + value->size + sizeof(size_t));
+      map_pack_entry(&new_entry, key, value);
+      buf_copy(&chain->entry_ref->data, &new_entry);
+      buf_free(&new_entry);
+      buf_free(&entry.key);
+      buf_free(&entry.value);
       return;
     }
     chain = chain->next;
@@ -114,8 +116,8 @@ void map_set(map_t *map, const buf_t *key, const buf_t *value) {
 
   /* Wrap in a buf_t and insert into list */
   buf_t entry_buf;
-  buf_init(&entry_buf, sizeof(map_entry_t));
-  memcpy(entry_buf.data, &temp, sizeof(map_entry_t));
+  buf_init(&entry_buf, 32);
+  map_pack_entry(&entry_buf, key, value);
   list_push_back(&map->entries, &entry_buf);
   buf_free(&temp.key);
   buf_free(&temp.value);
@@ -124,9 +126,7 @@ void map_set(map_t *map, const buf_t *key, const buf_t *value) {
   /* The new node is now the tail */
   list_node_t *node = map->entries.tail;
   map_bucket_t *bucket = (map_bucket_t *)malloc(sizeof(map_bucket_t));
-  if (!bucket) {
-    throw("Malloc failed in map_set");
-  }
+  if (!bucket) throw("Malloc failed in map_set");
 
   bucket->entry_ref = node;
   bucket->next = map->buckets[index];
@@ -138,9 +138,12 @@ void map_get(const map_t *map, const buf_t *key, buf_t *out_value) {
   map_bucket_t *chain = map->buckets[index];
 
   while (chain) {
-    map_entry_t *entry = (map_entry_t *)chain->entry_ref->data.data;
-    if (buf_equal(&entry->key, key)) {
-      buf_copy(out_value, &entry->value);
+    map_entry_t entry;
+    buf_init(&entry.key, 32);
+    buf_init(&entry.value, 32);
+    map_unpack_entry(&chain->entry_ref->data, &entry.key, &entry.value);
+    if (buf_equal(&entry.key, key)) {
+      buf_copy(out_value, &entry.value);
       return;
     }
     chain = chain->next;
@@ -158,10 +161,11 @@ bool map_has(const map_t *map, const buf_t *key) {
   map_bucket_t *chain = map->buckets[index];
 
   while (chain) {
-    map_entry_t *entry = (map_entry_t *)chain->entry_ref->data.data;
-    if (buf_equal(&entry->key, key)) {
-      return true;
-    }
+    map_entry_t entry;
+    buf_init(&entry.key, 32);
+    buf_init(&entry.value, 32);
+    map_unpack_entry(&chain->entry_ref->data, &entry.key, &entry.value);
+    if (buf_equal(&entry.key, key)) { return true; }
     chain = chain->next;
   }
 
@@ -174,11 +178,14 @@ void map_remove(map_t *map, const buf_t *key) {
   map_bucket_t *prev = NULL;
 
   while (chain) {
-    map_entry_t *entry = (map_entry_t *)chain->entry_ref->data.data;
-    if (buf_equal(&entry->key, key)) {
+    map_entry_t entry;
+    buf_init(&entry.key, 32);
+    buf_init(&entry.value, 32);
+    map_unpack_entry(&chain->entry_ref->data, &entry.key, &entry.value);
+    if (buf_equal(&entry.key, key)) {
       /* Free buffers */
-      buf_free(&entry->key);
-      buf_free(&entry->value);
+      buf_free(&entry.key);
+      buf_free(&entry.value);
 
       /* Unlink from bucket chain */
       if (prev) {
@@ -200,4 +207,19 @@ void map_remove(map_t *map, const buf_t *key) {
   }
 
   debug("No value found for key");
+}
+
+void map_pack_entry(buf_t *out, const buf_t *key, const buf_t *val) {
+  size_t ksize = key->size;
+  buf_append(out, &ksize, sizeof(size_t));
+  buf_concat(out, key);
+  buf_concat(out, val);
+}
+
+void map_unpack_entry(const buf_t *in, buf_t *key, buf_t *val) {
+  size_t ksize;
+  memcpy(&ksize, in->data, sizeof(ksize));
+  buf_append(key, in->data + 8, ksize);
+  size_t vsize = in->size - 8 - ksize;
+  buf_append(val, in->data + 8 + ksize, vsize);
 }

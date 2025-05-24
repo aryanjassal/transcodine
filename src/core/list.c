@@ -28,10 +28,9 @@ void list_clear(list_t *list) {
 
 void list_push_back(list_t *list, const buf_t *data) {
   list_node_t *node = malloc(sizeof(list_node_t));
-  if (!node) {
-    throw("Malloc failed");
-  }
+  if (!node) throw("Malloc failed");
 
+  buf_init(&node->data, data->size);
   buf_copy(&node->data, data);
   node->next = NULL;
   node->prev = list->tail;
@@ -47,10 +46,7 @@ void list_push_back(list_t *list, const buf_t *data) {
 }
 
 void list_remove(list_t *list, list_node_t *node) {
-  if (!node) {
-    warn("Node is NULL, cannot remove");
-    return;
-  }
+  if (!node) return warn("Node is NULL, cannot remove");
 
   if (node->prev) {
     node->prev->next = node->next;
@@ -79,9 +75,7 @@ void list_at(const list_t *list, const size_t index, list_node_t **out_node) {
   size_t i;
   if (index < list->size / 2) {
     current = list->head;
-    for (i = 0; current && i < index; i++) {
-      current = current->next;
-    }
+    for (i = 0; current && i < index; i++) { current = current->next; }
   } else {
     current = list->tail;
     for (i = list->size - 1; current && i > index; i--) {

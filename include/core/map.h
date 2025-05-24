@@ -74,4 +74,22 @@ bool map_has(const map_t *map, const buf_t *key);
  */
 void map_remove(map_t *map, const buf_t *key);
 
+/**
+* Pack the key-value data into a single byte stream.
+* @param out The destination buffer for the concatenated pair
+* @param key
+* @param value
+* @author Aryan Jassal
+*/
+void map_pack_entry(buf_t *out, const buf_t *key, const buf_t *val);
+
+/**
+* Unpack the key-value data into key-value pairs. 
+* @param in The buffer to split
+* @param key
+* @param value
+* @author Aryan Jassal
+*/
+void map_unpack_entry(const buf_t *in, buf_t *key, buf_t *val);
+
 #endif

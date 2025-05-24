@@ -43,6 +43,14 @@
 #define DB_MAGIC_FILE "DBASEFLE"
 #define DB_MAGIC_END "DBASEEND"
 
+/* Constants for huffman compression */
+#define HUFFMAN_MAX_SYMBOLS 256
+#define HUFFMAN_MAGIC_SIZE 8
+#define HUFFMAN_FILE_HEADER_SIZE 33
+#define HUFFMAN_MAGIC_VERSION "HUFFMCOM"
+#define HUFFMAN_MAGIC_FILE "HUFFMFLE"
+#define HUFFMAN_MAGIC_END "HUFFMEND"
+
 /* Namespaces for database entries */
 #define NAMESPACE_BIN_ID "bin-id"
 #define NAMESPACE_BIN_FILE "bin-file"
