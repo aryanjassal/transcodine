@@ -7,7 +7,6 @@
 #include "core/buffer.h"
 #include "core/iostream.h"
 #include "crypto/aes.h"
-#include "crypto/aes_ctr.h"
 #include "crypto/urandom.h"
 #include "stddefs.h"
 #include "utils/cli.h"
@@ -93,7 +92,7 @@ static void bin_rotate_iv(bin_t *bin, const buf_t *aes_key) {
  * @return -1 if the file wasn't found, file location otherwise
  * @author Aryan Jassal
  */
-static int64_t bin_find_file(const bin_t *bin, const buf_t *fq_path) {
+int64_t bin_find_file(const bin_t *bin, const buf_t *fq_path) {
   if (!bin || !fq_path) throw("Arguments cannot be NULL");
   if (!access(bin->working_path)) throw("Bin must be open");
 

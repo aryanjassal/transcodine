@@ -211,4 +211,14 @@ void bin_free(bin_t *bin);
  */
 void bin_hexdump(bin_t *bin);
 
+/**
+ * Find a file by its name in a bin. Returns the location as a 64-bit signed
+ * integer.
+ * @param bin
+ * @param fq_path The path to search for
+ * @return -1 if the file wasn't found, file location otherwise
+ * @author Aryan Jassal
+ */
+int64_t bin_find_file(const bin_t *bin, const buf_t *fq_path);
+
 #endif

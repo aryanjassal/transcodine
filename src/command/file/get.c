@@ -1,5 +1,6 @@
-#include "command/file/add.h"
+#include "command/file/get.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "auth/check.h"
@@ -8,11 +9,11 @@
 #include "core/buffer.h"
 #include "db.h"
 #include "globals.h"
+#include "stddefs.h"
 #include "utils/args.h"
 #include "utils/cli.h"
 #include "utils/io.h"
 #include "utils/system.h"
-#include "utils/throw.h"
 
 static void flag_help();
 
@@ -22,12 +23,18 @@ static flag_handler_t flags[] = {
 static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
 
 static void flag_help() {
-  print_help("transcodine file add <bin_name> <local_path> <virtual_path> "
-             "[...options]",
+  print_help("transcodine file get <bin_name> <virtual_path> <local_path> [...options]",
              flags, num_flags);
 }
 
-int cmd_file_add(int argc, char *argv[]) {
+FILE *out_file = NULL;
+
+static void write_data(const buf_t *data) {
+  if (!out_file) return error("Output is not open");
+  fwrites(data->data, data->size, out_file);
+}
+
+int cmd_file_get(int argc, char *argv[]) {
   /* Flag handling */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
   case 1: return 0;
@@ -45,13 +52,13 @@ int cmd_file_add(int argc, char *argv[]) {
   buf_free(&kek);
 
   /* Database setup */
-  buf_t path;
-  buf_init(&path, 32);
-  tempfile(&path);
+  buf_t db_path;
+  buf_init(&db_path, 32);
+  tempfile(&db_path);
   db_t db;
   db_init(&db);
   db_bootstrap(&db, &db_key, buf_to_cstr(&STATE_DB_PATH));
-  db_open(&db, &db_key, buf_to_cstr(&STATE_DB_PATH), buf_to_cstr(&path));
+  db_open(&db, &db_key, buf_to_cstr(&STATE_DB_PATH), buf_to_cstr(&db_path));
 
   /* Initialise file paths */
   buf_t bin_path;
@@ -83,77 +90,40 @@ int cmd_file_add(int argc, char *argv[]) {
     buf_free(&aes_key);
     db_close(&db);
     db_free(&db);
-    buf_free(&path);
+    buf_free(&db_path);
     buf_free(&db_key);
     return 1;
   }
   buf_free(&buf_meta);
   db_close(&db);
   db_free(&db);
-  buf_free(&path);
+  buf_free(&db_path);
   buf_free(&db_key);
 
-  /* Write a file to bin */
-  buf_t fq_path, bin_tpath, data;
-  buf_initf(&fq_path, strlen(argv[2]) + 1);
+  /* Read contents of a file */
+  int code = 0;
+  buf_t fq_path, bin_tpath;
+  buf_initf(&fq_path, strlen(argv[1]) + 1);
+  buf_append(&fq_path, argv[1], strlen(argv[1]));
   buf_init(&bin_tpath, 32);
   tempfile(&bin_tpath);
-  buf_initf(&data, READFILE_CHUNK);
-  buf_append(&fq_path, argv[2], strlen(argv[2]));
   bin_open(&bin, &aes_key, buf_to_cstr(&bin_path), buf_to_cstr(&bin_tpath));
-
-  FILE *file = fopen(argv[1], "rb");
-  if (!file) throw("Failed to open file");
-  fseek(file, 0, SEEK_END);
-  size_t remaining = ftell(file);
-  fseek(file, 0, SEEK_SET);
-
-  /* Remove the file if it already exists */
-  if (bin_find_file(&bin, &fq_path) != -1) {
-    if (!bin_remove_file(&bin, &fq_path, &aes_key)) {
-      error("Failed to delete existing file");
-      fclose(file);
-      bin_close(&bin);
-      bin_free(&bin);
-      buf_free(&bin_path);
-      buf_free(&bin_tpath);
-      buf_free(&data);
-      buf_free(&fq_path);
-      buf_free(&aes_key);
-      return 1;
-    }
+  out_file = fopen(argv[2], "wb");
+  if (!out_file) {
+    error("Could not open output file");
+    code = 1;
+  } else if (!bin_cat_file(&bin, &fq_path, write_data)) {
+    error("Could not find file in bin");
+    code = 1;
   }
-
-  /* Attempt to open the file, or exit if it failed */
-  if (!bin_open_file(&bin, &fq_path)) {
-    fclose(file);
-    bin_close(&bin);
-    bin_free(&bin);
-    buf_free(&bin_path);
-    buf_free(&bin_tpath);
-    buf_free(&data);
-    buf_free(&fq_path);
-    buf_free(&aes_key);
-    return 1;
-  }
-
-  while (remaining > 0) {
-    size_t chunk = remaining < READFILE_CHUNK ? remaining : READFILE_CHUNK;
-    freads(data.data, chunk, file);
-    data.size = chunk;
-    bin_write_file(&bin, &data);
-    remaining -= chunk;
-  }
-  bin_close_file(&bin, &aes_key);
-  fclose(file);
 
   /* Cleanup */
+  fclose(out_file);
   bin_close(&bin);
   bin_free(&bin);
   buf_free(&bin_path);
   buf_free(&bin_tpath);
-  buf_free(&data);
   buf_free(&fq_path);
   buf_free(&aes_key);
-  return 0;
+  return code;
 }

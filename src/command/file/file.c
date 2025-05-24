@@ -7,6 +7,7 @@
 #include "command/file/cat.h"
 #include "command/file/ls.h"
 #include "command/file/rm.h"
+#include "command/file/get.h"
 #include "utils/args.h"
 
 /**
@@ -22,6 +23,7 @@ static cmd_handler_t commands[] = {
     {"add", "Adds a file from disk to a bin", cmd_file_add},
     {"cat", "Reads the contents of a file in the bin", cmd_file_cat},
     {"rm", "Removes a single file from a bin", cmd_file_rm},
+    {"get", "Copy a file from a bin to the computer", cmd_file_get},
     {"help", "Print usage guide", cmd_file_help}};
 
 static const int num_commands = sizeof(commands) / sizeof(cmd_handler_t);
