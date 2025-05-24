@@ -54,9 +54,11 @@ bool huffman_compress(const map_t *input_files, const char *output_path);
  * Decompresses a huffman-compressed archive back into individual files.
  * @param input_path The path to the compressed archive
  * @param root_dir The path at which to decompress all archives
+ * @param read_paths A buffer containing null-delimited list of read files
  * @return True if the archive was successfully decompressed, false otherwise
  * @author Joya Sanghi
  */
-bool huffman_decompress(const char *input_path, const char *root_dir);
+bool huffman_decompress(const char *input_path, const char *root_dir,
+                        buf_t *read_paths);
 
 #endif

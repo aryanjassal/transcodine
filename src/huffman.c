@@ -222,7 +222,7 @@ bool huffman_compress(const map_t *input_files, const char *output_path) {
 
     /* Write file header and file path */
     size_t section_start = ftell(out);
-    size_t name_len = strlen(file_path);
+    size_t name_len = strlen(virtual_path);
     size_t placeholder = 0;
     fwrites(HUFFMAN_MAGIC_FILE, HUFFMAN_MAGIC_SIZE, out);
     fwrites(&name_len, sizeof(size_t), out);
@@ -293,7 +293,8 @@ bool huffman_compress(const map_t *input_files, const char *output_path) {
   return true;
 }
 
-bool huffman_decompress(const char *input_path, const char *root_dir) {
+bool huffman_decompress(const char *input_path, const char *root_dir,
+                        buf_t *read_paths) {
   FILE *f = fopen(input_path, "rb");
   if (!f) return error("Failed to open archive"), false;
 
@@ -336,6 +337,7 @@ bool huffman_decompress(const char *input_path, const char *root_dir) {
   }
   debug("Populated symbol graph");
 
+  newdir(root_dir);
   while (true) {
     /* Validate header */
     freads(header, HUFFMAN_MAGIC_SIZE, f);
@@ -359,17 +361,21 @@ bool huffman_decompress(const char *input_path, const char *root_dir) {
     buf_append(&full_path, root_dir, strlen(root_dir));
     buf_resize(&full_path, full_path.size + path_len + 2);
     buf_write(&full_path, '/');
-    freads(full_path.data + full_path.size, path_len, f);
-    full_path.size += path_len;
+    buf_t fname;
+    buf_init(&fname, path_len + 1);
+    freads(fname.data, path_len, f);
+    fname.size = path_len;
+    buf_concat(&full_path, &fname);
     buf_write(&full_path, 0);
 
-    printf("fpath: %s\n", buf_to_cstr(&full_path));
     FILE *out = fopen(buf_to_cstr(&full_path), "wb");
     if (!out) {
       buf_free(&full_path);
       fclose(f);
       return error("Failed to create output file"), false;
     }
+    buf_concat(read_paths, &fname);
+    buf_write(&full_path, 0);
 
     /* Stream decompress the file */
     huffman_dnode_t *node = root;
@@ -384,14 +390,16 @@ bool huffman_decompress(const char *input_path, const char *root_dir) {
 
       /* Huffman-transform the bits */
       size_t i;
-      for (i = 0; i < to_read; ++i) {
+      size_t total_read = 0;
+      for (i = 0; i < to_read; ++i, ++total_read) {
         uint8_t byte = buffer[i];
-        int bits = (remaining == 0 && i == to_read - 1) ? last_bits : 8;
+        int bits = (total_read + 1 == comp_len) ? last_bits : 8;
         int b;
         for (b = 7; b >= 8 - bits; --b) {
           int bit = (byte >> b) & 1;
           node = node->child[bit];
           if (!node) {
+            buf_free(&fname);
             buf_free(&full_path);
             fclose(out);
             fclose(f);
@@ -407,6 +415,7 @@ bool huffman_decompress(const char *input_path, const char *root_dir) {
       }
     }
 
+    buf_free(&fname);
     buf_free(&full_path);
     fclose(out);
     debug("Decompressed file");

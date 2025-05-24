@@ -90,6 +90,7 @@ int cmd_bin_ls(int argc, char *argv[]) {
     buf_free(&id);
     buf_free(&aes_key);
     buf_free(&buf_meta);
+    buf_free(&bin_path);
   }
 
   if (!found) {

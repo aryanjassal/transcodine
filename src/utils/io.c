@@ -14,7 +14,7 @@ void readline(const char *prompt, buf_t *buf) {
   if (!prompt || !buf) throw("Arguments cannot be NULL");
   if (!buf->data) throw("Uninitialised buffer");
 
-  printf("%s", prompt);
+  fprintf(stderr, "%s", prompt);
 
   /* Rotate stack buffer until fgets reads the entire line */
   char temp[64];
