@@ -15,7 +15,6 @@
 #include <string.h>
 
 #include "constants.h"
-#include "typedefs.h"
 #include "utils/throw.h"
 
 /**
@@ -122,9 +121,7 @@ static void transform(sha256_ctx_t *ctx, const buf_t *buffer) {
    * Copy the buffer into W[0..15]. We can't use memcpy here as the data needs
    * to be converted from little-endian to big-endian.
    */
-  for (t = 0; t < 16; ++t) {
-    W[t] = read_u32_be(buffer->data, 4 * t);
-  }
+  for (t = 0; t < 16; ++t) { W[t] = read_u32_be(buffer->data, 4 * t); }
 
   /* Fill W[16..63] here, as it needs separate data than first 15 entries */
   for (; t < 64; ++t) {
@@ -147,9 +144,7 @@ static void transform(sha256_ctx_t *ctx, const buf_t *buffer) {
   }
 
   /* Feed-forward */
-  for (t = 0; t < 8; ++t) {
-    ctx->state[t] += S[t];
-  }
+  for (t = 0; t < 8; ++t) { ctx->state[t] += S[t]; }
 }
 
 void sha256_init(sha256_ctx_t *ctx) {
@@ -189,9 +184,7 @@ void sha256_update(sha256_ctx_t *ctx, const buf_t *buffer) {
     }
 
     /* Defensive programming */
-    if (ctx->buf.size > SHA256_BLOCK_SIZE) {
-      throw("Invalid SHA state");
-    }
+    if (ctx->buf.size > SHA256_BLOCK_SIZE) { throw("Invalid SHA state"); }
   }
 }
 
@@ -208,18 +201,14 @@ void sha256_finalize(sha256_ctx_t *ctx, sha256_hash_t *digest) {
 
   /* If the length is above 56 bytes we append zeros then compress */
   if (ctx->buf.size > 56) {
-    while (ctx->buf.size < 64) {
-      ctx->buf.data[ctx->buf.size++] = 0;
-    }
+    while (ctx->buf.size < 64) { ctx->buf.data[ctx->buf.size++] = 0; }
 
     transform(ctx, &ctx->buf);
     buf_clear(&ctx->buf);
   }
 
   /* Pad up to 56 bytes of zeros */
-  while (ctx->buf.size < 56) {
-    ctx->buf.data[ctx->buf.size++] = 0;
-  }
+  while (ctx->buf.size < 56) { ctx->buf.data[ctx->buf.size++] = 0; }
 
   /* Store length across the last 8 bits */
   ctx->buf.data[56] = (ctx->length >> 56) & 0xff;

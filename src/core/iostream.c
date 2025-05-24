@@ -6,7 +6,7 @@
 #include "core/buffer.h"
 #include "crypto/aes.h"
 #include "crypto/aes_ctr.h"
-#include "utils/throw.h"
+#include "utils/system.h"
 
 void iostream_init(iostream_t *iostream, FILE *fd, const aes_ctx_t *aes_ctx,
                    const buf_t *iv, const size_t offset) {
@@ -24,14 +24,12 @@ void iostream_free(iostream_t *iostream) {
 }
 
 void iostream_read(iostream_t *iostream, const size_t len, buf_t *data) {
-  /* Prepare the file to read ciphertext */
+  /* Read ciphertext */
   buf_t cipher;
   buf_init(&cipher, len);
   fseek(iostream->fd, iostream->file_offset, SEEK_SET);
-
-  /* Safe read pattern */
-  cipher.size = fread(cipher.data, sizeof(uint8_t), len, iostream->fd);
-  if (cipher.size != len) throw("Unexpected EOF");
+  freads(cipher.data, len, iostream->fd);
+  cipher.size = len;
 
   /* Decrypt data to the output buffer */
   aes_ctr_crypt(iostream->aes_ctx, &iostream->counter, iostream->stream_offset,

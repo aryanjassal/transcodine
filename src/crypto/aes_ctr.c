@@ -1,5 +1,6 @@
 #include "crypto/aes_ctr.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "constants.h"
@@ -11,12 +12,11 @@
 static void increment_counter_by(uint8_t counter[AES_BLOCK_SIZE], uint64_t n) {
   uint64_t carry = 0;
   int i;
-  for (i = AES_BLOCK_SIZE - 1; i >= 0 && n > 0; --i) {
+  for (i = AES_BLOCK_SIZE - 1; i >= 0 && (n || carry); --i) {
     uint64_t sum = (uint64_t)counter[i] + (n & 0xff) + carry;
-    counter[i] = (uint8_t)(sum & 0xff);
+    counter[i] = (uint8_t)sum;
     carry = sum >> 8;
     n >>= 8;
-    if (carry == 0 && n == 0) break;
   }
 }
 
@@ -77,7 +77,8 @@ void aes_ctr_crypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
       output->data[output_pos++] = input->data[input_pos++] ^ keystream[i];
     }
 
-    increment_counter_by(counter, 1);
+    /* Only increment if there's more data that would need another block */
+    if (input_pos < input->size) increment_counter_by(counter, 1);
   }
 
   output->size = output_pos;

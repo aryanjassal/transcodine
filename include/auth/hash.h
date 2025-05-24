@@ -6,7 +6,7 @@
 /**
  * Hashes a password using SHA256-HMAC-PBKDF2 hashing algorithm.
  * @param password The raw password
- * @param salt The salt to use with the passowrd
+ * @param salt
  * @param hash The output hash
  * @author Aryan Jassal
  */

@@ -51,9 +51,7 @@ void pbkdf2_hmac_sha256_hash(const buf_t *data, const buf_t *salt,
        * corruption */
       hmac_sha256_hash(data, &U_view, &U_view);
       int k;
-      for (k = 0; k < SHA256_HASH_SIZE; ++k) {
-        T[k] ^= U[k];
-      }
+      for (k = 0; k < SHA256_HASH_SIZE; ++k) T[k] ^= U[k];
     }
 
     /* Append result block */

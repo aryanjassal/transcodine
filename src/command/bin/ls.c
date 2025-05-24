@@ -93,9 +93,7 @@ int cmd_bin_ls(int argc, char *argv[]) {
     buf_free(&bin_path);
   }
 
-  if (!found) {
-    printf("No bins found\n");
-  }
+  if (!found) printf("No bins found\n");
 
   /* Cleanup */
   buf_free(&name);

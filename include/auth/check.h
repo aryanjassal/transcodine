@@ -24,14 +24,14 @@ bool check_password(buf_t *password, buf_t *kek);
 
 /**
  * Writes the auth details stored by the auth_t struct.
- * @param auth_t Auth data being stored by initialised buffers
+ * @param auth
  * @author Aryan Jassal
  */
 void write_auth(const auth_t *auth);
 
 /**
  * Reads the auth details stored on disk into the auth_t struct.
- * @param auth_t Auth data being read into
+ * @param auth
  * @author Aryan Jassal
  */
 void read_auth(auth_t *auth);

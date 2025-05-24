@@ -3,8 +3,8 @@
 
 /**
  * Takes a file path, reads the file, and adds the file contents into the bin.
- * @param argc The number of arguments
- * @param argv The array of arguments
+ * @param argc
+ * @param argv
  * @returns Exit code
  * @author Aryan Jassal
  */

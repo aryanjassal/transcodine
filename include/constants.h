@@ -59,7 +59,7 @@
 #define PASSWORD_SALT_SIZE 16
 #define KEK_SIZE 32
 
-#define READFILE_CHUNK 8
+#define READFILE_CHUNK 512
 
 /* Library method parameters */
 #define BUFFER_GROWTH_FACTOR 2

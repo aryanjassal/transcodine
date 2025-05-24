@@ -7,7 +7,7 @@
  * Generates a pseudo-salt using fancy XORs based on a seed. If given the same
  * seed, the salt will be predictable. Use this as a fallback in case
  * /dev/urandom is inaccessible.
- * @param seed The base seed to set the state for salt generation
+ * @param seed
  * @param salt_out The output buffer. It is assumed that this is a fixed buffer.
  * @author Aryan Jassal
  */

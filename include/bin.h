@@ -203,4 +203,12 @@ bool bin_remove_file(bin_t *bin, const buf_t *fq_path, const buf_t *aes_key);
  */
 void bin_free(bin_t *bin);
 
+/**
+ * Loads and prints the entire content of a bin by decrypting it and showing it
+ * in a hexdump-like format. Used only for debugging.
+ * @param bin
+ * @author Aryan Jassal
+ */
+void bin_hexdump(bin_t *bin);
+
 #endif

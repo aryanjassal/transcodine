@@ -2,7 +2,6 @@
 
 #include "constants.h"
 #include "core/buffer.h"
-#include "typedefs.h"
 
 void xor_encrypt(const buf_t *data, const buf_t *key, buf_t *output) {
   buf_clear(output);

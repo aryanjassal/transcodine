@@ -7,12 +7,6 @@
 #include "command/agent/setup.h"
 #include "utils/args.h"
 
-/**
- * Print the usage guidelines and a list of available commands.
- * @param argc Number of parameters (unused)
- * @param argv Array of parameters (unused)
- * @author Alexandro Jauregui
- */
 static int cmd_agent_help(int argc, char *argv[]);
 
 static cmd_handler_t commands[] = {

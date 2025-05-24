@@ -7,8 +7,8 @@
  * A catch-all for the agent subcommand. This will dispatch the arguments to the
  * relevant handlers as needed.
  *
- * @param argc The number of arguments
- * @param argv The array of arguments
+ * @param argc
+ * @param argv
  * @returns Exit code
  * @author Alexandro Jauregui
  */

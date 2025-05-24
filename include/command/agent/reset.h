@@ -4,8 +4,8 @@
 /**
  * Resets the password of the agent. The password changing does not require a
  * re-encryption of the encrypted systems.
- * @param argc The number of arguments (unused)
- * @param argv The array of arguments (unused)
+ * @param argc
+ * @param argv
  * @returns Exit code
  * @author Aryan Jassal
  */

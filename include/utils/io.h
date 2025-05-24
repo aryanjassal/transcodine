@@ -13,7 +13,7 @@
  * The size of the internal buffer is 64 bytes.
  *
  * @param prompt The message to display to request input
- * @param buf An initialised buffer
+ * @param buf
  * @author Aryan Jassal
  */
 void readline(const char *prompt, buf_t *buf);
@@ -28,7 +28,7 @@ void readline(const char *prompt, buf_t *buf);
  * memory consumption if the file isn't large.
  *
  * @param filepath The path of the file to be read
- * @param buf An initialised buffer
+ * @param buf
  * @author Aryan Jassal
  */
 void readfile(const char *filepath, buf_t *buf);
@@ -45,7 +45,7 @@ void readfile(const char *filepath, buf_t *buf);
  * memory consumption if the file isn't large.
  *
  * @param filepath The path of the file to be read
- * @param buf An initialised fixed buffer
+ * @param buf
  * @author Aryan Jassal
  */
 void readfilef(const char *filepath, buf_t *buf);
@@ -53,22 +53,22 @@ void readfilef(const char *filepath, buf_t *buf);
 /**
  * Writes the entire contents of a buffer into a file.
  * @param filepath The path of the file to be read
- * @param buf An initialised buffer
+ * @param buf
  * @author Aryan Jassal
  */
 void writefile(const char *filepath, buf_t *buf);
 
 /**
  * Copies file content from source file to a destination file.
- * @param dst_path The path of the file to be written to
- * @param src_path The path of the file to be read
+ * @param dst_path
+ * @param src_path
  * @author Aryan Jassal
  */
 void fcopy(const char *dst_path, const char *src_path);
 
 /**
  * Returns the size of a file in bytes.
- * @param path The path to the file 
+ * @param path
  * @author Aryan Jassal
  */
 size_t fsize(const char *path);
@@ -76,10 +76,10 @@ size_t fsize(const char *path);
 /**
  * Checks if a file is readable or not. Basically checks if a file exists or
  * not.
- * @param filepath The path of the file to check
+ * @param path
  * @author Aryan Jassal
  */
-bool access(const char *filepath);
+bool access(const char *path);
 
 /**
  * Creates a filename for a temporary file in the /tmp directory on Unix

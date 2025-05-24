@@ -3,8 +3,8 @@
 
 /**
  * Takes a fully-qualified bin file path and dumps its contents.
- * @param argc The number of arguments
- * @param argv The array of arguments
+ * @param argc
+ * @param argv
  * @returns Exit code
  * @author Aryan Jassal
  */

@@ -7,6 +7,7 @@
 #include "core/buffer.h"
 #include "core/iostream.h"
 #include "crypto/aes.h"
+#include "crypto/aes_ctr.h"
 #include "crypto/urandom.h"
 #include "stddefs.h"
 #include "utils/cli.h"
@@ -44,8 +45,6 @@ static void bin_rotate_iv(bin_t *bin, const buf_t *aes_key) {
   buf_t new_iv;
   buf_initf(&new_iv, AES_IV_SIZE);
   urandom(&new_iv, AES_IV_SIZE);
-  aes_ctx_t ctx_new;
-  aes_init(&ctx_new, aes_key);
 
   /* Copy the global header and update the IV in the header */
   uint8_t header[BIN_GLOBAL_HEADER_SIZE];
@@ -56,13 +55,14 @@ static void bin_rotate_iv(bin_t *bin, const buf_t *aes_key) {
   /* Initialise the iostream objects */
   iostream_t r, w;
   iostream_init(&r, in, &bin->aes_ctx, &bin->aes_iv, BIN_GLOBAL_HEADER_SIZE);
-  iostream_init(&w, out, &ctx_new, &new_iv, BIN_GLOBAL_HEADER_SIZE);
+  iostream_init(&w, out, &bin->aes_ctx, &new_iv, BIN_GLOBAL_HEADER_SIZE);
 
   /* Stream transcrypt the contents of the file */
   buf_t block;
   buf_initf(&block, READFILE_CHUNK);
   size_t remaining = file_size;
   while (remaining > 0) {
+    buf_clear(&block);
     size_t chunk = remaining < READFILE_CHUNK ? remaining : READFILE_CHUNK;
     iostream_read(&r, chunk, &block);
     iostream_write(&w, &block);
@@ -329,6 +329,7 @@ void bin_write_file(bin_t *bin, const buf_t *data) {
 }
 
 void bin_close_file(bin_t *bin, buf_t *aes_key) {
+  (void)aes_key;
   if (!bin) throw("Arguments cannot be NULL");
   if (!access(bin->working_path)) return error("Bin is not open");
   if (bin->write_ctx.ios.fd == NULL) {
@@ -579,4 +580,22 @@ bool bin_remove_file(bin_t *bin, const buf_t *fq_path, const buf_t *aes_key) {
   /* Rotate IV upon change to the contents */
   bin_rotate_iv(bin, aes_key);
   return true;
+}
+
+void bin_hexdump(bin_t *bin) {
+  FILE *bin_file = fopen(bin->working_path, "rb");
+  if (!bin_file) throw("Failed to open bin file");
+  iostream_t ios;
+  iostream_init(&ios, bin_file, &bin->aes_ctx, &bin->aes_iv,
+                BIN_GLOBAL_HEADER_SIZE);
+
+  size_t size = fsize(bin->working_path);
+  buf_t cleartext;
+  buf_init(&cleartext, size);
+  iostream_read(&ios, size - BIN_GLOBAL_HEADER_SIZE, &cleartext);
+  hexdump(cleartext.data, cleartext.size);
+
+  buf_free(&cleartext);
+  iostream_free(&ios);
+  fclose(bin_file);
 }

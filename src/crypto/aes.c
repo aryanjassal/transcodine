@@ -48,9 +48,7 @@ static uint8_t xtime(uint8_t x) { return (x << 1) ^ ((x >> 7) * 0x1b); }
 
 static void sub_bytes(uint8_t *state) {
   int i;
-  for (i = 0; i < AES_BLOCK_SIZE; ++i) {
-    state[i] = sbox[state[i]];
-  }
+  for (i = 0; i < AES_BLOCK_SIZE; ++i) state[i] = sbox[state[i]];
 }
 
 static void shift_rows(uint8_t *state) {
@@ -88,15 +86,11 @@ static void mix_columns(uint8_t *state) {
 
 static void add_round_key(uint8_t *state, const uint8_t *round_key) {
   int i;
-  for (i = 0; i < 16; ++i) {
-    state[i] ^= round_key[i];
-  }
+  for (i = 0; i < 16; ++i) { state[i] ^= round_key[i]; }
 }
 
 void aes_init(aes_ctx_t *ctx, const buf_t *key) {
-  if (!ctx || !key) {
-    throw("NULL parameters provided");
-  }
+  if (!ctx || !key) { throw("NULL parameters provided"); }
   if (key->size != AES_KEY_SIZE || key->capacity != AES_KEY_SIZE ||
       !key->data) {
     throw("Buffer state is invalid");
@@ -166,6 +160,6 @@ void aes_encrypt(const aes_ctx_t *ctx, const buf_t *in, buf_t *out) {
   shift_rows(state);
   add_round_key(state, ctx->round_keys + AES_BLOCK_SIZE * AES_NR);
 
-  buf_clear(out);
-  buf_append(out, state, AES_BLOCK_SIZE);
+  memcpy(out->data, state, AES_BLOCK_SIZE);
+  out->size = AES_BLOCK_SIZE;
 }

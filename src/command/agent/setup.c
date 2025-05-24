@@ -48,9 +48,7 @@ static void generate_salt(buf_t *salt) {
   /* If urandom cannot be accessed, then generate salt using a pseudo method */
   debug("Failed to access urandom. Using pseudo salt generator");
   const char *last_slash = strrchr(buf_to_cstr(&HOME_PATH), '/');
-  if (!last_slash) {
-    throw("Invalid home path");
-  }
+  if (!last_slash) { throw("Invalid home path"); }
   const char *username = last_slash + 1;
   gen_pseudosalt(username, salt);
 }
@@ -87,18 +85,20 @@ static void save_password(buf_t *password) {
 
   /* Write the auth stuff into a file on disk */
   write_auth(&auth);
+  buf_free(&kek);
+  buf_free(&root_key);
+  buf_free(&auth.pass_salt);
+  buf_free(&auth.pass_hash);
+  buf_free(&auth.kek_salt);
+  buf_free(&auth.kek_hash);
 }
 
 int cmd_agent_setup(int argc, char *argv[]) {
-  /* Dispatch flag handler */
+  /* Flag handling */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
-  case 1:
-    return 0;
-  case -1:
-    flag_help();
-    return 1;
-  case 0:
-    break;
+  case 1: return 0;
+  case -1: return flag_help(), 1;
+  case 0: break;
   }
 
   if (access(buf_to_cstr(&AUTH_DB_PATH))) {

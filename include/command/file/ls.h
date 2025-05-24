@@ -3,8 +3,8 @@
 
 /**
  * Lists out all the paths of files stored in a bin
- * @param argc The number of arguments
- * @param argv The array of arguments
+ * @param argc
+ * @param argv
  * @returns Exit code
  * @author Aryan Jassal
  */

@@ -23,7 +23,7 @@ typedef struct {
 
 /**
  * Initialise a map with a given bucket count.
- * @param map An uninitialised map
+ * @param map
  * @param initial_count The initial bucket count for the map
  * @author Sarah Sindone
  */
@@ -32,7 +32,7 @@ void map_init(map_t *map, const size_t initial_count);
 /**
  * Frees the memory used by the map. The map object should no longer be
  * used for anything.
- * @param map An initialised map
+ * @param map
  * @author Sarah Sindone
  */
 void map_free(map_t *map);
@@ -40,9 +40,9 @@ void map_free(map_t *map);
 /**
  * Sets a key-value pair in the map. The key-value pair is not mutated but the
  * map is.
- * @param map An initialised map
- * @param key The key of data
- * @param value The data itself
+ * @param map
+ * @param key
+ * @param value
  * @author Sarah Sindone
  */
 void map_set(map_t *map, const buf_t *key, const buf_t *value);
@@ -50,17 +50,17 @@ void map_set(map_t *map, const buf_t *key, const buf_t *value);
 /**
  * Gets a value from the map based on a key. The map and the key are not mutated
  * but the value is.
- * @param map An initialised map
- * @param key The key to check against
- * @param out_value The stored data
+ * @param map
+ * @param key
+ * @param out_value
  * @author Sarah Sindone
  */
 void map_get(const map_t *map, const buf_t *key, buf_t *out_value);
 
 /**
  * Checks if a map has a particular value.
- * @param map An initialised map
- * @param key The key to check for
+ * @param map
+ * @param key
  * @return True if key exists, false otherwise
  * @author Sarah Sindone
  */
@@ -68,8 +68,8 @@ bool map_has(const map_t *map, const buf_t *key);
 
 /**
  * Removes a key-value pair from the map based on a key.
- * @param map An initialised map
- * @param key The key to remove
+ * @param map
+ * @param key
  * @author Sarah Sindone
  */
 void map_remove(map_t *map, const buf_t *key);
