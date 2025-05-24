@@ -134,5 +134,8 @@ made, they can only be made implicitly via file creation.
 
 ## Credits
 
+This project can be found on
+[GitHub](https://github.com/aryanjassal/transcodine).
+
 Refer to [Polykey](https://github.com/MatrixAI/Polykey) for a complete and
 production-ready implementation of this concept.
