@@ -40,6 +40,7 @@ unreadable without explicit authorization**.
 
 ## Table of Contents
 
+- [Overview](#overview)
 - [Capabilities](#capabilities)
 - [Technical Details](#technical-details)
   - [Password Management](#password-management)
@@ -47,6 +48,86 @@ unreadable without explicit authorization**.
   - [Bin Management](#bin-management)
   - [Notes](#notes)
 - [Credits](#credits)
+
+## Overview
+
+Transcodine supports a wide array of commands and features.
+
+```bash
+transcodine
+├── agent
+│   ├── setup
+│   ├── reset
+│   └── help
+├── bin
+│   ├── create <bin_name>
+│   ├── ls
+│   ├── rm <bin_name>
+│   ├── save <out_path> <...bin_names>
+│   ├── load <in_path>
+│   ├── rename <old_name> <new_name>
+│   └── help
+├── file
+│   ├── ls <bin_name>
+│   ├── add <bin_name> <local_path> <virtual_path>
+│   ├── cat <bin_name> <virtual_path>
+│   ├── rm <bin_name>
+│   ├── get <bin_path> <virtual_path> <local_path>
+│   ├── cp <bin_path> <virtual_src_path> <virtual_dst_path>
+│   ├── mv <bin_path> <virtual_src_path> <virtual_dst_path>
+│   └── help
+└── help
+```
+
+### Agent
+
+When you first launch `transcodine`, the first thing you need to do is setup a
+new agent. This will setup the configuration directory (default is
+`~/.transcodine` but can be changed via the `TRANSCODINE_CONFIG_PATH`
+environment variable) which will store all the files tracked by the program. The
+setup will require you enter a new password and remember it, otherwise the data
+in the agent is unrecoverable! You can reset the password using
+`transcodine agent reset`, but only if you still remember your old password.
+
+### Bin
+
+A bin is a vault where you can safely input data and it will stay there,
+encrypted. You can create multiple bins, and each bin will track its own
+individual state. Note that you should not directly tamper with the bins, as
+even things like their names and locations are sensitive to changes, and leave
+the bin in an unrecoverable state.
+
+FOr example, the `transcodine bin create` command will add an entry in an
+encrypted database pointing to the file name. These names are used to show
+tracked bins in `transcodine bin ls`. Due to this reason, if you manually add a
+bin to the configuration directory, it will be ignored. That doesn't mean you
+can do tha, though. It is not recommended to manually interact with the
+configuration directory. If you accidentally rename a bin, then the program will
+exhibit undefined behaviour, and tampering with the encrypted contents will make
+the file and all their contents unrecoverable!
+
+The `transcodine bin save` and `transcodine bin load` is a special set of
+commands. It uses Huffman compression to compress multiple bins into a single
+file. As the bins are encrypted beforehand, this results in the archive not
+needing further encryption, but AES128 (the encryption protocol being used to
+encrypt the bins) produces high-entropy result, meaning each bit is equally
+likely to be present. This reduces the efficacy of Huffman compression.
+
+To unlock the bins, you also need a secret key per bin. This is usually stored
+in your internal database, so nobody can view the data in the archive -- not
+even you! To work around this, an encrypted database containing the relevant
+keys is stitched with the archive, and a secret key is created at the time of
+archive creation. This secret key will unlock the database and allow anyone to
+import all the saved bins into their agent.
+
+### File
+
+This sub-command operates on the files in a single bin. You can use
+`transcodine file ls` to list files in a bin, or use `transcodine file cat` to
+read a file. You can save the file directly using `transcodine bin get`, or copy
+and move files around withg `transcodine file cp` and `transcodine file mv`. You
+need to add files to the bin using `transcodine bin add` before you can use any
+commands which operate on existing files, though.
 
 ## Capabilities
 

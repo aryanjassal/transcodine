@@ -5,11 +5,11 @@
 
 #include "command/file/add.h"
 #include "command/file/cat.h"
-#include "command/file/ls.h"
-#include "command/file/rm.h"
-#include "command/file/get.h"
 #include "command/file/cp.h"
+#include "command/file/get.h"
+#include "command/file/ls.h"
 #include "command/file/mv.h"
+#include "command/file/rm.h"
 #include "utils/args.h"
 
 /**
