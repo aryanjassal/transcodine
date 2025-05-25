@@ -1,6 +1,8 @@
 #ifndef __STDDEFS_H__
 #define __STDDEFS_H__
 
+#include <stdio.h>
+
 /* Boolean logic */
 #define false 0
 #define true 1
@@ -28,7 +30,7 @@ typedef unsigned long uint64_t;
 #endif
 
 #ifndef _SIZE_T
-typedef uint64_t size_t;
+typedef size_t size_t;
 #endif
 
 #endif
