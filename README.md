@@ -135,7 +135,7 @@ commands which operate on existing files, though.
 
 <!-- prettier-ignore-start -->
 > [!WARNING]
-> Windows is not supported. The program might not even compile, but even if it
+> Windows is not supported. The program might not even compile, and even if it
 does, it will exhibit undefined behaviour. Instead, run it under
 [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
 <!-- prettier-ignore-end -->
