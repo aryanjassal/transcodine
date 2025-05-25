@@ -154,7 +154,7 @@ int64_t bin_find_file(const bin_t *bin, const buf_t *fq_path) {
                1;
   } else {
     msg.size = sprintf((char *)msg.data, "Found file: %.*s (at offset %ld)",
-                       (int)fq_path->size, fq_path->data, location) +
+                       (int)fq_path->size, fq_path->data, (long)location) +
                1;
   }
   debug(buf_to_cstr(&msg));
