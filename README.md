@@ -34,6 +34,9 @@ unreadable without explicit authorization**.
 - **Portable ANSI C** implementation makes an easy job of using the application
   on any Unix-based systems and requires minimal dependencies to get running on
   an embedded system.
+- **Bin sharing** can be done by sharing the resultant compression file along a
+  secret key. Anyone who has both the secret key and the compressed bin can
+  import the bins into their own agents.
 
 ## Table of Contents
 
@@ -113,6 +116,28 @@ The file paths are stored as fully-qualified paths, meaning the files are not
 grouped by directories by architecture and needs to be done manually at
 parse-time. This also introduces a limitation where empty directories cannot be
 made, they can only be made implicitly via file creation.
+
+### Compression
+
+Compression has been added to align with the assignment requirements, but it is
+a feature which serves to only complicate things rather than making them more
+efficient. As I am using AES128 to encrypt the bins, they are already in a state
+of high entropy. This means that the data closely resembles random noise. It is
+hard to compress random data, meaning the compression will not have any real
+impact.
+
+The compression could have been done on the bin itself prior to compression, and
+while this would have yielded better results, it would have been more difficult
+to compress and decompress the archive, with more places to go wrong. This is
+why you will probably see a warning for low efficiency of huffman compression on
+the file.
+
+The compressed bins are linked with a new encrypted database to store the
+relevant keys. This database can only be unlocked using the master key provided
+after compression. This key can be used to import bins into an agent. Bin name
+collisions and deduplication is handled automatically. This ease of sharing can
+be both a blessing and a curse. All it takes is a single mistake to leak the
+entire contents of a compressed archive to a malicious actor.
 
 ### Notes
 

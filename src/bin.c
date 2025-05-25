@@ -86,7 +86,8 @@ static void bin_rotate_iv(bin_t *bin, const buf_t *aes_key) {
 
 /**
  * Find a file by its name in a bin. Returns the location as a 64-bit signed
- * integer.
+ * integer. The file path should not be null terminated, as the paths in the bin
+ * aren't, and the find will fail.
  * @param bin
  * @param fq_path The path to search for
  * @return -1 if the file wasn't found, file location otherwise
@@ -144,6 +145,20 @@ int64_t bin_find_file(const bin_t *bin, const buf_t *fq_path) {
     /* Cleanup for next loop */
     buf_free(&path_data);
   }
+
+  buf_t msg;
+  buf_init(&msg, fq_path->size + 64);
+  if (location == -1) {
+    msg.size = sprintf((char *)msg.data, "Could not find file: %.*s",
+                       (int)fq_path->size, fq_path->data) +
+               1;
+  } else {
+    msg.size = sprintf((char *)msg.data, "Found file: %.*s (at offset %ld)",
+                       (int)fq_path->size, fq_path->data, location) +
+               1;
+  }
+  debug(buf_to_cstr(&msg));
+  buf_free(&msg);
 
   /* Cleanup and return results */
   iostream_free(&ios);
@@ -328,7 +343,6 @@ void bin_write_file(bin_t *bin, const buf_t *data) {
 }
 
 void bin_close_file(bin_t *bin, buf_t *aes_key) {
-  (void)aes_key;
   if (!bin) throw("Arguments cannot be NULL");
   if (!access(bin->working_path)) return error("Bin is not open");
   if (bin->write_ctx.ios.fd == NULL) {
@@ -361,7 +375,7 @@ void bin_close_file(bin_t *bin, buf_t *aes_key) {
   buf_view(&len_buf, &data_len, sizeof(size_t));
 
   char msg[64];
-  sprintf(msg, "Patching data_len = %zu at offset %zu", data_len,
+  sprintf(msg, "Patching data_len=%lu at offset %zu", data_len,
           ios.file_offset);
   debug(msg);
   iostream_write(&ios, &len_buf);

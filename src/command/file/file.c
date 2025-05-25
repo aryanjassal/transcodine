@@ -8,6 +8,8 @@
 #include "command/file/ls.h"
 #include "command/file/rm.h"
 #include "command/file/get.h"
+#include "command/file/cp.h"
+#include "command/file/mv.h"
 #include "utils/args.h"
 
 /**
@@ -24,6 +26,8 @@ static cmd_handler_t commands[] = {
     {"cat", "Reads the contents of a file in the bin", cmd_file_cat},
     {"rm", "Removes a single file from a bin", cmd_file_rm},
     {"get", "Copy a file from a bin to the computer", cmd_file_get},
+    {"cp", "Copy a file within the bin", cmd_file_cp},
+    {"mv", "Move a file within the bin", cmd_file_mv},
     {"help", "Print usage guide", cmd_file_help}};
 
 static const int num_commands = sizeof(commands) / sizeof(cmd_handler_t);
