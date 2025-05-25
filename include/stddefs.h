@@ -25,14 +25,14 @@ typedef unsigned int uint32_t;
 typedef long int64_t;
 #endif
 
+#endif
+
 #ifndef _UINT64_T
 typedef unsigned long uint64_t;
 #endif
 
 #ifndef _SIZE_T
 typedef size_t size_t;
-#endif
-
 #endif
 
 #endif
