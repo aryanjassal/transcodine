@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "bits/stdint-uintn.h"
 #include "constants.h"
 #include "core/list.h"
 #include "core/map.h"

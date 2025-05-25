@@ -1,6 +1,7 @@
 #ifndef __STDDEFS_H__
 #define __STDDEFS_H__
 
+/* For size_t */
 #include <stdio.h>
 
 /* Boolean logic */
@@ -19,20 +20,16 @@ typedef unsigned int uint32_t;
  * to guard them.
  */
 
-#if !defined(__APPLE__)
+#if defined(__APPLE__)
 
-#ifndef _INT64_T
+typedef long long int64_t;
+typedef unsigned long long uint64_t;
+
+#else
+
 typedef long int64_t;
-#endif
-
-#endif
-
-#ifndef _UINT64_T
 typedef unsigned long uint64_t;
-#endif
 
-#ifndef _SIZE_T
-typedef size_t size_t;
 #endif
 
 #endif
