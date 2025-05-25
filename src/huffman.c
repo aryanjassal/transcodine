@@ -374,7 +374,7 @@ bool huffman_decompress(const char *input_path, const char *root_dir,
       return error("Failed to create output file"), false;
     }
     buf_concat(read_paths, &fname);
-    buf_write(&full_path, 0);
+    buf_write(read_paths, 0);
 
     /* Stream decompress the file */
     huffman_dnode_t *node = root;
