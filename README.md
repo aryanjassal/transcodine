@@ -46,6 +46,7 @@ unreadable without explicit authorization**.
   - [Password Management](#password-management)
   - [Agent Management](#agent-management)
   - [Bin Management](#bin-management)
+  - [Bin Management](#compression)
   - [Notes](#notes)
 - [Credits](#credits)
 
@@ -222,6 +223,8 @@ entire contents of a compressed archive to a malicious actor.
 
 ### Notes
 
+- Debug logging is enabled by default. You can disable it by going into
+  `include/constants.h` and removing the line containing `#define DEBUG`.
 - This program is designed to leverage Unix behaviour and will not compile or
   run under Windows without rewrites.
 - To simplify working with heap memory, a custom implementation of buffers is
