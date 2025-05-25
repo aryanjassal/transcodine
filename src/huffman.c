@@ -39,7 +39,7 @@ static int cmp_huffman_node(const void *a, const void *b) {
   return (na->freq < nb->freq) ? -1 : (na->freq > nb->freq) ? 1 : 0;
 }
 
-static huffman_node_t *build_huffman_tree(uint64_t freq[256]) {
+static huffman_node_t *build_huffman_tree(size_t freq[256]) {
   huffman_node_t *queue[HUFFMAN_MAX_SYMBOLS];
   size_t queue_size = 0;
 
