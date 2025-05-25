@@ -41,6 +41,7 @@ unreadable without explicit authorization**.
 ## Table of Contents
 
 - [Overview](#overview)
+- [Installation](#installation)
 - [Capabilities](#capabilities)
 - [Technical Details](#technical-details)
   - [Password Management](#password-management)
@@ -129,6 +130,24 @@ read a file. You can save the file directly using `transcodine bin get`, or copy
 and move files around withg `transcodine file cp` and `transcodine file mv`. You
 need to add files to the bin using `transcodine bin add` before you can use any
 commands which operate on existing files, though.
+
+## Installation
+
+<!-- prettier-ignore-start -->
+> [!WARNING]
+> Windows is not supported. The program might not even compile, but even if it
+does, it will exhibit undefined behaviour. Instead, run it under
+[WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+<!-- prettier-ignore-end -->
+
+To run `transcodine`, you need to manually compile it. To do so, simply run
+`make` in the project root. This will handle cleaning old files and compiling
+the program into `./build/transcodine`. Then, simply run the program.
+
+Note that debug logging is enabled by default. To disable it, go to
+`include/constants.h` and remove the line containing `#define DEBUG`. Note that
+this will not impact the warnings, errors, or fatal failure messages, only the
+debug ones.
 
 ## Capabilities
 
