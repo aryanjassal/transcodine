@@ -17,6 +17,8 @@ typedef unsigned int uint32_t;
  * to guard them.
  */
 
+#if !defined(__APPLE__)
+
 #ifndef _INT64_T
 typedef long int64_t;
 #endif
@@ -27,6 +29,8 @@ typedef unsigned long uint64_t;
 
 #ifndef _SIZE_T
 typedef uint64_t size_t;
+#endif
+
 #endif
 
 #endif
