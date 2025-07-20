@@ -64,7 +64,7 @@ static void update_password(buf_t *old_password, buf_t *new_password) {
   buf_free(&kek);
 }
 
-int cmd_agent_reset(int argc, char **argv) {
+int handler_agent_reset(int argc, char **argv) {
   ignore_args(argc, argv);
 
   if (!access(buf_to_cstr(&AUTH_DB_PATH))) {

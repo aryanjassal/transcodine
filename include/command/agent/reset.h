@@ -9,6 +9,6 @@
  * @returns Exit code
  * @author Aryan Jassal
  */
-int cmd_agent_reset(int argc, char *argv[]);
+int handler_agent_reset(int argc, char *argv[]);
 
 #endif

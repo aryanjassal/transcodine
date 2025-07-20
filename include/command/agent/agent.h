@@ -2,16 +2,19 @@
 #define __COMMAND_AGENT_AGENT_H__
 
 /**
- * This subcommand groups all the operations involving the agent.
+ * This command group provides utility functions for the agent or the node
+ * currently running. The command tree looks like this.
  *
- * A catch-all for the agent subcommand. This will dispatch the arguments to the
- * relevant handlers as needed.
- *
- * @param argc
- * @param argv
- * @returns Exit code
- * @author Alexandro Jauregui
+ *  agent
+ *  ├── setup
+ *  └── reset
  */
-int cmd_agent(int argc, char *argv[]);
+
+#include "utils/args.h"
+
+extern cmd_handler_t cmd_agent_setup;
+extern cmd_handler_t cmd_agent_reset;
+extern cmd_handler_t agent_command;
+extern const int num_agent_commands;
 
 #endif

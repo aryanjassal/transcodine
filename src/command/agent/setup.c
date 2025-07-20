@@ -93,7 +93,7 @@ static void save_password(buf_t *password) {
   buf_free(&auth.kek_hash);
 }
 
-int cmd_agent_setup(int argc, char *argv[]) {
+int handler_agent_setup(int argc, char *argv[]) {
   /* Flag handling */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
   case 1: return 0;

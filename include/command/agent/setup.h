@@ -8,6 +8,6 @@
  * @param argv
  * @author Alexandro Jauregui
  */
-int cmd_agent_setup(int argc, char *argv[]);
+int handler_agent_setup(int argc, char *argv[]);
 
 #endif
