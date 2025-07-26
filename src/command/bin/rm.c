@@ -23,7 +23,7 @@ static void flag_help() {
   print_help("transcodine bin rm <bin_name> [...options]", flags, num_flags);
 }
 
-int cmd_bin_rm(int argc, char *argv[]) {
+int handler_bin_rm(int argc, char *argv[]) {
   /* Flag handling */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
   case 1: return 0;

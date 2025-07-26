@@ -21,7 +21,6 @@
  *   agent      Manage the user agent
  *   bin        Operate on bins
  *   file       Operate on files within bins
- *   help       Print usage guide
  * ```
  */
 
@@ -31,219 +30,23 @@
 #include "core/buffer.h"
 #include "stddefs.h"
 #include "utils/args.h"
-#include "utils/bootstrap.h"
 #include "utils/cli.h"
+#include "utils/setup.h"
 
-#include "command/agent/reset.h"
-#include "command/agent/setup.h"
-#include "command/bin/create.h"
-#include "command/bin/load.h"
-#include "command/bin/ls.h"
-#include "command/bin/rename.h"
-#include "command/bin/rm.h"
-#include "command/bin/save.h"
-#include "command/file/add.h"
-#include "command/file/cat.h"
-#include "command/file/cp.h"
-#include "command/file/get.h"
-#include "command/file/ls.h"
-#include "command/file/mv.h"
-#include "command/file/rm.h"
+#include "command/agent/agent.h"
+#include "command/bin/bin.h"
+#include "command/file/file.h"
 
-/* clang-format off */
-static cmd_handler_t agent_setup = {
-  "setup",
-  "Setup your transcodine node",
-  cmd_agent_setup,
-  NULL,
-  0,
-  NULL
-};
-static cmd_handler_t agent_reset = {
-  "reset",
-  "Reset the password of your node",
-  cmd_agent_reset,
-  NULL,
-  0,
-  NULL
-};
+cmd_handler_t* root_commands[] = {&cmd_agent, &cmd_bin, &cmd_file};
+const int num_root_commands = sizeof(root_commands) / sizeof(root_commands[0]);
 
-static cmd_handler_t bin_create = {
-  "create",
-  "Create a new bin",
-  cmd_bin_create,
-  NULL,
-  0,
-  NULL
-};
-static cmd_handler_t bin_ls = {
-  "ls",
-  "List all available bins",
-  cmd_bin_ls,
-  NULL,
-  0,
-  NULL
-};
-static cmd_handler_t bin_rm = {
-  "rm",
-  "Remove the specified bin permanently",
-  cmd_bin_rm,
-  NULL,
-  0,
-  NULL
-};
-static cmd_handler_t bin_save = {
-  "save",
-  "Exports all specified bins into a shareable file",
-  cmd_bin_save,
-  NULL,
-  0,
-  NULL
-};
-static cmd_handler_t bin_load = {
-  "load",
-  "Loads all bins from a shared file",
-  cmd_bin_load,
-  NULL,
-  0,
-  NULL
-};
-static cmd_handler_t bin_rename = {
-  "rename",
-  "Rename a bin",
-  cmd_bin_rename,
-  NULL,
-  0,
-  NULL
-};
-
-static cmd_handler_t file_ls = {
-  "ls",
-  "Recursively list all files in a bin",
-  cmd_file_ls,
-  NULL,
-  0,
-  NULL
-};
-static cmd_handler_t file_cp = {
-  "cp",
-  "Copies a file to a different location within the bin",
-  cmd_file_cp,
-  NULL,
-  0,
-  NULL
-};
-static cmd_handler_t file_mv = {
-  "mv",
-  "Moves a file to a different location within the bin",
-  cmd_file_mv,
-  NULL,
-  0,
-  NULL
-};
-static cmd_handler_t file_rm = {
-  "rm",
-  "Removes a file from a bin",
-  cmd_file_rm,
-  NULL,
-  0,
-  NULL
-};
-static cmd_handler_t file_cat = {
-  "cat",
-  "Prints the contents of a file from a bin",
-  cmd_file_cat,
-  NULL,
-  0,
-  NULL
-};
-static cmd_handler_t file_add = {
-  "add",
-  "Add a file from the disk to a bin",
-  cmd_file_add,
-  NULL,
-  0,
-  NULL
-};
-static cmd_handler_t file_get = {
-  "get",
-  "Copies a file from a bin to the disk",
-  cmd_file_get,
-  NULL,
-  0,
-  NULL
-};
-
-static cmd_handler_t* agent_commands[] = {
-  &agent_setup,
-  &agent_reset
-};
-static cmd_handler_t* bin_commands[] = {
-  &bin_create,
-  &bin_ls,
-  &bin_rm,
-  &bin_save,
-  &bin_load,
-  &bin_rename
-};
-static cmd_handler_t* file_commands[] = {
-  &file_ls,
-  &file_cp,
-  &file_mv,
-  &file_rm,
-  &file_cat,
-  &file_add,
-  &file_get
-};
-
-static const int num_agent_commands =
-    sizeof(agent_commands) / sizeof(agent_commands[0]);
-static const int num_bin_commands =
-    sizeof(bin_commands) / sizeof(bin_commands[0]);
-static const int num_file_commands =
-    sizeof(file_commands) / sizeof(file_commands[0]);
-
-static cmd_handler_t cmd_agent = {
-  "agent",
-  "Operate on your local agent",
-  NULL,
-  agent_commands,
-  num_agent_commands,
-  NULL
-};
-
-static cmd_handler_t cmd_bin = {
-  "bin",
-  "Operate on your local bins",
-  NULL,
-  bin_commands,
-  num_bin_commands,
-  NULL
-};
-
-static cmd_handler_t cmd_file = {
-  "file",
-  "Operate on files in your bins",
-  NULL,
-  file_commands,
-  num_file_commands,
-  NULL
-};
-
-static cmd_handler_t* root_commands[] = {
-  &cmd_agent,
-  &cmd_bin,
-  &cmd_file
-};
-
-static const int num_root_commands =
-    sizeof(root_commands) / sizeof(root_commands[0]);
-
-/* clang-format on */
+cmd_handler_t entrypoint =
+    CMD_MKGROUP("transcodine", "Securely store and manage your secrets",
+                root_commands, num_root_commands);
 
 int main(int argc, char* argv[]) {
   /* Bootstrap some program state. This needs to run before anything else. */
-  bootstrap();
+  setup();
 
   /* Handle improper invocation */
   if (argc < 2) {
@@ -284,6 +87,6 @@ int main(int argc, char* argv[]) {
     debug(msg);
   }
 
-  /* Return the command with the given status*/
+  /* Return the command with the given status */
   return status;
 }

@@ -1,4 +1,4 @@
-#include "utils/bootstrap.h"
+#include "utils/setup.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -11,12 +11,12 @@
 
 void bootstrap() {
   /* Get agent-writable path */
-  const char *home = getenv("HOME");
+  const char* home = getenv("HOME");
   if (!home) throw("HOME is unset");
 
   buf_t config_dir;
   buf_init(&config_dir, 32);
-  const char *config_path = getenv("TRANSCODINE_CONFIG_PATH");
+  const char* config_path = getenv("TRANSCODINE_CONFIG_PATH");
   if (!config_path) {
     config_path = CONFIG_DIR;
     buf_append(&config_dir, home, strlen(home));
@@ -26,15 +26,14 @@ void bootstrap() {
 
   /**
    * The program state will look like this:
-   * ~/.transcodine/
-   * ~/.transcodine/auth.db
-   * ~/.transcodine/state.db
-   * ~/.transcodine/bins/
-   * ~/.transcodine/bins/alpha
-   * ~/.transcodine/bins/beta
-   * ~/.transcodine/bins/gamma
-   *
-   * For, this, we need to create directory matching ~/.transcodine/bin
+   * ~/.transcodine
+   *  ├── auth.db
+   *  ├── state.db
+   *  └── bins
+   *      ├── alpha
+   *      ├── beta
+   *      └── gamma
+   * For, this, we need to create directory matching ~/.transcodine/bins
    */
   buf_t dirs;
   buf_init(&dirs, 32);

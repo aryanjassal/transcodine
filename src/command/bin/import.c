@@ -1,4 +1,4 @@
-#include "command/bin/load.h"
+#include "command/bin/import.h"
 
 #include <string.h>
 
@@ -23,7 +23,7 @@ static flag_handler_t flags[] = {
 static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
 
 static void flag_help() {
-  print_help("transcodine bin load <file_name> [...options]", flags, num_flags);
+  print_help("transcodine bin import <file_name> [...options]", flags, num_flags);
 }
 
 static void split_file(const char *out_path, const char *db_path,
@@ -54,7 +54,7 @@ static void split_file(const char *out_path, const char *db_path,
   debug("Split bundled database and compressed bins");
 }
 
-int cmd_bin_load(int argc, char *argv[]) {
+int handler_bin_import(int argc, char *argv[]) {
   /* Flag handling */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
   case 1: return 0;

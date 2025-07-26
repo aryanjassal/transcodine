@@ -12,9 +12,9 @@
 
 #include "utils/args.h"
 
+extern cmd_handler_t cmd_agent;
 extern cmd_handler_t cmd_agent_setup;
 extern cmd_handler_t cmd_agent_reset;
-extern cmd_handler_t agent_command;
 extern const int num_agent_commands;
 
 #endif

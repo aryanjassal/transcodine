@@ -24,7 +24,7 @@ static void flag_help() {
              flags, num_flags);
 }
 
-int cmd_file_rm(int argc, char *argv[]) {
+int handler_file_rm(int argc, char *argv[]) {
   /* Flag handling */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
   case 1: return 0;

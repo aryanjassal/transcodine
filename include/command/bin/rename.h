@@ -8,6 +8,6 @@
  * @returns Exit code
  * @author Aryan Jassal
  */
-int cmd_bin_rename(int argc, char *argv[]);
+int handler_bin_rename(int argc, char *argv[]);
 
 #endif

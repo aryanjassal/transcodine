@@ -23,7 +23,7 @@ static void flag_help() {
   print_help("transcodine bin ls [...options]", flags, num_flags);
 }
 
-int cmd_bin_ls(int argc, char *argv[]) {
+int handler_bin_ls(int argc, char *argv[]) {
   /* Flag handling */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
   case 1: return 0;

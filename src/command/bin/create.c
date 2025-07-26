@@ -28,7 +28,7 @@ static void flag_help() {
              num_flags);
 }
 
-int cmd_bin_create(int argc, char *argv[]) {
+int handler_bin_create(int argc, char *argv[]) {
   /* Flag handling */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
   case 1: return 0;

@@ -30,7 +30,7 @@ static bin_t out_bin;
 
 static void copy_file(const buf_t *data) { bin_write_file(&out_bin, data); }
 
-int cmd_file_mv(int argc, char *argv[]) {
+int handler_file_mv(int argc, char *argv[]) {
   /* Flag handling */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
   case 1: return 0;

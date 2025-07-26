@@ -34,7 +34,7 @@ static void write_data(const buf_t *data) {
   fwrites(data->data, data->size, out_file);
 }
 
-int cmd_file_get(int argc, char *argv[]) {
+int handler_file_get(int argc, char *argv[]) {
   /* Flag handling */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
   case 1: return 0;

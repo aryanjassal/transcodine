@@ -8,6 +8,6 @@
  * @returns Exit code
  * @author Aryan Jassal
  */
-int cmd_file_rm(int argc, char *argv[]);
+int handler_file_rm(int argc, char *argv[]);
 
 #endif

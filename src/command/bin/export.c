@@ -1,4 +1,4 @@
-#include "command/bin/save.h"
+#include "command/bin/export.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -28,11 +28,11 @@ static flag_handler_t flags[] = {
 static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
 
 static void flag_help() {
-  print_help("transcodine bin save <output_name> <...bin_names> [...options]",
+  print_help("transcodine bin export <output_name> <...bin_names> [...options]",
              flags, num_flags);
 }
 
-int cmd_bin_save(int argc, char *argv[]) {
+int handler_bin_export(int argc, char *argv[]) {
   /* Flag handling */
   switch (dispatch_flag(argc, argv, flags, num_flags)) {
   case 1: return 0;
