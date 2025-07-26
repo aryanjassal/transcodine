@@ -9,7 +9,7 @@
 #include "utils/system.h"
 #include "utils/throw.h"
 
-void bootstrap() {
+void setup() {
   /* Get agent-writable path */
   const char* home = getenv("HOME");
   if (!home) throw("HOME is unset");

@@ -25,8 +25,10 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
+#include "constants.h"
 #include "core/buffer.h"
 #include "stddefs.h"
 #include "utils/args.h"
@@ -44,39 +46,83 @@ cmd_handler_t entrypoint =
     CMD_MKGROUP("transcodine", "Securely store and manage your secrets",
                 root_commands, num_root_commands);
 
+/*
+ * Return codes with their meanings:
+ * 64: Invalid usage
+ * 255: Unknown error
+ */
 int main(int argc, char* argv[]) {
   /* Bootstrap some program state. This needs to run before anything else. */
   setup();
 
-  /* Handle improper invocation */
-  if (argc < 2) {
-    /* cmd_help(0, NULL); */
-    teardown();
-    return 1;
-  }
+  /* Split the arguments into commands and flags to easily walk the tree */
+  int cmdc, flagc;
+  char **cmdv, **flagv;
+  split_args(argc, argv, &cmdc, &cmdv, &flagc, &flagv);
 
-  /**
-   * If we found the command, call the handler with the relevant arguments
-   * (not including the command, only the options).
-   */
-  int status = 0;
-  bool found = false;
-  int i;
-  for (i = 0; i < num_root_commands; ++i) {
-    if (strcmp(argv[1], root_commands[i]->command) == 0) {
-      found = true;
-      status = root_commands[i]->handler(argc - 2, &argv[2]);
-      break;
+  buf_t argpath;
+  buf_init(&argpath, 32);
+  cmd_handler_t* current_handler = &entrypoint;
+
+  uint8_t status = EXIT_UNKNOWN;
+  int ci = 0;
+  while (current_handler != NULL) {
+    /* Start processing the current command */
+    if (argpath.size > 0) {
+      argpath.size--; /* Replace the null character */
+      buf_write(&argpath, ' ');
     }
+    buf_append(&argpath, current_handler->command,
+               strlen(current_handler->command));
+    buf_write(&argpath, 0);
+
+    /* If we are at a leaf node, then pass the remaining args to the handler */
+    if (current_handler->num_subcommands == 0) {
+      /* Before the handler, check if we are asking for help */
+      int fi;
+      for (fi = 0; fi < flagc; ++fi) {
+        if (strcmp(flagv[fi], "--help") == 0) {
+          info(flagv[fi]);
+          warn("Help is not implemented yet");
+          status = EXIT_OK;
+          goto quitprog;
+        }
+        warn(flagv[fi]);
+      }
+      status = current_handler->handler(cmdc - ci, &cmdv[ci]);
+      goto quitprog;
+    }
+
+    /* This node has children, so go through them to find a matching command */
+    int si;
+    bool found = false;
+    for (si = 0; si < current_handler->num_subcommands; ++si) {
+      if (cmdv[ci] == NULL) break;
+      if (strcmp(cmdv[ci], current_handler->subcommands[si]->command) == 0) {
+        info(current_handler->subcommands[si]->command);
+        current_handler = current_handler->subcommands[si];
+        found = true;
+        break;
+      }
+      warn(current_handler->subcommands[si]->command);
+      continue;
+    }
+    if (!found) {
+      warn(current_handler->command);
+      warn(buf_to_cstr(&argpath));
+      warn("Help is not implemented yet. Otherwise cmd not found.");
+      status = EXIT_USAGE;
+      goto quitprog;
+    }
+    ci++;
   }
 
-  if (!found) {
-    printf("Invalid command: %s\n\n", argv[1]);
-    /* cmd_help(0, NULL); */
-    status = 1;
-  }
-
+  /* Shortcut label to cleanup resources and quit the program */
+quitprog:
   /* Cleanup any resources here */
+  free(cmdv);
+  free(flagv);
+  buf_free(&argpath);
   teardown();
 
   /* Check if buffers are left open */

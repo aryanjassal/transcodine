@@ -64,16 +64,26 @@ int dispatch_flag(int argc, char* argv[], const flag_handler_t flags[],
 void print_help(const char* usage, const flag_handler_t* flags,
                 const size_t num_flags);
 
+/**
+ * Splits the argv into commands and flags, so the command array can be used to
+ * walk the command tree, and the flags can be applied to the final leaf node.
+ * @param argc Number of input arguments
+ * @param argv Array of input arguments
+ * @param cmdc Number of output commands (to be populated by function)
+ * @param cmdv Array of output commands (to be populated by function)
+ * @param flagc Number of output flags (to be populated by function)
+ * @param flagv Array of output flags (to be populated by function)
+ * @author Aryan Jassal
+ */
+void split_args(int argc, char* argv[], int* cmdc, char** cmdv[], int* flagc,
+                char** flagv[]);
+
 /* Helper functions for streamlining static command tree creation */
 
-#define CMD_MKLEAF(cmd, desc, handler, flags)  \
-  (cmd_handler_t) {                            \
-    (cmd), (desc), (handler), NULL, 0, (flags) \
-  }
+#define CMD_MKLEAF(cmd, desc, handler, flags) \
+  (cmd_handler_t) { (cmd), (desc), (handler), NULL, 0, (flags) }
 
-#define CMD_MKGROUP(group, desc, commands, ncmds)    \
-  (cmd_handler_t) {                                  \
-    (group), (desc), NULL, (commands), (ncmds), NULL \
-  }
+#define CMD_MKGROUP(group, desc, commands, ncmds) \
+  (cmd_handler_t) { (group), (desc), NULL, (commands), (ncmds), NULL }
 
 #endif

@@ -4,6 +4,11 @@
 /* Enable debug mode. Only for testing. */
 #define DEBUG
 
+/* Error codes for program exit */
+#define EXIT_OK 0
+#define EXIT_UNKNOWN 255
+#define EXIT_USAGE 64
+
 /* Crypto parameters */
 #define SHA256_HASH_SIZE 32
 #define SHA256_BLOCK_SIZE 64
