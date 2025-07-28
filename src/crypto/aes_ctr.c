@@ -19,8 +19,8 @@ static void increment_counter_by(uint8_t counter[AES_BLOCK_SIZE], uint64_t n) {
   }
 }
 
-void aes_ctr_crypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
-                   const buf_t *input, buf_t *output) {
+void aes_ctr_crypt(const aes_ctx_t* ctx, buf_t* iv, const size_t offset,
+                   const buf_t* input, buf_t* output) {
   if (!ctx || !iv || !input || !output) throw("Arguments cannot be NULL");
   if (iv->size != AES_BLOCK_SIZE || !iv->data) throw("Invalid IV buffer");
   if (!output->data) throw("Output buffer must be initialised");
@@ -83,12 +83,12 @@ void aes_ctr_crypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
   output->size = output_pos;
 }
 
-void aes_ctr_encrypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
-                     const buf_t *input, buf_t *output) {
+void aes_ctr_encrypt(const aes_ctx_t* ctx, buf_t* iv, const size_t offset,
+                     const buf_t* input, buf_t* output) {
   aes_ctr_crypt(ctx, iv, offset, input, output);
 }
 
-void aes_ctr_decrypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
-                     const buf_t *input, buf_t *output) {
+void aes_ctr_decrypt(const aes_ctx_t* ctx, buf_t* iv, const size_t offset,
+                     const buf_t* input, buf_t* output) {
   aes_ctr_crypt(ctx, iv, offset, input, output);
 }

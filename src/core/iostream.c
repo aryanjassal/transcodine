@@ -8,8 +8,8 @@
 #include "crypto/aes_ctr.h"
 #include "utils/system.h"
 
-void iostream_init(iostream_t *iostream, FILE *fd, const aes_ctx_t *aes_ctx,
-                   const buf_t *iv, const size_t offset) {
+void iostream_init(iostream_t* iostream, FILE* fd, const aes_ctx_t* aes_ctx,
+                   const buf_t* iv, const size_t offset) {
   buf_initf(&iostream->counter, AES_IV_SIZE);
   buf_copy(&iostream->counter, iv);
   iostream->fd = fd;
@@ -18,12 +18,12 @@ void iostream_init(iostream_t *iostream, FILE *fd, const aes_ctx_t *aes_ctx,
   iostream->stream_offset = 0;
 }
 
-void iostream_free(iostream_t *iostream) {
+void iostream_free(iostream_t* iostream) {
   buf_free(&iostream->counter);
   iostream->fd = NULL;
 }
 
-void iostream_read(iostream_t *iostream, const size_t len, buf_t *data) {
+void iostream_read(iostream_t* iostream, const size_t len, buf_t* data) {
   /* Read ciphertext */
   buf_t cipher;
   buf_init(&cipher, len);
@@ -41,7 +41,7 @@ void iostream_read(iostream_t *iostream, const size_t len, buf_t *data) {
   buf_free(&cipher);
 }
 
-void iostream_write(iostream_t *iostream, const buf_t *data) {
+void iostream_write(iostream_t* iostream, const buf_t* data) {
   /* Encrypt the cleartext to write to the bin */
   buf_t cipher;
   buf_init(&cipher, data->size);
@@ -58,7 +58,7 @@ void iostream_write(iostream_t *iostream, const buf_t *data) {
   buf_free(&cipher);
 }
 
-void iostream_skip(iostream_t *iostream, const size_t n) {
+void iostream_skip(iostream_t* iostream, const size_t n) {
   iostream->file_offset += n;
   iostream->stream_offset += n;
 }

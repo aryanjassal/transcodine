@@ -26,8 +26,8 @@
  * @param output The output buffer
  * @author Aryan Jassal
  */
-void aes_ctr_crypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
-                   const buf_t *input, buf_t *output);
+void aes_ctr_crypt(const aes_ctx_t* ctx, buf_t* iv, const size_t offset,
+                   const buf_t* input, buf_t* output);
 
 /**
  * Alias of aes_ctr_crypt()
@@ -46,8 +46,8 @@ void aes_ctr_crypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
  * @param output The output buffer
  * @author Aryan Jassal
  */
-void aes_ctr_encrypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
-                     const buf_t *input, buf_t *output);
+void aes_ctr_encrypt(const aes_ctx_t* ctx, buf_t* iv, const size_t offset,
+                     const buf_t* input, buf_t* output);
 
 /**
  * Alias of aes_ctr_crypt()
@@ -66,7 +66,7 @@ void aes_ctr_encrypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
  * @param output The output buffer
  * @author Aryan Jassal
  */
-void aes_ctr_decrypt(const aes_ctx_t *ctx, buf_t *iv, const size_t offset,
-                     const buf_t *input, buf_t *output);
+void aes_ctr_decrypt(const aes_ctx_t* ctx, buf_t* iv, const size_t offset,
+                     const buf_t* input, buf_t* output);
 
 #endif

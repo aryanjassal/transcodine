@@ -104,12 +104,12 @@ static uint32_t Gamma1(uint32_t x) {
 /**
  * Reads a 32-bit value from the buffer and converts it into big-endian form.
  */
-static uint32_t read_u32_be(uint8_t *buf, size_t offset) {
+static uint32_t read_u32_be(uint8_t* buf, size_t offset) {
   return ((uint32_t)buf[offset + 0] << 24) | ((uint32_t)buf[offset + 1] << 16) |
          ((uint32_t)buf[offset + 2] << 8) | ((uint32_t)buf[offset + 3]);
 }
 
-static void transform(sha256_ctx_t *ctx, const buf_t *buffer) {
+static void transform(sha256_ctx_t* ctx, const buf_t* buffer) {
   uint32_t S[8];
   uint32_t W[64];
   int t;
@@ -147,7 +147,7 @@ static void transform(sha256_ctx_t *ctx, const buf_t *buffer) {
   for (t = 0; t < 8; ++t) { ctx->state[t] += S[t]; }
 }
 
-void sha256_init(sha256_ctx_t *ctx) {
+void sha256_init(sha256_ctx_t* ctx) {
   ctx->length = 0;
 
   buf_init(&ctx->buf, 64);
@@ -164,7 +164,7 @@ void sha256_init(sha256_ctx_t *ctx) {
   ctx->state[7] = 0x5be0cd19ul;
 }
 
-void sha256_update(sha256_ctx_t *ctx, const buf_t *buffer) {
+void sha256_update(sha256_ctx_t* ctx, const buf_t* buffer) {
   size_t offset = 0;
   size_t bufsize = buffer->size;
 
@@ -188,7 +188,7 @@ void sha256_update(sha256_ctx_t *ctx, const buf_t *buffer) {
   }
 }
 
-void sha256_finalize(sha256_ctx_t *ctx, sha256_hash_t *digest) {
+void sha256_finalize(sha256_ctx_t* ctx, sha256_hash_t* digest) {
   if (ctx->buf.size == SHA256_BLOCK_SIZE) {
     transform(ctx, &ctx->buf);
     ctx->length += SHA256_BLOCK_SIZE * 8;
@@ -235,7 +235,7 @@ void sha256_finalize(sha256_ctx_t *ctx, sha256_hash_t *digest) {
   buf_free(&ctx->buf);
 }
 
-void sha256_hash(const buf_t *buffer, sha256_hash_t *digest) {
+void sha256_hash(const buf_t* buffer, sha256_hash_t* digest) {
   sha256_ctx_t context;
   sha256_init(&context);
   sha256_update(&context, buffer);

@@ -33,7 +33,7 @@ typedef struct {
  * @param key The key to expand into the context
  * @author Aryan Jassal
  */
-void aes_init(aes_ctx_t *ctx, const buf_t *key);
+void aes_init(aes_ctx_t* ctx, const buf_t* key);
 
 /**
  * Encrypts a single block using a context with the loaded key. Note that each
@@ -50,6 +50,6 @@ void aes_init(aes_ctx_t *ctx, const buf_t *key);
  * @param out The encrypted bytes
  * @author Aryan Jassal
  */
-void aes_encrypt(const aes_ctx_t *ctx, const buf_t *in, buf_t *out);
+void aes_encrypt(const aes_ctx_t* ctx, const buf_t* in, buf_t* out);
 
 #endif

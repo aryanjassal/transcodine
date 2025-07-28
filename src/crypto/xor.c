@@ -3,7 +3,7 @@
 #include "constants.h"
 #include "core/buffer.h"
 
-void xor_encrypt(const buf_t *data, const buf_t *key, buf_t *output) {
+void xor_encrypt(const buf_t* data, const buf_t* key, buf_t* output) {
   buf_clear(output);
   size_t i;
   for (i = 0; i < data->size; ++i) {
@@ -14,7 +14,7 @@ void xor_encrypt(const buf_t *data, const buf_t *key, buf_t *output) {
   }
 }
 
-void xor_decrypt(const buf_t *data, const buf_t *key, buf_t *output) {
+void xor_decrypt(const buf_t* data, const buf_t* key, buf_t* output) {
   buf_clear(output);
   size_t i;
   for (i = 0; i < data->size; ++i) {

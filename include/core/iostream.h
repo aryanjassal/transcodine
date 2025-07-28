@@ -7,8 +7,8 @@
 #include "crypto/aes.h"
 
 typedef struct {
-  FILE *fd;
-  const aes_ctx_t *aes_ctx;
+  FILE* fd;
+  const aes_ctx_t* aes_ctx;
   buf_t counter;
   size_t file_offset;
   size_t stream_offset;
@@ -27,8 +27,8 @@ typedef struct {
  * @param offset The file offset of encrypted data from the start of the file.
  * @author Aryan Jassal
  */
-void iostream_init(iostream_t *iostream, FILE *fd, const aes_ctx_t *aes_ctx,
-                   const buf_t *iv, const size_t offset);
+void iostream_init(iostream_t* iostream, FILE* fd, const aes_ctx_t* aes_ctx,
+                   const buf_t* iv, const size_t offset);
 
 /**
  * Reads data from a stream, decrypts it, and returns it in a cleartext buffer.
@@ -37,7 +37,7 @@ void iostream_init(iostream_t *iostream, FILE *fd, const aes_ctx_t *aes_ctx,
  * @param data The output buffer containing the decrypted contents.
  * @author Aryan Jassal
  */
-void iostream_read(iostream_t *iostream, const size_t len, buf_t *data);
+void iostream_read(iostream_t* iostream, const size_t len, buf_t* data);
 
 /**
  * Writes data to a bin by encrypting it beforehand.
@@ -45,7 +45,7 @@ void iostream_read(iostream_t *iostream, const size_t len, buf_t *data);
  * @param data The cleartext to write to file.
  * @author Aryan Jassal
  */
-void iostream_write(iostream_t *iostream, const buf_t *data);
+void iostream_write(iostream_t* iostream, const buf_t* data);
 
 /**
  * Skips a number of bytes forward in the iostream lazily. This method only
@@ -54,7 +54,7 @@ void iostream_write(iostream_t *iostream, const buf_t *data);
  * @param n The size in bytes to move forward by.
  * @author Aryan Jassal
  */
-void iostream_skip(iostream_t *iostream, const size_t n);
+void iostream_skip(iostream_t* iostream, const size_t n);
 
 /**
  * Free the memory consumed by the db object. Note that this does not remove the
@@ -62,6 +62,6 @@ void iostream_skip(iostream_t *iostream, const size_t n);
  * @param iostream
  * @author Aryan Jassal
  */
-void iostream_free(iostream_t *iostream);
+void iostream_free(iostream_t* iostream);
 
 #endif

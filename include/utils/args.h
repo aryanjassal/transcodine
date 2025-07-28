@@ -68,6 +68,7 @@ extern flag_handler_t flag_help;
 /* Helper functions for streamlining static command tree creation */
 
 extern flag_handler_t* DEFAULT_FLAGS[];
+
 enum { N_DEFAULT_FLAGS = 1 }; /* Hack for compile-time constant */
 
 #define CMD_MKLEAF(cmd, desc, usage, handler, flags, nflags)      \

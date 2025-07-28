@@ -11,6 +11,6 @@
  * @param salt_out The output buffer. It is assumed that this is a fixed buffer.
  * @author Aryan Jassal
  */
-void gen_pseudosalt(const char *seed, buf_t *salt_out);
+void gen_pseudosalt(const char* seed, buf_t* salt_out);
 
 #endif

@@ -46,12 +46,12 @@ static const uint8_t rcon[11] = {0x00, 0x01, 0x02, 0x04, 0x08, 0x10,
 
 static uint8_t xtime(uint8_t x) { return (x << 1) ^ ((x >> 7) * 0x1b); }
 
-static void sub_bytes(uint8_t *state) {
+static void sub_bytes(uint8_t* state) {
   int i;
   for (i = 0; i < AES_BLOCK_SIZE; ++i) state[i] = sbox[state[i]];
 }
 
-static void shift_rows(uint8_t *state) {
+static void shift_rows(uint8_t* state) {
   uint8_t tmp;
 
   tmp = state[1];
@@ -72,10 +72,10 @@ static void shift_rows(uint8_t *state) {
   state[7] = tmp;
 }
 
-static void mix_columns(uint8_t *state) {
+static void mix_columns(uint8_t* state) {
   int i;
   for (i = 0; i < 4; ++i) {
-    uint8_t *col = &state[i * 4];
+    uint8_t* col = &state[i * 4];
     uint8_t a = col[0], b = col[1], c = col[2], d = col[3];
     col[0] = xtime(a) ^ xtime(b) ^ b ^ c ^ d;
     col[1] = a ^ xtime(b) ^ xtime(c) ^ c ^ d;
@@ -84,19 +84,19 @@ static void mix_columns(uint8_t *state) {
   }
 }
 
-static void add_round_key(uint8_t *state, const uint8_t *round_key) {
+static void add_round_key(uint8_t* state, const uint8_t* round_key) {
   int i;
   for (i = 0; i < 16; ++i) { state[i] ^= round_key[i]; }
 }
 
-void aes_init(aes_ctx_t *ctx, const buf_t *key) {
+void aes_init(aes_ctx_t* ctx, const buf_t* key) {
   if (!ctx || !key) { throw("NULL parameters provided"); }
   if (key->size != AES_KEY_SIZE || key->capacity != AES_KEY_SIZE ||
       !key->data) {
     throw("Buffer state is invalid");
   }
 
-  uint8_t *w = ctx->round_keys;
+  uint8_t* w = ctx->round_keys;
   memcpy(w, key->data, key->size);
 
   int i = 1;
@@ -125,8 +125,8 @@ void aes_init(aes_ctx_t *ctx, const buf_t *key) {
     }
 
     /* XOR temp with the word Nk positions earlier to get the new word */
-    uint8_t *w_prev_nk = &w[(pos - AES_NK) * 4];
-    uint8_t *w_current = &w[pos * 4];
+    uint8_t* w_prev_nk = &w[(pos - AES_NK) * 4];
+    uint8_t* w_current = &w[pos * 4];
     w_current[0] = w_prev_nk[0] ^ temp[0];
     w_current[1] = w_prev_nk[1] ^ temp[1];
     w_current[2] = w_prev_nk[2] ^ temp[2];
@@ -134,7 +134,7 @@ void aes_init(aes_ctx_t *ctx, const buf_t *key) {
   }
 }
 
-void aes_encrypt(const aes_ctx_t *ctx, const buf_t *in, buf_t *out) {
+void aes_encrypt(const aes_ctx_t* ctx, const buf_t* in, buf_t* out) {
   if (in->size != AES_BLOCK_SIZE || in->capacity != AES_BLOCK_SIZE) {
     throw("In buffer state is invalid");
   }

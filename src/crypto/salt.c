@@ -15,7 +15,7 @@ static uint64_t xorshift() {
   return x * 0x2545f4914f6cdd1dul;
 }
 
-void gen_pseudosalt(const char *seed, buf_t *salt_out) {
+void gen_pseudosalt(const char* seed, buf_t* salt_out) {
   /* Set PRNG from ASCII values */
   size_t i;
   for (i = 0; seed[i]; ++i) {
