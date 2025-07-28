@@ -5,8 +5,8 @@
 #include "constants.h"
 #include "stddefs.h"
 
-void hexdump(const void *data, size_t size) {
-  const uint8_t *byte = data;
+void hexdump(const void* data, size_t size) {
+  const uint8_t* byte = data;
   size_t i, j;
   for (i = 0; i < size; i += 16) {
     /* Address part */
@@ -31,19 +31,19 @@ void hexdump(const void *data, size_t size) {
   }
 }
 
-void info(const char *message) {
+void info(const char* message) {
   fprintf(stderr, "\033[0;34mINFO: %s\033[0m\n", message);
 }
 
-void warn(const char *message) {
+void warn(const char* message) {
   fprintf(stderr, "\033[0;33mWARN: %s\033[0m\n", message);
 }
 
-void error(const char *message) {
+void error(const char* message) {
   fprintf(stderr, "\033[1;31mERROR: %s\033[0m\n", message);
 }
 
-void _debug(const char *message, const char *file, int line, const char *func) {
+void _debug(const char* message, const char* file, int line, const char* func) {
 #if defined(DEBUG_WITH_LINE)
   fprintf(stderr, "\033[2;37mDEBUG: %s\n  at %s:%d (%s)\033[0m\n", message,
           file, line, func);

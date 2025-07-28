@@ -5,12 +5,12 @@
 #include "core/buffer.h"
 #include "utils/system.h"
 
-static const char *base62 =
+static const char* base62 =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-bool urandom(buf_t *buf, const size_t len) {
+bool urandom(buf_t* buf, const size_t len) {
   /* Confirm we can access urandom */
-  FILE *f = fopen("/dev/urandom", "rw");
+  FILE* f = fopen("/dev/urandom", "rw");
   if (!f) return false;
 
   /* Read data */
@@ -24,7 +24,7 @@ bool urandom(buf_t *buf, const size_t len) {
   return true;
 }
 
-bool urandom_ascii(buf_t *buf, const size_t len) {
+bool urandom_ascii(buf_t* buf, const size_t len) {
   /* Make sure we can read urandom */
   if (!urandom(buf, len)) return false;
 

@@ -1,4 +1,4 @@
-#include "command/bin/save.h"
+#include "command/bin/export.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -20,32 +20,41 @@
 #include "utils/io.h"
 #include "utils/system.h"
 
-static void flag_help();
-
-static flag_handler_t flags[] = {
-    {"--help", "Print usage guide", flag_help, true}};
-
-static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
-
-static void flag_help() {
-  print_help("transcodine bin save <output_name> <...bin_names> [...options]",
-             flags, num_flags);
-}
-
-int cmd_bin_save(int argc, char *argv[]) {
+int handler_bin_export(int argc, char* argv[], int flagc, char* flagv[],
+                       const char* path, cmd_handler_t* self) {
   /* Flag handling */
-  switch (dispatch_flag(argc, argv, flags, num_flags)) {
-  case 1: return 0;
-  case -1: return flag_help(), 1;
-  case 0: break;
+  int fi;
+  for (fi = 0; fi < flagc; ++fi) {
+    const char* flag = flagv[fi];
+
+    /* Help flag */
+    int ai;
+    for (ai = 0; ai < flag_help.num_aliases; ++ai) {
+      if (strcmp(flag, flag_help.aliases[ai]) == 0) {
+        print_help(HELP_REQUESTED, path, self, NULL);
+        return EXIT_OK;
+      }
+    }
+
+    /* Fail on extra flags */
+    print_help(HELP_INVALID_FLAGS, path, self, flag);
+    return EXIT_INVALID_FLAG;
   }
-  if (argc < 2) return flag_help(), 1;
+
+  /* Invalid usage */
+  if (argc < 2) {
+    print_help(HELP_INVALID_USAGE, path, self, NULL);
+    return EXIT_USAGE;
+  }
 
   /* Authentication */
   buf_t kek, db_key;
   buf_initf(&kek, KEK_SIZE);
   buf_initf(&db_key, AES_KEY_SIZE);
-  if (!prompt_password(&kek)) return error("Incorrect password"), 1;
+  if (!prompt_password(&kek)) {
+    error("Incorrect password");
+    return EXIT_INVALID_PASS;
+  }
   db_derive_key(&kek, &db_key);
   buf_free(&kek);
 
@@ -79,7 +88,7 @@ int cmd_bin_save(int argc, char *argv[]) {
     if (!access(buf_to_cstr(&bin_path))) {
       buf_t msg;
       buf_init(&msg, bin_path.size + 48);
-      sprintf((char *)msg.data, "Bin %s not found. Skipping.",
+      sprintf((char*)msg.data, "Bin %s not found. Skipping.",
               buf_to_cstr(&bin_path));
       error(buf_to_cstr(&msg));
       buf_free(&msg);
@@ -111,7 +120,7 @@ int cmd_bin_save(int argc, char *argv[]) {
           buf_to_cstr(&out_dbtpath));
 
   /* Write AES keys of all archived databases */
-  list_node_t *node = paths.entries.head;
+  list_node_t* node = paths.entries.head;
   do {
     /* Get bin path */
     if (!node) continue;
@@ -126,7 +135,7 @@ int cmd_bin_save(int argc, char *argv[]) {
     bin_init(&bin);
     buf_initf(&buf_meta, BIN_GLOBAL_HEADER_SIZE - BIN_MAGIC_SIZE);
     bin_meta(buf_to_cstr(&map_node.key), &buf_meta);
-    bin_meta_t meta = *(bin_meta_t *)buf_meta.data;
+    bin_meta_t meta = *(bin_meta_t*)buf_meta.data;
     buf_view(&id, meta.id, BIN_ID_SIZE);
 
     /* Save AES key to new db */
@@ -135,7 +144,7 @@ int cmd_bin_save(int argc, char *argv[]) {
     if (!db_readns(&db, &bin_id_ns, &id, &aes_key)) {
       buf_t msg;
       buf_init(&msg, map_node.value.size + 64);
-      sprintf((char *)msg.data, "Missing AES key for bin '%s'. Skipping.",
+      sprintf((char*)msg.data, "Missing AES key for bin '%s'. Skipping.",
               buf_to_cstr(&map_node.value));
       warn(buf_to_cstr(&msg));
       buf_free(&msg);
@@ -155,9 +164,9 @@ int cmd_bin_save(int argc, char *argv[]) {
   db_free(&out_db);
 
   /* Concat archive after db */
-  FILE *out = fopen(argv[0], "wb");
-  FILE *db_file = fopen(buf_to_cstr(&out_dbpath), "rb");
-  FILE *comp_file = fopen(buf_to_cstr(&comp_path), "rb");
+  FILE* out = fopen(argv[0], "wb");
+  FILE* db_file = fopen(buf_to_cstr(&out_dbpath), "rb");
+  FILE* comp_file = fopen(buf_to_cstr(&comp_path), "rb");
 
   fseek(db_file, 0, SEEK_END);
   size_t db_size = ftell(db_file);
@@ -197,5 +206,5 @@ int cmd_bin_save(int argc, char *argv[]) {
   buf_free(&db_path);
   buf_free(&db_key);
   map_free(&paths);
-  return 0;
+  return EXIT_OK;
 }

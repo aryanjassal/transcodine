@@ -12,32 +12,41 @@
 #include "utils/cli.h"
 #include "utils/io.h"
 
-static void flag_help();
-
-static flag_handler_t flags[] = {
-    {"--help", "Print usage guide", flag_help, true}};
-
-static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
-
-static void flag_help() {
-  print_help("transcodine file rm <bin_name> <virtual_path> [...options]",
-             flags, num_flags);
-}
-
-int cmd_file_rm(int argc, char *argv[]) {
+int handler_file_rm(int argc, char* argv[], int flagc, char* flagv[],
+                    const char* path, cmd_handler_t* self) {
   /* Flag handling */
-  switch (dispatch_flag(argc, argv, flags, num_flags)) {
-  case 1: return 0;
-  case -1: return flag_help(), 1;
-  case 0: break;
+  int fi;
+  for (fi = 0; fi < flagc; ++fi) {
+    const char* flag = flagv[fi];
+
+    /* Help flag */
+    int ai;
+    for (ai = 0; ai < flag_help.num_aliases; ++ai) {
+      if (strcmp(flag, flag_help.aliases[ai]) == 0) {
+        print_help(HELP_REQUESTED, path, self, NULL);
+        return EXIT_OK;
+      }
+    }
+
+    /* Fail on extra flags */
+    print_help(HELP_INVALID_FLAGS, path, self, flag);
+    return EXIT_INVALID_FLAG;
   }
-  if (argc < 2) return flag_help(), 1;
+
+  /* Invalid usage */
+  if (argc != 2) {
+    print_help(HELP_INVALID_USAGE, path, self, NULL);
+    return EXIT_USAGE;
+  }
 
   /* Authentication */
   buf_t kek, db_key;
   buf_initf(&kek, KEK_SIZE);
   buf_initf(&db_key, AES_KEY_SIZE);
-  if (!prompt_password(&kek)) return error("Incorrect password"), 1;
+  if (!prompt_password(&kek)) {
+    error("Incorrect password");
+    return EXIT_INVALID_PASS;
+  }
   db_derive_key(&kek, &db_key);
   buf_free(&kek);
 
@@ -58,7 +67,10 @@ int cmd_file_rm(int argc, char *argv[]) {
   buf_write(&bin_path, '/');
   buf_append(&bin_path, argv[0], strlen(argv[0]));
   buf_write(&bin_path, 0);
-  if (!access(buf_to_cstr(&bin_path))) return error("No such bin exists"), 1;
+  if (!access(buf_to_cstr(&bin_path))) {
+    error("A bin with that name does not exist");
+    return EXIT_INVALID_BIN;
+  }
 
   /* Bin loading */
   bin_t bin;
@@ -67,7 +79,7 @@ int cmd_file_rm(int argc, char *argv[]) {
   buf_initf(&aes_key, AES_KEY_SIZE);
   buf_initf(&buf_meta, BIN_GLOBAL_HEADER_SIZE - BIN_MAGIC_SIZE);
   bin_meta(buf_to_cstr(&bin_path), &buf_meta);
-  bin_meta_t meta = *(bin_meta_t *)buf_meta.data;
+  bin_meta_t meta = *(bin_meta_t*)buf_meta.data;
   buf_view(&id, meta.id, BIN_ID_SIZE);
 
   /* Read database */
@@ -82,7 +94,7 @@ int cmd_file_rm(int argc, char *argv[]) {
     db_free(&db);
     buf_free(&db_path);
     buf_free(&db_key);
-    return 1;
+    return EXIT_INVALID_DB_VALUE;
   }
   buf_free(&buf_meta);
   db_close(&db);
@@ -106,5 +118,5 @@ int cmd_file_rm(int argc, char *argv[]) {
   buf_free(&bin_tpath);
   buf_free(&fq_path);
   buf_free(&aes_key);
-  return 0;
+  return EXIT_OK;
 }

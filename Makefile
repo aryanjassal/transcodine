@@ -33,10 +33,10 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 
-# === Run the built program ===
-run: $(OUTPUT)
-	@echo "Running $(OUTPUT)..."
-	@./$(BUILD_DIR)/$(OUTPUT)
+# === Check the built program ===
+check: $(OUTPUT)
+	@echo "Checking $(OUTPUT)..."
+	@./$(BUILD_DIR)/$(OUTPUT) --help
 
 # === Clean all build artifacts ===
 clean:
@@ -46,3 +46,7 @@ clean:
 # === Formats all files in include dir and src dir ===
 format:
 	@clang-format -i $(SRC_DIR)/**/*.c -i $(INC_DIR)/**/*.h
+
+# === (CI) If linting fails, command fails ===
+lintcheck:
+	@clang-format $(SRC_DIR)/**/*.c $(INC_DIR)/**/*.h --dry-run -Werror

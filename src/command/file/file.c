@@ -1,8 +1,5 @@
 #include "command/file/file.h"
 
-#include <stdio.h>
-#include <string.h>
-
 #include "command/file/add.h"
 #include "command/file/cat.h"
 #include "command/file/cp.h"
@@ -12,60 +9,45 @@
 #include "command/file/rm.h"
 #include "utils/args.h"
 
-/**
- * Print the usage guidelines and a list of available commands.
- * @param argc
- * @param argv
- * @author Aryan Jassal
- */
-static int cmd_file_help(int argc, char *argv[]);
+cmd_handler_t cmd_file_add =
+    CMD_MKLEAF("add", "Copy a file from disk to a bin",
+               "<bin_name> <local_path> <virtual_path>", handler_file_add,
+               DEFAULT_FLAGS, N_DEFAULT_FLAGS);
 
-static cmd_handler_t commands[] = {
-    {"ls", "Recursively list all the files in a bin", cmd_file_ls},
-    {"add", "Adds a file from disk to a bin", cmd_file_add},
-    {"cat", "Reads the contents of a file in the bin", cmd_file_cat},
-    {"rm", "Removes a single file from a bin", cmd_file_rm},
-    {"get", "Copy a file from a bin to the computer", cmd_file_get},
-    {"cp", "Copy a file within the bin", cmd_file_cp},
-    {"mv", "Move a file within the bin", cmd_file_mv},
-    {"help", "Print usage guide", cmd_file_help}};
+cmd_handler_t cmd_file_cat =
+    CMD_MKLEAF("cat", "Prints out the contents of a file from a bin",
+               "<bin_name> <virtual_path>", handler_file_cat, DEFAULT_FLAGS,
+               N_DEFAULT_FLAGS);
 
-static const int num_commands = sizeof(commands) / sizeof(cmd_handler_t);
+cmd_handler_t cmd_file_get =
+    CMD_MKLEAF("get", "Copy a file from the bin to the disk",
+               "<bin_name> <virtual_path> <local_path>", handler_file_get,
+               DEFAULT_FLAGS, N_DEFAULT_FLAGS);
 
-static int cmd_file_help(int argc, char *argv[]) {
-  ignore_args(argc, argv);
-  printf("Usage: transcodine file <command> [...options]\n");
-  printf("Available commands:\n");
-  int i;
-  for (i = 0; i < num_commands; ++i) {
-    printf("  %-10s %s\n", commands[i].command, commands[i].description);
-  }
-  return 0;
-}
+cmd_handler_t cmd_file_ls =
+    CMD_MKLEAF("ls", "Recursively lists all files within a bin", "<bin_name>",
+               handler_file_ls, DEFAULT_FLAGS, N_DEFAULT_FLAGS);
 
-int cmd_file(int argc, char *argv[]) {
-  if (argc < 1) return cmd_file_help(0, NULL), 1;
+cmd_handler_t cmd_file_rm = CMD_MKLEAF(
+    "rm", "Delete the specified file from a bin", "<bin_name> <virtual_path>",
+    handler_file_rm, DEFAULT_FLAGS, N_DEFAULT_FLAGS);
 
-  int status = 0;
-  bool found = false;
-  int i;
-  for (i = 0; i < num_commands; ++i) {
-    if (strcmp(argv[0], commands[i].command) == 0) {
-      /**
-       * If we found the command, call the handler with the relevant arguments
-       * (not including the command, only the options).
-       */
-      found = true;
-      status = commands[i].handler(argc - 1, &argv[1]);
-      break;
-    }
-  }
+cmd_handler_t cmd_file_cp = CMD_MKLEAF(
+    "cp", "Copies a file within the bin", "<bin_name> <src_path> <dst_path>",
+    handler_file_cp, DEFAULT_FLAGS, N_DEFAULT_FLAGS);
 
-  if (!found) {
-    printf("Invalid command: %s\n\n", argv[1]);
-    cmd_file_help(0, NULL);
-    status = 1;
-  }
+cmd_handler_t cmd_file_mv = CMD_MKLEAF(
+    "mv", "Moves a file within the bin", "<bin_name> <src_path> <dst_path>",
+    handler_file_mv, DEFAULT_FLAGS, N_DEFAULT_FLAGS);
 
-  return status;
-}
+cmd_handler_t* cmd_file_commands[] = {
+    &cmd_file_add, &cmd_file_cat, &cmd_file_get, &cmd_file_ls,
+    &cmd_file_rm,  &cmd_file_cp,  &cmd_file_mv,
+};
+
+const int num_file_commands =
+    sizeof(cmd_file_commands) / sizeof(cmd_file_commands[0]);
+
+cmd_handler_t cmd_file =
+    CMD_MKGROUP("file", "Manage files within your bins", "<command>",
+                cmd_file_commands, num_file_commands);

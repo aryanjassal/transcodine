@@ -10,38 +10,46 @@
 #include "crypto/urandom.h"
 #include "db.h"
 #include "globals.h"
-#include "stddefs.h"
 #include "utils/args.h"
 #include "utils/cli.h"
 #include "utils/io.h"
 #include "utils/throw.h"
 
-static void flag_help();
-
-static flag_handler_t flags[] = {
-    {"--help", "Print usage guide", flag_help, true}};
-
-static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
-
-static void flag_help() {
-  print_help("transcodine bin create <bin_name> [...options]", flags,
-             num_flags);
-}
-
-int cmd_bin_create(int argc, char *argv[]) {
+int handler_bin_create(int argc, char* argv[], int flagc, char* flagv[],
+                       const char* path, cmd_handler_t* self) {
   /* Flag handling */
-  switch (dispatch_flag(argc, argv, flags, num_flags)) {
-  case 1: return 0;
-  case -1: return flag_help(), 1;
-  case 0: break;
+  int fi;
+  for (fi = 0; fi < flagc; ++fi) {
+    const char* flag = flagv[fi];
+
+    /* Help flag */
+    int ai;
+    for (ai = 0; ai < flag_help.num_aliases; ++ai) {
+      if (strcmp(flag, flag_help.aliases[ai]) == 0) {
+        print_help(HELP_REQUESTED, path, self, NULL);
+        return EXIT_OK;
+      }
+    }
+
+    /* Fail on extra flags */
+    print_help(HELP_INVALID_FLAGS, path, self, flag);
+    return EXIT_INVALID_FLAG;
   }
-  if (argc < 1) return flag_help(), 1;
+
+  /* Invalid usage */
+  if (argc != 1) {
+    print_help(HELP_INVALID_USAGE, path, self, NULL);
+    return EXIT_USAGE;
+  }
 
   /* Authentication */
   buf_t kek, db_key;
   buf_initf(&kek, KEK_SIZE);
   buf_initf(&db_key, AES_KEY_SIZE);
-  if (!prompt_password(&kek)) return error("Incorrect password"), 1;
+  if (!prompt_password(&kek)) {
+    error("Incorrect password");
+    return EXIT_INVALID_PASS;
+  }
   db_derive_key(&kek, &db_key);
   buf_free(&kek);
 
@@ -64,7 +72,8 @@ int cmd_bin_create(int argc, char *argv[]) {
   buf_concat(&bin_path, &bin_fname);
   buf_write(&bin_path, 0);
   if (access(buf_to_cstr(&bin_path))) {
-    return error("A bin with that name already exists"), 1;
+    error("A bin with that name already exists");
+    return EXIT_INVALID_BIN;
   }
 
   /* Bin creation */
@@ -104,5 +113,5 @@ int cmd_bin_create(int argc, char *argv[]) {
   buf_free(&db_key);
   buf_free(&aes_key);
   bin_free(&bin);
-  return 0;
+  return EXIT_OK;
 }

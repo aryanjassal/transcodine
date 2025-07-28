@@ -12,6 +12,6 @@
  * @param out The output hash
  * @author Aryan Jassal
  */
-void hmac_sha256_hash(const buf_t *key, const buf_t *data, buf_t *out);
+void hmac_sha256_hash(const buf_t* key, const buf_t* data, buf_t* out);
 
 #endif

@@ -16,7 +16,7 @@
  * @param buf
  * @author Aryan Jassal
  */
-void readline(const char *prompt, buf_t *buf);
+void readline(const char* prompt, buf_t* buf);
 
 /**
  * Reads the entire contents of a file into a buffer. Unlike reading into an
@@ -31,7 +31,7 @@ void readline(const char *prompt, buf_t *buf);
  * @param buf
  * @author Aryan Jassal
  */
-void readfile(const char *filepath, buf_t *buf);
+void readfile(const char* filepath, buf_t* buf);
 
 /**
  * Reads the contents of a file into a buffer. Unlike reading into an
@@ -48,7 +48,7 @@ void readfile(const char *filepath, buf_t *buf);
  * @param buf
  * @author Aryan Jassal
  */
-void readfilef(const char *filepath, buf_t *buf);
+void readfilef(const char* filepath, buf_t* buf);
 
 /**
  * Writes the entire contents of a buffer into a file.
@@ -56,7 +56,7 @@ void readfilef(const char *filepath, buf_t *buf);
  * @param buf
  * @author Aryan Jassal
  */
-void writefile(const char *filepath, buf_t *buf);
+void writefile(const char* filepath, buf_t* buf);
 
 /**
  * Copies file content from source file to a destination file.
@@ -64,14 +64,14 @@ void writefile(const char *filepath, buf_t *buf);
  * @param src_path
  * @author Aryan Jassal
  */
-void fcopy(const char *dst_path, const char *src_path);
+void fcopy(const char* dst_path, const char* src_path);
 
 /**
  * Returns the size of a file in bytes.
  * @param path
  * @author Aryan Jassal
  */
-size_t fsize(const char *path);
+size_t fsize(const char* path);
 
 /**
  * Checks if a file is readable or not. Basically checks if a file exists or
@@ -79,7 +79,7 @@ size_t fsize(const char *path);
  * @param path
  * @author Aryan Jassal
  */
-bool access(const char *path);
+bool access(const char* path);
 
 /**
  * Creates a filename for a temporary file in the /tmp directory on Unix
@@ -87,6 +87,6 @@ bool access(const char *path);
  * @param tmp_path The resulting local file path to the temporary file
  * @autor Aryan Jassal
  */
-void tempfile(buf_t *tmp_path);
+void tempfile(buf_t* tmp_path);
 
 #endif

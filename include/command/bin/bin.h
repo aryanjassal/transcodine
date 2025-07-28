@@ -2,16 +2,27 @@
 #define __COMMAND_BIN_BIN_H__
 
 /**
- * This subcommand groups all the operations involving bins.
+ * This command group provides management functions for all bins. The command
+ * tree looks like this.
  *
- * A catch-all for the bin subcommand. This will dispatch the arguments to the
- * relevant handlers as needed.
- *
- * @param argc
- * @param argv
- * @returns Exit code
- * @author Aryan Jassal
+ *  bin
+ *  ├── create
+ *  ├── rename
+ *  ├── ls
+ *  ├── rm
+ *  ├── export
+ *  └── import
  */
-int cmd_bin(int argc, char *argv[]);
+
+#include "utils/args.h"
+
+extern cmd_handler_t cmd_bin;
+extern cmd_handler_t cmd_bin_create;
+extern cmd_handler_t cmd_bin_rename;
+extern cmd_handler_t cmd_bin_ls;
+extern cmd_handler_t cmd_bin_rm;
+extern cmd_handler_t cmd_bin_export;
+extern cmd_handler_t cmd_bin_import;
+extern const int num_bin_commands;
 
 #endif

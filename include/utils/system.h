@@ -14,7 +14,7 @@
  * @param path The path to make the directory at.
  * @author Aryan Jassal
  */
-void newdir(const char *path);
+void newdir(const char* path);
 
 /**
  * Reads data from a file and writes it to some memory address. Will throw if
@@ -25,7 +25,7 @@ void newdir(const char *path);
  * @param file The file to read data from
  * @author Aryan Jassal
  */
-void freads(void *data, const size_t len, FILE *file);
+void freads(void* data, const size_t len, FILE* file);
 
 /**
  * Writes data from memory to a file. Will throw if the requested number of
@@ -36,6 +36,6 @@ void freads(void *data, const size_t len, FILE *file);
  * @param file The file to write data to
  * @author Aryan Jassal
  */
-void fwrites(const void *data, const size_t len, FILE *file);
+void fwrites(const void* data, const size_t len, FILE* file);
 
 #endif

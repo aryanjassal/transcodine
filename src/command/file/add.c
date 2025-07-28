@@ -14,44 +14,52 @@
 #include "utils/system.h"
 #include "utils/throw.h"
 
-static void flag_help();
-
-static flag_handler_t flags[] = {
-    {"--help", "Print usage guide", flag_help, true}};
-
-static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
-
-static void flag_help() {
-  print_help("transcodine file add <bin_name> <local_path> <virtual_path> "
-             "[...options]",
-             flags, num_flags);
-}
-
-int cmd_file_add(int argc, char *argv[]) {
+int handler_file_add(int argc, char* argv[], int flagc, char* flagv[],
+                     const char* path, cmd_handler_t* self) {
   /* Flag handling */
-  switch (dispatch_flag(argc, argv, flags, num_flags)) {
-  case 1: return 0;
-  case -1: return flag_help(), 1;
-  case 0: break;
+  int fi;
+  for (fi = 0; fi < flagc; ++fi) {
+    const char* flag = flagv[fi];
+
+    /* Help flag */
+    int ai;
+    for (ai = 0; ai < flag_help.num_aliases; ++ai) {
+      if (strcmp(flag, flag_help.aliases[ai]) == 0) {
+        print_help(HELP_REQUESTED, path, self, NULL);
+        return EXIT_OK;
+      }
+    }
+
+    /* Fail on extra flags */
+    print_help(HELP_INVALID_FLAGS, path, self, flag);
+    return EXIT_INVALID_FLAG;
   }
-  if (argc < 3) return flag_help(), 1;
+
+  /* Invalid usage */
+  if (argc != 3) {
+    print_help(HELP_INVALID_USAGE, path, self, NULL);
+    return EXIT_USAGE;
+  }
 
   /* Authentication */
   buf_t kek, db_key;
   buf_initf(&kek, KEK_SIZE);
   buf_initf(&db_key, AES_KEY_SIZE);
-  if (!prompt_password(&kek)) return error("Incorrect password"), 1;
+  if (!prompt_password(&kek)) {
+    error("Incorrect password");
+    return EXIT_INVALID_PASS;
+  }
   db_derive_key(&kek, &db_key);
   buf_free(&kek);
 
   /* Database setup */
-  buf_t path;
-  buf_init(&path, 32);
-  tempfile(&path);
+  buf_t db_path;
+  buf_init(&db_path, 32);
+  tempfile(&db_path);
   db_t db;
   db_init(&db);
   db_bootstrap(&db, &db_key, buf_to_cstr(&STATE_DB_PATH));
-  db_open(&db, &db_key, buf_to_cstr(&STATE_DB_PATH), buf_to_cstr(&path));
+  db_open(&db, &db_key, buf_to_cstr(&STATE_DB_PATH), buf_to_cstr(&db_path));
 
   /* Initialise file paths */
   buf_t bin_path;
@@ -61,7 +69,10 @@ int cmd_file_add(int argc, char *argv[]) {
   buf_write(&bin_path, '/');
   buf_append(&bin_path, argv[0], strlen(argv[0]));
   buf_write(&bin_path, 0);
-  if (!access(buf_to_cstr(&bin_path))) return error("No such bin exists"), 1;
+  if (!access(buf_to_cstr(&bin_path))) {
+    error("A bin with that name does not exist");
+    return EXIT_INVALID_BIN;
+  }
 
   /* Bin loading */
   bin_t bin;
@@ -70,7 +81,7 @@ int cmd_file_add(int argc, char *argv[]) {
   buf_initf(&aes_key, AES_KEY_SIZE);
   buf_initf(&buf_meta, BIN_GLOBAL_HEADER_SIZE - BIN_MAGIC_SIZE);
   bin_meta(buf_to_cstr(&bin_path), &buf_meta);
-  bin_meta_t meta = *(bin_meta_t *)buf_meta.data;
+  bin_meta_t meta = *(bin_meta_t*)buf_meta.data;
   buf_view(&id, meta.id, BIN_ID_SIZE);
 
   /* Read database */
@@ -83,14 +94,14 @@ int cmd_file_add(int argc, char *argv[]) {
     buf_free(&aes_key);
     db_close(&db);
     db_free(&db);
-    buf_free(&path);
+    buf_free(&db_path);
     buf_free(&db_key);
-    return 1;
+    return EXIT_INVALID_DB_VALUE;
   }
   buf_free(&buf_meta);
   db_close(&db);
   db_free(&db);
-  buf_free(&path);
+  buf_free(&db_path);
   buf_free(&db_key);
 
   /* Write a file to bin */
@@ -102,39 +113,27 @@ int cmd_file_add(int argc, char *argv[]) {
   buf_append(&fq_path, argv[2], strlen(argv[2]));
   bin_open(&bin, &aes_key, buf_to_cstr(&bin_path), buf_to_cstr(&bin_tpath));
 
-  FILE *file = fopen(argv[1], "rb");
+  FILE* file = fopen(argv[1], "rb");
   if (!file) throw("Failed to open file");
   fseek(file, 0, SEEK_END);
   size_t remaining = ftell(file);
   fseek(file, 0, SEEK_SET);
 
   /* Remove the file if it already exists */
+  int code = EXIT_OK;
   if (bin_find_file(&bin, &fq_path) != -1) {
     if (!bin_remove_file(&bin, &fq_path, &aes_key)) {
       error("Failed to delete existing file");
-      fclose(file);
-      bin_close(&bin);
-      bin_free(&bin);
-      buf_free(&bin_path);
-      buf_free(&bin_tpath);
-      buf_free(&data);
-      buf_free(&fq_path);
-      buf_free(&aes_key);
-      return 1;
+      code = EXIT_INVALID_FILE;
+      goto cleanup;
     }
   }
 
-  /* Attempt to open the file, or exit if it failed */
+  /* Attempt to open the file, or exit if it failed. The failure reason is 
+   * provided by `bin_open_file()`. */
   if (!bin_open_file(&bin, &fq_path)) {
-    fclose(file);
-    bin_close(&bin);
-    bin_free(&bin);
-    buf_free(&bin_path);
-    buf_free(&bin_tpath);
-    buf_free(&data);
-    buf_free(&fq_path);
-    buf_free(&aes_key);
-    return 1;
+    code = EXIT_INVALID_FILE;
+    goto cleanup;
   }
 
   while (remaining > 0) {
@@ -145,9 +144,10 @@ int cmd_file_add(int argc, char *argv[]) {
     remaining -= chunk;
   }
   bin_close_file(&bin, &aes_key);
-  fclose(file);
 
-  /* Cleanup */
+/* Cleanup */
+cleanup:
+  fclose(file);
   bin_close(&bin);
   bin_free(&bin);
   buf_free(&bin_path);
@@ -155,5 +155,5 @@ int cmd_file_add(int argc, char *argv[]) {
   buf_free(&data);
   buf_free(&fq_path);
   buf_free(&aes_key);
-  return 0;
+  return code;
 }

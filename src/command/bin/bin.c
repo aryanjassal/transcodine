@@ -1,72 +1,45 @@
 #include "command/bin/bin.h"
 
-#include <stdio.h>
-#include <string.h>
-
 #include "command/bin/create.h"
-#include "command/bin/load.h"
+#include "command/bin/export.h"
+#include "command/bin/import.h"
 #include "command/bin/ls.h"
 #include "command/bin/rename.h"
 #include "command/bin/rm.h"
-#include "command/bin/save.h"
 #include "utils/args.h"
 
-/**
- * Print the usage guidelines and a list of available commands.
- * @param argc
- * @param argv
- * @author Aryan Jassal
- */
-static int cmd_bin_help(int argc, char *argv[]);
+cmd_handler_t cmd_bin_create =
+    CMD_MKLEAF("create", "Create a new bin", "<bin_name>", handler_bin_create,
+               DEFAULT_FLAGS, N_DEFAULT_FLAGS);
 
-static cmd_handler_t commands[] = {
-    {"create", "Create a new bin", cmd_bin_create},
-    {"ls", "Recursively list all the files in a bin", cmd_bin_ls},
-    {"rm", "Removes a single file from the bin", cmd_bin_rm},
-    {"save", "Saves the specified bins into a file", cmd_bin_save},
-    {"load", "Loads all bins from a huffman file", cmd_bin_load},
-    {"rename", "Renames a bin", cmd_bin_rename},
-    {"help", "Print usage guide", cmd_bin_help}};
+cmd_handler_t cmd_bin_rename =
+    CMD_MKLEAF("rename", "Rename a bin", "<bin_name> <new_bin_name>",
+               handler_bin_rename, DEFAULT_FLAGS, N_DEFAULT_FLAGS);
 
-static const int num_commands = sizeof(commands) / sizeof(cmd_handler_t);
+cmd_handler_t cmd_bin_ls =
+    CMD_MKLEAF("ls", "List all available bins", NULL, handler_bin_ls,
+               DEFAULT_FLAGS, N_DEFAULT_FLAGS);
 
-static int cmd_bin_help(int argc, char *argv[]) {
-  ignore_args(argc, argv);
-  printf("Usage: transcodine bin <command> [...options]\n");
-  printf("Available commands:\n");
-  int i;
-  for (i = 0; i < num_commands; ++i) {
-    printf("  %-10s %s\n", commands[i].command, commands[i].description);
-  }
-  return 0;
-}
+cmd_handler_t cmd_bin_rm =
+    CMD_MKLEAF("rm", "Delete the specified bin", "<bin_name>", handler_bin_rm,
+               DEFAULT_FLAGS, N_DEFAULT_FLAGS);
 
-int cmd_bin(int argc, char *argv[]) {
-  if (argc < 1) {
-    cmd_bin_help(0, NULL);
-    return 1;
-  }
+cmd_handler_t cmd_bin_export =
+    CMD_MKLEAF("export", "Exports all specified bins into a shareable file",
+               "<output_path> <bin_names...>", handler_bin_export,
+               DEFAULT_FLAGS, N_DEFAULT_FLAGS);
 
-  int status = 0;
-  bool found = false;
-  int i;
-  for (i = 0; i < num_commands; ++i) {
-    if (strcmp(argv[0], commands[i].command) == 0) {
-      /**
-       * If we found the command, call the handler with the relevant arguments
-       * (not including the command, only the options).
-       */
-      found = true;
-      status = commands[i].handler(argc - 1, &argv[1]);
-      break;
-    }
-  }
+cmd_handler_t cmd_bin_import = CMD_MKLEAF(
+    "import", "Imports all bins from a shared file", "<import_file_name>",
+    handler_bin_import, DEFAULT_FLAGS, N_DEFAULT_FLAGS);
 
-  if (!found) {
-    printf("Invalid command: %s\n\n", argv[1]);
-    cmd_bin_help(0, NULL);
-    status = 1;
-  }
+cmd_handler_t* cmd_bin_commands[] = {
+    &cmd_bin_create, &cmd_bin_rename, &cmd_bin_ls,
+    &cmd_bin_rm,     &cmd_bin_export, &cmd_bin_import,
+};
 
-  return status;
-}
+const int num_bin_commands =
+    sizeof(cmd_bin_commands) / sizeof(cmd_bin_commands[0]);
+
+cmd_handler_t cmd_bin = CMD_MKGROUP("bin", "Manage your bins", "<command>",
+                                    cmd_bin_commands, num_bin_commands);

@@ -2,16 +2,29 @@
 #define __COMMAND_FILE_FILE_H__
 
 /**
- * This subcommand groups all the operations involving files stored within bins.
+ * This command group provides management functions for files in a bin. The
+ * command tree looks like this.
  *
- * A catch-all for the file subcommand. This will dispatch the arguments to the
- * relevant handlers as needed.
- *
- * @param argc
- * @param argv
- * @returns Exit code
- * @author Aryan Jassal
+ *  file
+ *  ├── add
+ *  ├── cat
+ *  ├── get
+ *  ├── ls
+ *  ├── rm
+ *  ├── cp
+ *  └── mv
  */
-int cmd_file(int argc, char *argv[]);
+
+#include "utils/args.h"
+
+extern cmd_handler_t cmd_file;
+extern cmd_handler_t cmd_file_add;
+extern cmd_handler_t cmd_file_cat;
+extern cmd_handler_t cmd_file_get;
+extern cmd_handler_t cmd_file_ls;
+extern cmd_handler_t cmd_file_rm;
+extern cmd_handler_t cmd_file_cp;
+extern cmd_handler_t cmd_file_mv;
+extern const int num_file_commands;
 
 #endif

@@ -14,7 +14,7 @@ static bool shell_sanitised_c(char c) {
          c == '_' || c == '/';
 }
 
-void newdir(const char *path) {
+void newdir(const char* path) {
   /* Sanitise input */
   size_t i, len = strlen(path);
   for (i = 0; i < len; i++) {
@@ -24,18 +24,18 @@ void newdir(const char *path) {
   /* Create directory */
   buf_t cmd;
   buf_init(&cmd, len + strlen("mkdir -p \"\""));
-  cmd.size = sprintf((char *)cmd.data, "mkdir -p \"%s\"", path);
-  if (system((char *)cmd.data) != 0) throw("Failed to create directory");
+  cmd.size = sprintf((char*)cmd.data, "mkdir -p \"%s\"", path);
+  if (system((char*)cmd.data) != 0) throw("Failed to create directory");
   buf_free(&cmd);
 }
 
-void freads(void *data, const size_t len, FILE *file) {
+void freads(void* data, const size_t len, FILE* file) {
   if (fread(data, sizeof(uint8_t), len, file) != len) {
     throw("Unexpected EOF");
   }
 }
 
-void fwrites(const void *data, const size_t len, FILE *file) {
+void fwrites(const void* data, const size_t len, FILE* file) {
   if (fwrite(data, sizeof(uint8_t), len, file) != len) {
     throw("Failed to write bytes");
   }

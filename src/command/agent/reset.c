@@ -14,7 +14,7 @@
 #include "utils/cli.h"
 #include "utils/io.h"
 
-static void update_password(buf_t *old_password, buf_t *new_password) {
+static void update_password(buf_t* old_password, buf_t* new_password) {
   /* Being here means old password was correct */
   auth_t auth;
   buf_initf(&auth.pass_salt, PASSWORD_SALT_SIZE);
@@ -64,12 +64,39 @@ static void update_password(buf_t *old_password, buf_t *new_password) {
   buf_free(&kek);
 }
 
-int cmd_agent_reset(int argc, char **argv) {
-  ignore_args(argc, argv);
+int handler_agent_reset(int argc, char* argv[], int flagc, char* flagv[],
+                        const char* path, cmd_handler_t* self) {
+  /* Flag handling */
+  int fi;
+  for (fi = 0; fi < flagc; ++fi) {
+    const char* flag = flagv[fi];
+
+    /* Help flag */
+    int ai;
+    for (ai = 0; ai < flag_help.num_aliases; ++ai) {
+      if (strcmp(flag, flag_help.aliases[ai]) == 0) {
+        print_help(HELP_REQUESTED, path, self, NULL);
+        return EXIT_OK;
+      }
+    }
+
+    /* Fail on extra flags */
+    print_help(HELP_INVALID_FLAGS, path, self, flag);
+    return EXIT_INVALID_FLAG;
+  }
+
+  /* Invalid usage */
+  if (argc > 0) {
+    print_help(HELP_INVALID_USAGE, path, self, NULL);
+    return EXIT_USAGE;
+  }
+
+  /* No arguments are expected, so we ignore this parameter */
+  (void)argv;
 
   if (!access(buf_to_cstr(&AUTH_DB_PATH))) {
     error("Create a new agent before attempting to reset password");
-    return 1;
+    return EXIT_INVALID_AGENT_STATE;
   }
 
   buf_t password_current;
@@ -79,7 +106,7 @@ int cmd_agent_reset(int argc, char **argv) {
   if (!check_password(&password_current, NULL)) {
     buf_free(&password_current);
     error("The password is incorrect");
-    return 1;
+    return EXIT_INVALID_PASS;
   }
 
   buf_t password_new_1, password_new_2;
@@ -94,7 +121,7 @@ int cmd_agent_reset(int argc, char **argv) {
     buf_free(&password_new_1);
     buf_free(&password_new_2);
     error("The passwords do not match");
-    return 1;
+    return EXIT_INVALID_PASS;
   }
 
   update_password(&password_current, &password_new_1);
@@ -102,5 +129,5 @@ int cmd_agent_reset(int argc, char **argv) {
   buf_free(&password_current);
   buf_free(&password_new_1);
   buf_free(&password_new_2);
-  return 0;
+  return EXIT_OK;
 }

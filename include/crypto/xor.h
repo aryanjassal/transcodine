@@ -11,7 +11,7 @@
  * @param output
  * @author Aryan Jassal
  */
-void xor_encrypt(const buf_t *data, const buf_t *key, buf_t *output);
+void xor_encrypt(const buf_t* data, const buf_t* key, buf_t* output);
 
 /**
  * Performs a simple diffused XOR decryption using a master key. Note that this
@@ -21,6 +21,6 @@ void xor_encrypt(const buf_t *data, const buf_t *key, buf_t *output);
  * @param output
  * @author Aryan Jassal
  */
-void xor_decrypt(const buf_t *data, const buf_t *key, buf_t *output);
+void xor_decrypt(const buf_t* data, const buf_t* key, buf_t* output);
 
 #endif

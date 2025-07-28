@@ -6,7 +6,7 @@
 #include "crypto/sha256.h"
 #include "stddefs.h"
 
-void hmac_sha256_hash(const buf_t *key, const buf_t *data, buf_t *out) {
+void hmac_sha256_hash(const buf_t* key, const buf_t* data, buf_t* out) {
   uint8_t k_ipad[SHA256_BLOCK_SIZE];
   uint8_t k_opad[SHA256_BLOCK_SIZE];
   uint8_t keybuf[SHA256_BLOCK_SIZE];

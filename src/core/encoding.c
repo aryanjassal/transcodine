@@ -18,7 +18,7 @@ int base64_char_value(char c) {
   return -1;
 }
 
-void base64_encode(const buf_t *data, buf_t *out) {
+void base64_encode(const buf_t* data, buf_t* out) {
   size_t i = 0;
   while (i < data->size) {
     size_t rem = data->size - i;
@@ -35,8 +35,8 @@ void base64_encode(const buf_t *data, buf_t *out) {
   buf_write(out, 0);
 }
 
-void base64_decode(const buf_t *data, buf_t *out) {
-  if (strlen((char *)data->data) % 4 != 0) throw("Invalid base64 string");
+void base64_decode(const buf_t* data, buf_t* out) {
+  if (strlen((char*)data->data) % 4 != 0) throw("Invalid base64 string");
 
   size_t i = 0;
   while (i < data->size - 1) {

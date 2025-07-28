@@ -4,7 +4,7 @@
 #include "stddefs.h"
 
 typedef struct {
-  uint8_t *data;
+  uint8_t* data;
   size_t size;
   size_t capacity;
   bool fixed;
@@ -17,7 +17,7 @@ typedef struct {
  * @param initial_capacity
  * @author Aryan Jassal
  */
-void buf_init(buf_t *buf, size_t initial_capacity);
+void buf_init(buf_t* buf, size_t initial_capacity);
 
 /**
  * Initialise a fixed buffer with a given capacity. This will run malloc under
@@ -26,7 +26,7 @@ void buf_init(buf_t *buf, size_t initial_capacity);
  * @param initial_capacity
  * @author Aryan Jassal
  */
-void buf_initf(buf_t *buf, size_t initial_capacity);
+void buf_initf(buf_t* buf, size_t initial_capacity);
 
 /**
  * Resize a buffer to the given capacity. This will run malloc under the hood to
@@ -36,7 +36,7 @@ void buf_initf(buf_t *buf, size_t initial_capacity);
  * @param new_capacity
  * @author Aryan Jassal
  */
-void buf_resize(buf_t *buf, size_t new_capacity);
+void buf_resize(buf_t* buf, size_t new_capacity);
 
 /**
  * Copies the data from source to destination. Note that this is not an exact
@@ -54,7 +54,7 @@ void buf_resize(buf_t *buf, size_t new_capacity);
  * @param src The source buffer
  * @author Aryan Jassal
  */
-void buf_copy(buf_t *dst, const buf_t *src);
+void buf_copy(buf_t* dst, const buf_t* src);
 
 /**
  * Creates a wrapper buffer around some underlying memory. Any data modified by
@@ -72,7 +72,7 @@ void buf_copy(buf_t *dst, const buf_t *src);
  * @param len The size of the data to wrap
  * @author Aryan Jassal
  */
-void buf_view(buf_t *buf, void *data, const size_t len);
+void buf_view(buf_t* buf, void* data, const size_t len);
 
 /**
  * Copies data from a memory source like a buffer. Note that it does not share
@@ -83,7 +83,7 @@ void buf_view(buf_t *buf, void *data, const size_t len);
  * @param len The length of the data
  * @author Aryan Jassal
  */
-void buf_from(buf_t *buf, const void *data, const size_t len);
+void buf_from(buf_t* buf, const void* data, const size_t len);
 
 /**
  * Appends some data to a buffer. If the buffer can't fit in the new data, it
@@ -94,7 +94,7 @@ void buf_from(buf_t *buf, const void *data, const size_t len);
  * @param len The size of data to be appended
  * @author Aryan Jassal
  */
-void buf_append(buf_t *buf, const void *data, const size_t len);
+void buf_append(buf_t* buf, const void* data, const size_t len);
 
 /**
  * Concats a buffer into a main buffer, growing it as necessary. The source
@@ -103,7 +103,7 @@ void buf_append(buf_t *buf, const void *data, const size_t len);
  * @param src The source buffer which will be appended to the end
  * @author Aryan Jassal
  */
-void buf_concat(buf_t *buf, const buf_t *src);
+void buf_concat(buf_t* buf, const buf_t* src);
 
 /**
  * Writes a single byte to the buffer instead of writing data from a pointer
@@ -112,7 +112,7 @@ void buf_concat(buf_t *buf, const buf_t *src);
  * @param data The data to write to the buffer
  * @author Aryan Jassal
  */
-void buf_write(buf_t *buf, const uint8_t data);
+void buf_write(buf_t* buf, const uint8_t data);
 
 /**
  * Compares if the data contained by two buffers is equivalent. Note that the
@@ -123,7 +123,7 @@ void buf_write(buf_t *buf, const uint8_t data);
  * @returns True if buffers are equal, false otherwise
  * @author Aryan Jassal
  */
-bool buf_equal(const buf_t *a, const buf_t *b);
+bool buf_equal(const buf_t* a, const buf_t* b);
 
 /**
  * Sets the buffer size to zero. Does not remove the stored data, so it can
@@ -131,7 +131,7 @@ bool buf_equal(const buf_t *a, const buf_t *b);
  * @param buf An initialised buffer
  * @author Aryan Jassal
  */
-void buf_clear(buf_t *buf);
+void buf_clear(buf_t* buf);
 
 /**
  * Frees the memory used by the buffer. The buffer object should no longer be
@@ -139,7 +139,7 @@ void buf_clear(buf_t *buf);
  * @param buf An initialised buffer
  * @author Aryan Jassal
  */
-void buf_free(buf_t *buf);
+void buf_free(buf_t* buf);
 
 /**
  * Converts a buffer to a char pointer. This utility function can be used to
@@ -153,7 +153,7 @@ void buf_free(buf_t *buf);
  * @returns A char pointer to the beginning of the buffer data
  * @author Aryan Jassal
  */
-char *buf_to_cstr(const buf_t *buf);
+char* buf_to_cstr(const buf_t* buf);
 
 /**
  * Prints the number of buffers which have been initialised but not freed.

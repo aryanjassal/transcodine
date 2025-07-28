@@ -14,8 +14,8 @@ static void write_u32_be(uint8_t out[4], uint32_t val) {
   out[3] = (uint8_t)(val);
 }
 
-void pbkdf2_hmac_sha256_hash(const buf_t *data, const buf_t *salt,
-                             const size_t iterations, buf_t *out,
+void pbkdf2_hmac_sha256_hash(const buf_t* data, const buf_t* salt,
+                             const size_t iterations, buf_t* out,
                              const size_t dklen) {
   uint32_t block_count = (dklen + SHA256_HASH_SIZE - 1) / SHA256_HASH_SIZE;
   uint8_t U[SHA256_HASH_SIZE];

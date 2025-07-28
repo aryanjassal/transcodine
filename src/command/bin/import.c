@@ -1,4 +1,4 @@
-#include "command/bin/load.h"
+#include "command/bin/import.h"
 
 #include <string.h>
 
@@ -15,22 +15,11 @@
 #include "utils/io.h"
 #include "utils/system.h"
 
-static void flag_help();
-
-static flag_handler_t flags[] = {
-    {"--help", "Print usage guide", flag_help, true}};
-
-static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
-
-static void flag_help() {
-  print_help("transcodine bin load <file_name> [...options]", flags, num_flags);
-}
-
-static void split_file(const char *out_path, const char *db_path,
-                       const char *comp_path) {
-  FILE *out_file = fopen(out_path, "rb");
-  FILE *db_file = fopen(db_path, "wb+");
-  FILE *comp_file = fopen(comp_path, "wb+");
+static void split_file(const char* out_path, const char* db_path,
+                       const char* comp_path) {
+  FILE* out_file = fopen(out_path, "rb");
+  FILE* db_file = fopen(db_path, "wb+");
+  FILE* comp_file = fopen(comp_path, "wb+");
   size_t db_size;
   freads(&db_size, sizeof(size_t), out_file);
 
@@ -54,20 +43,41 @@ static void split_file(const char *out_path, const char *db_path,
   debug("Split bundled database and compressed bins");
 }
 
-int cmd_bin_load(int argc, char *argv[]) {
+int handler_bin_import(int argc, char* argv[], int flagc, char* flagv[],
+                       const char* path, cmd_handler_t* self) {
   /* Flag handling */
-  switch (dispatch_flag(argc, argv, flags, num_flags)) {
-  case 1: return 0;
-  case -1: return flag_help(), 1;
-  case 0: break;
+  int fi;
+  for (fi = 0; fi < flagc; ++fi) {
+    const char* flag = flagv[fi];
+
+    /* Help flag */
+    int ai;
+    for (ai = 0; ai < flag_help.num_aliases; ++ai) {
+      if (strcmp(flag, flag_help.aliases[ai]) == 0) {
+        print_help(HELP_REQUESTED, path, self, NULL);
+        return EXIT_OK;
+      }
+    }
+
+    /* Fail on extra flags */
+    print_help(HELP_INVALID_FLAGS, path, self, flag);
+    return EXIT_INVALID_FLAG;
   }
-  if (argc < 1) return flag_help(), 1;
+
+  /* Invalid usage */
+  if (argc != 1) {
+    print_help(HELP_INVALID_USAGE, path, self, NULL);
+    return EXIT_USAGE;
+  }
 
   /* Authentication */
   buf_t kek, db_key;
   buf_initf(&kek, KEK_SIZE);
   buf_initf(&db_key, AES_KEY_SIZE);
-  if (!prompt_password(&kek)) return error("Incorrect password"), 1;
+  if (!prompt_password(&kek)) {
+    error("Incorrect password");
+    return EXIT_INVALID_PASS;
+  }
   db_derive_key(&kek, &db_key);
   buf_free(&kek);
 
@@ -125,13 +135,13 @@ int cmd_bin_load(int argc, char *argv[]) {
     db_free(&db);
     buf_free(&db_path);
     buf_free(&db_key);
-    return 1;
+    return EXIT_INVALID_DATA;
   }
 
   /* Import each bin */
   size_t offset = 0;
   while (offset < paths.size) {
-    char *name = (char *)(paths.data + offset);
+    char* name = (char*)(paths.data + offset);
     offset += strlen(name) + 1;
 
     /* Check for name collisions */
@@ -162,9 +172,9 @@ int cmd_bin_load(int argc, char *argv[]) {
 
       buf_t msg;
       buf_init(&msg, bin_newname.size + 64);
-      sprintf((char *)msg.data, "Attempting new bin name '%s'",
+      sprintf((char*)msg.data, "Attempting new bin name '%s'",
               buf_to_cstr(&bin_newname));
-      msg.size = strlen((char *)msg.data) + 1;
+      msg.size = strlen((char*)msg.data) + 1;
       debug(buf_to_cstr(&msg));
       buf_free(&msg);
     }
@@ -181,17 +191,16 @@ int cmd_bin_load(int argc, char *argv[]) {
     buf_concat(&bin_path, &bin_fname);
     buf_write(&bin_path, 0);
     bin_meta(buf_to_cstr(&bin_path), &buf_meta);
-    bin_meta_t meta = *(bin_meta_t *)buf_meta.data;
+    bin_meta_t meta = *(bin_meta_t*)buf_meta.data;
     buf_view(&id, meta.id, BIN_ID_SIZE);
 
     /* Check for id collisions */
     if (db_hasns(&db, &bin_id_ns, &id)) {
       buf_t msg;
       buf_init(&msg, bin_fname.size + 64);
-      sprintf((char *)msg.data,
-              "A bin with id '%.*s' already exists. Skipping.", (int)id.size,
-              id.data);
-      msg.size = strlen((char *)msg.data) + 1;
+      sprintf((char*)msg.data, "A bin with id '%.*s' already exists. Skipping.",
+              (int)id.size, id.data);
+      msg.size = strlen((char*)msg.data) + 1;
       warn(buf_to_cstr(&msg));
       buf_free(&msg);
 
@@ -208,10 +217,10 @@ int cmd_bin_load(int argc, char *argv[]) {
     if (i > 0) {
       buf_t msg;
       buf_init(&msg, bin_fname.size + 64);
-      sprintf((char *)msg.data,
+      sprintf((char*)msg.data,
               "A bin with name '%s' already exists. Using '%s'.", name,
               buf_to_cstr(&bin_newname));
-      msg.size = strlen((char *)msg.data) + 1;
+      msg.size = strlen((char*)msg.data) + 1;
       warn(buf_to_cstr(&msg));
       buf_free(&msg);
     }
@@ -222,10 +231,10 @@ int cmd_bin_load(int argc, char *argv[]) {
     if (!db_read(&in_db, &id, &aes_key)) {
       buf_t msg;
       buf_init(&msg, bin_fname.size + 64);
-      sprintf((char *)msg.data,
+      sprintf((char*)msg.data,
               "Encryption key for bin '%s' not found. Skipping.",
               buf_to_cstr(&bin_fname));
-      msg.size = strlen((char *)msg.data) + 1;
+      msg.size = strlen((char*)msg.data) + 1;
       warn(buf_to_cstr(&msg));
       buf_free(&msg);
       continue;
@@ -273,5 +282,5 @@ int cmd_bin_load(int argc, char *argv[]) {
   db_free(&db);
   buf_free(&db_path);
   buf_free(&db_key);
-  return 0;
+  return EXIT_OK;
 }

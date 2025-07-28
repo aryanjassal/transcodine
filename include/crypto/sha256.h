@@ -11,7 +11,6 @@
 
 #include "constants.h"
 #include "core/buffer.h"
-#include "typedefs.h"
 
 typedef struct {
   uint64_t length;
@@ -28,7 +27,7 @@ typedef struct {
  * @param ctx Context (mutated in-place)
  * @author Aryan Jassal
  */
-void sha256_init(sha256_ctx_t *ctx);
+void sha256_init(sha256_ctx_t* ctx);
 
 /**
  * Adds data to the SHA256 context. The data will be processed and the context
@@ -43,7 +42,7 @@ void sha256_init(sha256_ctx_t *ctx);
  * @param buffer An initialised buffer containing the data
  * @author Aryan Jassal
  */
-void sha256_update(sha256_ctx_t *ctx, const buf_t *buffer);
+void sha256_update(sha256_ctx_t* ctx, const buf_t* buffer);
 
 /**
  * Performs the final calculations to compute the hash and returns the digest
@@ -53,7 +52,7 @@ void sha256_update(sha256_ctx_t *ctx, const buf_t *buffer);
  * @param digest The final 32-byte (256-bit) hash
  * @author Aryan Jassal
  */
-void sha256_finalize(sha256_ctx_t *ctx, sha256_hash_t *digest);
+void sha256_finalize(sha256_ctx_t* ctx, sha256_hash_t* digest);
 
 /**
  * Combines the initialize, update, and finalize steps into a single call in
@@ -62,6 +61,6 @@ void sha256_finalize(sha256_ctx_t *ctx, sha256_hash_t *digest);
  * @param digest The final 32-byte (256-bit) hash
  * @author Aryan Jassal
  */
-void sha256_hash(const buf_t *buffer, sha256_hash_t *digest);
+void sha256_hash(const buf_t* buffer, sha256_hash_t* digest);
 
 #endif

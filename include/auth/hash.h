@@ -10,6 +10,6 @@
  * @param hash The output hash
  * @author Aryan Jassal
  */
-void hash_password(const buf_t *password, const buf_t *salt, buf_t *hash);
+void hash_password(const buf_t* password, const buf_t* salt, buf_t* hash);
 
 #endif

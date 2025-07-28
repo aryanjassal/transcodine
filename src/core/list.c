@@ -6,16 +6,16 @@
 #include "utils/cli.h"
 #include "utils/throw.h"
 
-void list_init(list_t *list) {
+void list_init(list_t* list) {
   list->head = NULL;
   list->tail = NULL;
   list->size = 0;
 }
 
-void list_clear(list_t *list) {
-  list_node_t *current = list->head;
+void list_clear(list_t* list) {
+  list_node_t* current = list->head;
   while (current) {
-    list_node_t *next = current->next;
+    list_node_t* next = current->next;
     buf_free(&current->data);
     free(current);
     current = next;
@@ -26,8 +26,8 @@ void list_clear(list_t *list) {
   list->size = 0;
 }
 
-void list_push_back(list_t *list, const buf_t *data) {
-  list_node_t *node = malloc(sizeof(list_node_t));
+void list_push_back(list_t* list, const buf_t* data) {
+  list_node_t* node = malloc(sizeof(list_node_t));
   if (!node) throw("Malloc failed");
 
   buf_init(&node->data, data->size);
@@ -45,7 +45,7 @@ void list_push_back(list_t *list, const buf_t *data) {
   list->size++;
 }
 
-void list_remove(list_t *list, list_node_t *node) {
+void list_remove(list_t* list, list_node_t* node) {
   if (!node) return warn("Node is NULL, cannot remove");
 
   if (node->prev) {
@@ -65,13 +65,13 @@ void list_remove(list_t *list, list_node_t *node) {
   list->size--;
 }
 
-void list_at(const list_t *list, const size_t index, list_node_t **out_node) {
+void list_at(const list_t* list, const size_t index, list_node_t** out_node) {
   if (!out_node || index >= list->size) {
     *out_node = NULL;
     return;
   }
 
-  list_node_t *current;
+  list_node_t* current;
   size_t i;
   if (index < list->size / 2) {
     current = list->head;

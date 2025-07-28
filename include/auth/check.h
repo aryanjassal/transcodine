@@ -11,7 +11,7 @@
  * @returns True if the password was correct, false otherwise
  * @author Aryan Jassal
  */
-bool prompt_password(buf_t *kek);
+bool prompt_password(buf_t* kek);
 
 /**
  * Checks if the password is correct against the stored password.
@@ -20,20 +20,20 @@ bool prompt_password(buf_t *kek);
  * @returns True if password is correct, false otherwise.
  * @author Aryan Jassal
  */
-bool check_password(buf_t *password, buf_t *kek);
+bool check_password(buf_t* password, buf_t* kek);
 
 /**
  * Writes the auth details stored by the auth_t struct.
  * @param auth
  * @author Aryan Jassal
  */
-void write_auth(const auth_t *auth);
+void write_auth(const auth_t* auth);
 
 /**
  * Reads the auth details stored on disk into the auth_t struct.
  * @param auth
  * @author Aryan Jassal
  */
-void read_auth(auth_t *auth);
+void read_auth(auth_t* auth);
 
 #endif

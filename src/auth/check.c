@@ -12,7 +12,7 @@
 #include "utils/io.h"
 #include "utils/throw.h"
 
-bool prompt_password(buf_t *kek) {
+bool prompt_password(buf_t* kek) {
   if (!access(buf_to_cstr(&AUTH_DB_PATH))) throw("Agent not setup");
   buf_t password;
   buf_init(&password, 32);
@@ -22,7 +22,7 @@ bool prompt_password(buf_t *kek) {
   return result;
 }
 
-bool check_password(buf_t *password, buf_t *kek) {
+bool check_password(buf_t* password, buf_t* kek) {
   /* Retrieve stored password details */
   auth_t stored;
   buf_initf(&stored.pass_salt, PASSWORD_SALT_SIZE);
@@ -56,8 +56,8 @@ bool check_password(buf_t *password, buf_t *kek) {
   return result;
 }
 
-void write_auth(const auth_t *auth) {
-  FILE *file = fopen(buf_to_cstr(&AUTH_DB_PATH), "wb");
+void write_auth(const auth_t* auth) {
+  FILE* file = fopen(buf_to_cstr(&AUTH_DB_PATH), "wb");
   if (!file) throw("Failed to write to file");
   fwrite(auth->pass_salt.data, sizeof(uint8_t), auth->pass_salt.capacity, file);
   fwrite(auth->pass_hash.data, sizeof(uint8_t), auth->pass_hash.capacity, file);
@@ -66,8 +66,8 @@ void write_auth(const auth_t *auth) {
   fclose(file);
 }
 
-void read_auth(auth_t *auth) {
-  FILE *file = fopen(buf_to_cstr(&AUTH_DB_PATH), "rb");
+void read_auth(auth_t* auth) {
+  FILE* file = fopen(buf_to_cstr(&AUTH_DB_PATH), "rb");
   if (!file) throw("Agent not setup");
 
   buf_clear(&auth->pass_salt);

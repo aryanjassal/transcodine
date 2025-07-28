@@ -88,7 +88,7 @@ new agent. This will setup the configuration directory (default is
 `~/.transcodine` but can be changed via the `TRANSCODINE_CONFIG_PATH`
 environment variable) which will store all the files tracked by the program. The
 setup will require you enter a new password and remember it, otherwise the data
-in the agent is unrecoverable! You can reset the password using
+in the agent will become unrecoverable! You can reset the password using
 `transcodine agent reset`, but only if you still remember your old password.
 
 ### Bin
@@ -99,11 +99,11 @@ individual state. Note that you should not directly tamper with the bins, as
 even things like their names and locations are sensitive to changes, and leave
 the bin in an unrecoverable state.
 
-FOr example, the `transcodine bin create` command will add an entry in an
+For example, the `transcodine bin create` command will add an entry in an
 encrypted database pointing to the file name. These names are used to show
 tracked bins in `transcodine bin ls`. Due to this reason, if you manually add a
 bin to the configuration directory, it will be ignored. That doesn't mean you
-can do tha, though. It is not recommended to manually interact with the
+can do that, though. It is not recommended to manually interact with the
 configuration directory. If you accidentally rename a bin, then the program will
 exhibit undefined behaviour, and tampering with the encrypted contents will make
 the file and all their contents unrecoverable!
@@ -116,7 +116,7 @@ encrypt the bins) produces high-entropy result, meaning each bit is equally
 likely to be present. This reduces the efficacy of Huffman compression.
 
 To unlock the bins, you also need a secret key per bin. This is usually stored
-in your internal database, so nobody can view the data in the archive -- not
+in your internal database, so nobody can view the data in the archive —— not
 even you! To work around this, an encrypted database containing the relevant
 keys is stitched with the archive, and a secret key is created at the time of
 archive creation. This secret key will unlock the database and allow anyone to
@@ -259,11 +259,3 @@ entire contents of a compressed archive to a malicious actor.
   memory impact, however that makes it weaker to GPU cracking. Thus, for hashes
   which can be easily accessed by bad actors, using stronger hashing algorithms
   like argon2 is recommended for production environments.
-
-## Credits
-
-This project can be found on
-[GitHub](https://github.com/aryanjassal/transcodine).
-
-Refer to [Polykey](https://github.com/MatrixAI/Polykey) for a complete and
-production-ready implementation of this concept.

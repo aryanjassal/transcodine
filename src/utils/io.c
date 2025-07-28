@@ -10,7 +10,7 @@
 #include "utils/system.h"
 #include "utils/throw.h"
 
-void readline(const char *prompt, buf_t *buf) {
+void readline(const char* prompt, buf_t* buf) {
   if (!prompt || !buf) throw("Arguments cannot be NULL");
   if (!buf->data) throw("Uninitialised buffer");
 
@@ -35,9 +35,9 @@ void readline(const char *prompt, buf_t *buf) {
   }
 }
 
-void readfile(const char *filepath, buf_t *buf) {
+void readfile(const char* filepath, buf_t* buf) {
   uint8_t chunk[READFILE_CHUNK];
-  FILE *file = fopen(filepath, "rb");
+  FILE* file = fopen(filepath, "rb");
   if (!file) throw("Failed to open file");
   size_t n;
   while ((n = fread(chunk, sizeof(uint8_t), sizeof(chunk), file)) > 0) {
@@ -46,9 +46,9 @@ void readfile(const char *filepath, buf_t *buf) {
   fclose(file);
 }
 
-void readfilef(const char *filepath, buf_t *buf) {
+void readfilef(const char* filepath, buf_t* buf) {
   uint8_t chunk[READFILE_CHUNK];
-  FILE *file = fopen(filepath, "rb");
+  FILE* file = fopen(filepath, "rb");
   if (!file) throw("Failed to open file");
   size_t remaining = buf->capacity - buf->size;
   while (remaining > 0) {
@@ -61,25 +61,25 @@ void readfilef(const char *filepath, buf_t *buf) {
   fclose(file);
 }
 
-void writefile(const char *filepath, buf_t *buf) {
-  FILE *file = fopen(filepath, "wb");
+void writefile(const char* filepath, buf_t* buf) {
+  FILE* file = fopen(filepath, "wb");
   if (!file) throw("Failed to write to file");
   fwrites(buf->data, buf->size, file);
   fclose(file);
 }
 
-bool access(const char *filepath) {
+bool access(const char* filepath) {
   if (!filepath) return false;
-  FILE *file = fopen(filepath, "rb");
+  FILE* file = fopen(filepath, "rb");
   if (!file) return false;
   fclose(file);
   return true;
 }
 
-void fcopy(const char *dst_path, const char *src_path) {
-  FILE *src = fopen(src_path, "rb");
+void fcopy(const char* dst_path, const char* src_path) {
+  FILE* src = fopen(src_path, "rb");
   if (!src) throw("Failed to open source file");
-  FILE *dst = fopen(dst_path, "wb");
+  FILE* dst = fopen(dst_path, "wb");
   if (!dst) throw("Failed to open destination file");
 
   uint8_t chunk[READFILE_CHUNK];
@@ -96,8 +96,8 @@ void fcopy(const char *dst_path, const char *src_path) {
   fclose(dst);
 }
 
-size_t fsize(const char *path) {
-  FILE *f = fopen(path, "rb");
+size_t fsize(const char* path) {
+  FILE* f = fopen(path, "rb");
   if (!f) throw("Failed to open file");
   fseek(f, 0, SEEK_END);
   size_t size = ftell(f);
@@ -105,8 +105,8 @@ size_t fsize(const char *path) {
   return size;
 }
 
-void tempfile(buf_t *tmp_path) {
-  const char *path_prefix = "/tmp/";
+void tempfile(buf_t* tmp_path) {
+  const char* path_prefix = "/tmp/";
   buf_t rand;
   buf_init(&rand, 16);
   urandom_ascii(&rand, 16);

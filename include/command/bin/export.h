@@ -1,10 +1,10 @@
-#ifndef __COMMAND_BIN_RENAME_H__
-#define __COMMAND_BIN_RENAME_H__
+#ifndef __COMMAND_BIN_EXPORT_H__
+#define __COMMAND_BIN_EXPORT_H__
 
 #include "utils/args.h"
 
 /**
- * Renames a bin
+ * Exports the specified bins to a single file.
  * @param argc
  * @param argv
  * @param flagc
@@ -14,7 +14,7 @@
  * @returns Exit code
  * @author Aryan Jassal
  */
-int handler_bin_rename(int argc, char* argv[], int flagc, char* flagv[],
+int handler_bin_export(int argc, char* argv[], int flagc, char* flagv[],
                        const char* path, cmd_handler_t* self);
 
 #endif

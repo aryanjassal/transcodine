@@ -13,7 +13,7 @@
  * @returns False if the file couldn't be opened, true otherwise
  * @author Aryan Jassal
  */
-bool urandom(buf_t *buffer, const size_t len);
+bool urandom(buf_t* buffer, const size_t len);
 
 /**
  * Reads random bytes from /dev/urandom. Returns false if the file wasn't
@@ -25,6 +25,6 @@ bool urandom(buf_t *buffer, const size_t len);
  * @returns False if the file couldn't be opened, true otherwise
  * @author Aryan Jassal
  */
-bool urandom_ascii(buf_t *buf, const size_t len);
+bool urandom_ascii(buf_t* buf, const size_t len);
 
 #endif

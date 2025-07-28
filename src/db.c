@@ -15,8 +15,6 @@
 #include "utils/system.h"
 #include "utils/throw.h"
 
-
-
 /**
  * Rotates the IV for the database and re-encrypts it with the new IV. This is
  * important to run after modifying the data as reusing an old IV for different
@@ -25,7 +23,7 @@
  * @param db_key
  * @author Aryan Jassal
  */
-static void db_rotate_iv(db_t *db, const buf_t *db_key) {
+static void db_rotate_iv(db_t* db, const buf_t* db_key) {
   if (!db || !db_key) throw("Arguments cannot be NULL");
   if (!db->working_path) throw("Database must be open");
 
@@ -34,8 +32,8 @@ static void db_rotate_iv(db_t *db, const buf_t *db_key) {
   buf_init(&path, 32);
   tempfile(&path);
 
-  FILE *in = fopen(db->working_path, "rb");
-  FILE *out = fopen(buf_to_cstr(&path), "wb+");
+  FILE* in = fopen(db->working_path, "rb");
+  FILE* out = fopen(buf_to_cstr(&path), "wb+");
   if (!in || !out) throw("Failed to open database for IV rotation");
 
   /* Calculate the total file size to be encrypted */
@@ -95,11 +93,11 @@ static void db_rotate_iv(db_t *db, const buf_t *db_key) {
  * @return -1 if the key wasn't found, file offset otherwise
  * @author Aryan Jassal
  */
-static int64_t db_find_entry(const db_t *db, const buf_t *key) {
+static int64_t db_find_entry(const db_t* db, const buf_t* key) {
   if (!db || !key) throw("Arguments cannot be NULL");
   if (!db->working_path) throw("Database must be open");
 
-  FILE *db_file = fopen(db->working_path, "rb");
+  FILE* db_file = fopen(db->working_path, "rb");
   if (!db_file) throw("Failed to open working database");
 
   int64_t location = -1;
@@ -128,7 +126,7 @@ static int64_t db_find_entry(const db_t *db, const buf_t *key) {
     buf_t header;
     buf_initf(&header, sizeof(size_t) * 2);
     iostream_read(&ios, sizeof(size_t) * 2, &header);
-    db_entry_t entry = *(db_entry_t *)header.data;
+    db_entry_t entry = *(db_entry_t*)header.data;
 
     /* Read key */
     buf_t read_key;
@@ -163,13 +161,13 @@ static int64_t db_find_entry(const db_t *db, const buf_t *key) {
  * @param ns_key The resulting namespaced key
  * @author Aryan Jassal
  */
-static void db_ns_key(const buf_t *key, const buf_t *namespace, buf_t *ns_key) {
+static void db_ns_key(const buf_t* key, const buf_t* namespace, buf_t* ns_key) {
   buf_copy(ns_key, namespace);
   buf_write(ns_key, ':');
   buf_concat(ns_key, key);
 }
 
-void db_derive_key(const buf_t *kek, buf_t *db_key) {
+void db_derive_key(const buf_t* kek, buf_t* db_key) {
   buf_t salt;
   buf_init(&salt, 16);
   buf_append(&salt, "aes-key-edb", strlen("aes-key-edb"));
@@ -177,23 +175,23 @@ void db_derive_key(const buf_t *kek, buf_t *db_key) {
   buf_free(&salt);
 }
 
-void db_init(db_t *db) {
+void db_init(db_t* db) {
   buf_initf(&db->aes_iv, AES_IV_SIZE);
   db->encrypted_path = NULL;
   db->working_path = NULL;
 }
 
-void db_free(db_t *db) {
+void db_free(db_t* db) {
   buf_free(&db->aes_iv);
   db->encrypted_path = NULL;
   db->working_path = NULL;
 }
 
-void db_create(db_t *db, const buf_t *db_key, const char *encrypted_path) {
+void db_create(db_t* db, const buf_t* db_key, const char* encrypted_path) {
   if (!db || !db_key || !encrypted_path) throw("Arguments cannot be NULL");
   if (access(encrypted_path)) throw("Database file already exists");
 
-  FILE *db_file = fopen(encrypted_path, "wb");
+  FILE* db_file = fopen(encrypted_path, "wb");
 
   /* Set database parameters */
   db->encrypted_path = encrypted_path;
@@ -223,9 +221,9 @@ void db_create(db_t *db, const buf_t *db_key, const char *encrypted_path) {
   debug("Created database");
 }
 
-void db_hexdump(const db_t *db) {
+void db_hexdump(const db_t* db) {
   /* Open the db file */
-  FILE *db_file = fopen(db->working_path, "rb");
+  FILE* db_file = fopen(db->working_path, "rb");
   fseek(db_file, 0, SEEK_END);
   size_t size = ftell(db_file) - DB_GLOBAL_HEADER_SIZE;
   fseek(db_file, 0, SEEK_SET);
@@ -247,7 +245,7 @@ void db_hexdump(const db_t *db) {
     buf_concat(&file, &block);
     rem -= c;
   }
-  
+
   /* Cleanup */
   buf_free(&block);
   fclose(db_file);
@@ -255,7 +253,7 @@ void db_hexdump(const db_t *db) {
   buf_free(&file);
 }
 
-void db_bootstrap(db_t *db, const buf_t *db_key, const char *encrypted_path) {
+void db_bootstrap(db_t* db, const buf_t* db_key, const char* encrypted_path) {
   if (!access(encrypted_path)) {
     debug("Bootstrapping database");
     db_create(db, db_key, encrypted_path);
@@ -264,8 +262,8 @@ void db_bootstrap(db_t *db, const buf_t *db_key, const char *encrypted_path) {
   debug("Database already exists");
 }
 
-void db_open(db_t *db, const buf_t *db_key, const char *encrypted_path,
-             const char *working_path) {
+void db_open(db_t* db, const buf_t* db_key, const char* encrypted_path,
+             const char* working_path) {
   if (!db || !db_key || !encrypted_path || !working_path) {
     throw("Arguments cannot be NULL");
   }
@@ -273,7 +271,7 @@ void db_open(db_t *db, const buf_t *db_key, const char *encrypted_path,
 
   /* Create a working copy of the database file */
   fcopy(working_path, encrypted_path);
-  FILE *db_file = fopen(working_path, "rb");
+  FILE* db_file = fopen(working_path, "rb");
   if (!db_file) throw("Failed to open working file");
 
   /* Check if the file is a valid database file */
@@ -310,7 +308,7 @@ void db_open(db_t *db, const buf_t *db_key, const char *encrypted_path,
   debug("Database opened");
 }
 
-void db_close(db_t *db) {
+void db_close(db_t* db) {
   if (!db) throw("Arguments cannot be NULL");
   if (!access(db->working_path)) throw("Database is already closed");
 
@@ -321,7 +319,7 @@ void db_close(db_t *db) {
   debug("Database closed");
 }
 
-bool db_read(db_t *db, const buf_t *key, buf_t *value) {
+bool db_read(db_t* db, const buf_t* key, buf_t* value) {
   if (!db || !key || !value) throw("Arguments cannot be NULL");
   if (!access(db->working_path)) throw("Database is not open");
 
@@ -330,7 +328,7 @@ bool db_read(db_t *db, const buf_t *key, buf_t *value) {
   if (offset == -1) return false;
 
   /* Prepare for reading file */
-  FILE *db_file = fopen(db->working_path, "rb");
+  FILE* db_file = fopen(db->working_path, "rb");
   if (!db_file) throw("Failed to open working database");
 
   iostream_t ios;
@@ -343,7 +341,7 @@ bool db_read(db_t *db, const buf_t *key, buf_t *value) {
   buf_initf(&header, sizeof(size_t) * 2);
   iostream_read(&ios, sizeof(size_t) * 2, &header);
 
-  db_entry_t entry = *(db_entry_t *)header.data;
+  db_entry_t entry = *(db_entry_t*)header.data;
   iostream_skip(&ios, entry.key_len);
   iostream_read(&ios, entry.data_len, value);
 
@@ -354,13 +352,13 @@ bool db_read(db_t *db, const buf_t *key, buf_t *value) {
   return true;
 }
 
-void db_write(db_t *db, const buf_t *key, const buf_t *value,
-              const buf_t *db_key) {
+void db_write(db_t* db, const buf_t* key, const buf_t* value,
+              const buf_t* db_key) {
   if (!db || !key || !db_key) throw("Arguments cannot be NULL");
   if (!access(db->working_path)) throw("Database is not open");
 
   /* Prepare for writing file */
-  FILE *db_file = fopen(db->working_path, "rb+");
+  FILE* db_file = fopen(db->working_path, "rb+");
   if (!db_file) throw("Failed to open working database");
 
   /* Seek to the end of file to append new entry */
@@ -407,14 +405,14 @@ void db_write(db_t *db, const buf_t *key, const buf_t *value,
   db_rotate_iv(db, db_key);
 }
 
-bool db_has(db_t *db, const buf_t *key) {
+bool db_has(db_t* db, const buf_t* key) {
   if (!db || !key) throw("Arguments cannot be NULL");
   if (!access(db->working_path)) throw("Database is not open");
   if (db_find_entry(db, key) == -1) return false;
   return true;
 }
 
-void db_remove(db_t *db, const buf_t *key, const buf_t *db_key) {
+void db_remove(db_t* db, const buf_t* key, const buf_t* db_key) {
   if (!db || !key || !db_key) throw("Arguments cannot be NULL");
   if (!access(db->working_path)) throw("Database is not open");
 
@@ -429,8 +427,8 @@ void db_remove(db_t *db, const buf_t *key, const buf_t *db_key) {
   buf_t path;
   buf_init(&path, 32);
   tempfile(&path);
-  FILE *src = fopen(db->working_path, "rb");
-  FILE *dst = fopen(buf_to_cstr(&path), "wb+");
+  FILE* src = fopen(db->working_path, "rb");
+  FILE* dst = fopen(buf_to_cstr(&path), "wb+");
   if (!src || !dst) throw("Failed to open database files");
 
   /* Copy over the unencrypted header as-is */
@@ -467,7 +465,7 @@ void db_remove(db_t *db, const buf_t *key, const buf_t *db_key) {
     buf_t header;
     buf_initf(&header, sizeof(size_t) * 2);
     iostream_read(&r, sizeof(size_t) * 2, &header);
-    db_entry_t entry = *(db_entry_t *)header.data;
+    db_entry_t entry = *(db_entry_t*)header.data;
 
     /* Check if the key matches the one provided */
     buf_t k, v;
@@ -507,8 +505,8 @@ void db_remove(db_t *db, const buf_t *key, const buf_t *db_key) {
   db_rotate_iv(db, db_key);
 }
 
-void db_writens(db_t *db, const buf_t *namespace, const buf_t *key,
-                const buf_t *value, const buf_t *db_key) {
+void db_writens(db_t* db, const buf_t* namespace, const buf_t* key,
+                const buf_t* value, const buf_t* db_key) {
   buf_t ns_key;
   buf_initf(&ns_key, key->size + namespace->size + 1);
   db_ns_key(key, namespace, &ns_key);
@@ -516,8 +514,8 @@ void db_writens(db_t *db, const buf_t *namespace, const buf_t *key,
   buf_free(&ns_key);
 }
 
-bool db_readns(db_t *db, const buf_t *namespace, const buf_t *key,
-               buf_t *value) {
+bool db_readns(db_t* db, const buf_t* namespace, const buf_t* key,
+               buf_t* value) {
   buf_t ns_key;
   buf_initf(&ns_key, key->size + namespace->size + 1);
   db_ns_key(key, namespace, &ns_key);
@@ -526,7 +524,7 @@ bool db_readns(db_t *db, const buf_t *namespace, const buf_t *key,
   return result;
 }
 
-bool db_hasns(db_t *db, const buf_t *namespace, const buf_t *key) {
+bool db_hasns(db_t* db, const buf_t* namespace, const buf_t* key) {
   buf_t ns_key;
   buf_initf(&ns_key, key->size + namespace->size + 1);
   db_ns_key(key, namespace, &ns_key);
@@ -535,8 +533,8 @@ bool db_hasns(db_t *db, const buf_t *namespace, const buf_t *key) {
   return result;
 }
 
-void db_removens(db_t *db, const buf_t *namespace, const buf_t *key,
-                 const buf_t *db_key) {
+void db_removens(db_t* db, const buf_t* namespace, const buf_t* key,
+                 const buf_t* db_key) {
   buf_t ns_key;
   buf_initf(&ns_key, key->size + namespace->size + 1);
   db_ns_key(key, namespace, &ns_key);
@@ -544,23 +542,23 @@ void db_removens(db_t *db, const buf_t *namespace, const buf_t *key,
   buf_free(&ns_key);
 }
 
-void db_iter_init(db_iter_t *it, db_t *db) {
+void db_iter_init(db_iter_t* it, db_t* db) {
   it->db = db;
   it->finished = false;
-  FILE *db_file = fopen(db->working_path, "rb");
+  FILE* db_file = fopen(db->working_path, "rb");
   iostream_init(&it->ios, db_file, &db->aes_ctx, &db->aes_iv,
                 DB_GLOBAL_HEADER_SIZE);
   iostream_skip(&it->ios, DB_MAGIC_SIZE);
 }
 
-void db_iter_free(db_iter_t *it) {
+void db_iter_free(db_iter_t* it) {
   it->db = NULL;
   it->finished = true;
   fclose(it->ios.fd);
   iostream_free(&it->ios);
 }
 
-bool db_iter_next(db_iter_t *it, buf_t *key, buf_t *value) {
+bool db_iter_next(db_iter_t* it, buf_t* key, buf_t* value) {
   if (!it) throw("Arguments cannot be NULL");
   if (it->finished) return false;
 
@@ -582,7 +580,7 @@ bool db_iter_next(db_iter_t *it, buf_t *key, buf_t *value) {
   buf_t header;
   buf_initf(&header, sizeof(size_t) * 2);
   iostream_read(&it->ios, sizeof(size_t) * 2, &header);
-  db_entry_t entry = *(db_entry_t *)header.data;
+  db_entry_t entry = *(db_entry_t*)header.data;
 
   /* Read data if requested */
   if (key) {
@@ -601,8 +599,8 @@ bool db_iter_next(db_iter_t *it, buf_t *key, buf_t *value) {
   return true;
 }
 
-bool db_iter_nextns(db_iter_t *it, const buf_t *namespace, buf_t *key,
-                    buf_t *value) {
+bool db_iter_nextns(db_iter_t* it, const buf_t* namespace, buf_t* key,
+                    buf_t* value) {
   buf_t full_key, ns;
   buf_init(&full_key, 32);
   buf_initf(&ns, namespace->size + 1);

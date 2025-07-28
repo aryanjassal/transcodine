@@ -11,18 +11,18 @@
 
 static size_t in_use = 0;
 
-void buf_resize(buf_t *buf, size_t new_capacity) {
+void buf_resize(buf_t* buf, size_t new_capacity) {
   if (new_capacity == 0) throw("Initial capacity cannot be zero");
   if (buf->fixed) throw("Cannot resize fixed buffer");
-  uint8_t *new_data = (uint8_t *)realloc(buf->data, new_capacity);
+  uint8_t* new_data = (uint8_t*)realloc(buf->data, new_capacity);
   if (!new_data) throw("Realloc failed");
   buf->data = new_data;
   buf->capacity = new_capacity;
 }
 
-void buf_init(buf_t *buf, size_t initial_capacity) {
+void buf_init(buf_t* buf, size_t initial_capacity) {
   if (initial_capacity == 0) throw("Initial capacity cannot be zero");
-  buf->data = (uint8_t *)malloc(initial_capacity);
+  buf->data = (uint8_t*)malloc(initial_capacity);
   if (!buf->data) throw("Malloc failed");
 #ifdef DEBUG
   in_use++;
@@ -32,9 +32,9 @@ void buf_init(buf_t *buf, size_t initial_capacity) {
   buf->fixed = false;
 }
 
-void buf_initf(buf_t *buf, size_t initial_capacity) {
+void buf_initf(buf_t* buf, size_t initial_capacity) {
   if (initial_capacity == 0) throw("Initial capacity cannot be zero");
-  buf->data = (uint8_t *)malloc(initial_capacity);
+  buf->data = (uint8_t*)malloc(initial_capacity);
   if (!buf->data) throw("Malloc failed");
 #ifdef DEBUG
   in_use++;
@@ -44,7 +44,7 @@ void buf_initf(buf_t *buf, size_t initial_capacity) {
   buf->fixed = true;
 }
 
-void buf_copy(buf_t *dst, const buf_t *src) {
+void buf_copy(buf_t* dst, const buf_t* src) {
   if (!src->data) throw("Source must be initialised");
   if (!dst->data) {
     buf_init(dst, src->size);
@@ -58,7 +58,7 @@ void buf_copy(buf_t *dst, const buf_t *src) {
   dst->fixed = src->fixed;
 }
 
-void buf_from(buf_t *buf, const void *data, size_t len) {
+void buf_from(buf_t* buf, const void* data, size_t len) {
   if (!buf->data) {
     buf_init(buf, len);
   } else if (buf->capacity < len) {
@@ -69,14 +69,14 @@ void buf_from(buf_t *buf, const void *data, size_t len) {
   buf->size = len;
 }
 
-void buf_view(buf_t *buf, void *data, const size_t len) {
+void buf_view(buf_t* buf, void* data, const size_t len) {
   buf->data = data;
   buf->size = len;
   buf->capacity = len;
   buf->fixed = true;
 }
 
-void buf_append(buf_t *buf, const void *data, size_t len) {
+void buf_append(buf_t* buf, const void* data, size_t len) {
   if (buf->size + len > buf->capacity) {
     if (buf->fixed) throw("Cannot resize fixed buffer");
     size_t new_capacity = buf->capacity;
@@ -87,12 +87,12 @@ void buf_append(buf_t *buf, const void *data, size_t len) {
   buf->size += len;
 }
 
-void buf_concat(buf_t *buf, const buf_t *src) {
+void buf_concat(buf_t* buf, const buf_t* src) {
   if (!buf->data || !src->data) throw("BUF and SRC must be initialised");
   buf_append(buf, src->data, src->size);
 }
 
-void buf_write(buf_t *buf, const uint8_t data) {
+void buf_write(buf_t* buf, const uint8_t data) {
   if (!buf->data) throw("Buf must be initialised");
   if (buf->size + 1 > buf->capacity) {
     size_t new_capacity = buf->capacity;
@@ -103,13 +103,13 @@ void buf_write(buf_t *buf, const uint8_t data) {
   buf->size++;
 }
 
-bool buf_equal(const buf_t *a, const buf_t *b) {
+bool buf_equal(const buf_t* a, const buf_t* b) {
   return a->size == b->size && memcmp(a->data, b->data, a->size) == 0;
 }
 
-void buf_clear(buf_t *buf) { buf->size = 0; }
+void buf_clear(buf_t* buf) { buf->size = 0; }
 
-void buf_free(buf_t *buf) {
+void buf_free(buf_t* buf) {
   if (buf->data) free(buf->data);
   buf->data = NULL;
 #ifdef DEBUG
@@ -117,11 +117,11 @@ void buf_free(buf_t *buf) {
 #endif
 }
 
-char *buf_to_cstr(const buf_t *buf) {
+char* buf_to_cstr(const buf_t* buf) {
   if (buf->size == 0 || buf->data[buf->size - 1] != '\0') {
     warn("Buffer not null-terminated");
   }
-  return (char *)buf->data;
+  return (char*)buf->data;
 }
 
 size_t buf_inspect() {
