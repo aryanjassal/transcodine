@@ -11,16 +11,18 @@
  * commands and their usage, simply write the command followed with a `--help`,
  * which will break down the options and the usage of that command.
  *
- * This is an example output when an invalid command is run:
  * ```shell
- * [user@host:~]$ ./build/transcodine badcommand
- * Invalid command: badcommand
+ * [user@host:~]$ ./build/transcodine --help
+ *  Usage: transcodine <command>
+ *  Description: Securely store and manage your secrets
  *
- * Usage: transcodine <command> [options...]
- * Available commands:
- *   agent      Manage the user agent
- *   bin        Operate on bins
- *   file       Operate on files within bins
+ *  Available commands:
+ *    agent    Operate on your local agent
+ *    bin      Manage your bins
+ *    file     Manage files within your bins
+ *
+ *  Available flags:
+ *  --help    Prints this menu
  * ```
  */
 
