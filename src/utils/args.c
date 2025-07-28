@@ -5,7 +5,16 @@
 #include <string.h>
 
 #include "constants.h"
+#include "core/buffer.h"
 #include "utils/throw.h"
+
+/* Creating the default help flag */
+const char* flag_help_aliases[] = {"-h", "--help"};
+const int num_flag_help_aliases =
+    sizeof(flag_help_aliases) / sizeof(flag_help_aliases[0]);
+
+flag_handler_t flag_help = {flag_help_aliases, num_flag_help_aliases,
+                            "Prints this menu", true};
 
 flag_handler_t* DEFAULT_FLAGS[] = {&flag_help};
 
@@ -62,14 +71,27 @@ void print_help(int const type, const char* path, const cmd_handler_t* handler,
 
     /* Calculate maximum width */
     int max_flag_len = 0;
+    int j;
     for (i = 0; i < handler->num_flags; ++i) {
-      int len = strlen(handler->flags[i]->flag);
+      int len = -1;
+      for (j = 0; j < handler->flags[i]->num_aliases; ++j) {
+        len += strlen(handler->flags[i]->aliases[j]) + 1;
+      }
       if (len > max_flag_len) max_flag_len = len;
     }
     int col_width = max_flag_len + 4;
     for (i = 0; i < handler->num_flags; ++i) {
       flag_handler_t* flag = handler->flags[i];
-      printf("  %-*s%s\n", col_width, flag->flag, flag->description);
+      buf_t flags;
+      buf_init(&flags, 16);
+      for (j = 0; j < flag->num_aliases; ++j) {
+        buf_append(&flags, flag->aliases[j], strlen(flag->aliases[j]));
+        buf_write(&flags, '|');
+      }
+      flags.size--;
+      buf_write(&flags, 0);
+      printf("  %-*s%s\n", col_width, buf_to_cstr(&flags), flag->description);
+      buf_free(&flags);
     }
   }
 }
@@ -117,10 +139,3 @@ void split_args(int argc, char* argv[], int* cmdc, char** cmdv[], int* flagc,
       (*cmdv)[ci++] = argv[i];
   }
 }
-
-void flag_help_handler(const char* path, cmd_handler_t* ctx) {
-  print_help(HELP_REQUESTED, path, ctx, NULL);
-}
-
-flag_handler_t flag_help = {"--help", "Prints this menu", flag_help_handler,
-                            true};

@@ -14,9 +14,9 @@
 #include "utils/io.h"
 #include "utils/system.h"
 
-FILE *out_file = NULL;
+FILE* out_file = NULL;
 
-static void write_data(const buf_t *data) {
+static void write_data(const buf_t* data) {
   if (!out_file) return error("Output is not open");
   fwrites(data->data, data->size, out_file);
 }
@@ -29,9 +29,12 @@ int handler_file_get(int argc, char* argv[], int flagc, char* flagv[],
     const char* flag = flagv[fi];
 
     /* Help flag */
-    if (strcmp(flag, flag_help.flag) == 0) {
-      print_help(HELP_REQUESTED, path, self, NULL);
-      return EXIT_OK;
+    int ai;
+    for (ai = 0; ai < flag_help.num_aliases; ++ai) {
+      if (strcmp(flag, flag_help.aliases[ai]) == 0) {
+        print_help(HELP_REQUESTED, path, self, NULL);
+        return EXIT_OK;
+      }
     }
 
     /* Fail on extra flags */
@@ -85,7 +88,7 @@ int handler_file_get(int argc, char* argv[], int flagc, char* flagv[],
   buf_initf(&aes_key, AES_KEY_SIZE);
   buf_initf(&buf_meta, BIN_GLOBAL_HEADER_SIZE - BIN_MAGIC_SIZE);
   bin_meta(buf_to_cstr(&bin_path), &buf_meta);
-  bin_meta_t meta = *(bin_meta_t *)buf_meta.data;
+  bin_meta_t meta = *(bin_meta_t*)buf_meta.data;
   buf_view(&id, meta.id, BIN_ID_SIZE);
 
   /* Read database */

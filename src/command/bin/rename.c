@@ -20,9 +20,12 @@ int handler_bin_rename(int argc, char* argv[], int flagc, char* flagv[],
     const char* flag = flagv[fi];
 
     /* Help flag */
-    if (strcmp(flag, flag_help.flag) == 0) {
-      print_help(HELP_REQUESTED, path, self, NULL);
-      return EXIT_OK;
+    int ai;
+    for (ai = 0; ai < flag_help.num_aliases; ++ai) {
+      if (strcmp(flag, flag_help.aliases[ai]) == 0) {
+        print_help(HELP_REQUESTED, path, self, NULL);
+        return EXIT_OK;
+      }
     }
 
     /* Fail on extra flags */

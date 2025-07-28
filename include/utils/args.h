@@ -9,12 +9,11 @@ typedef int (*cmd_handlefunc_t)(int argc, char* argv[], int flagc,
                                 char* flagv[], const char* path,
                                 struct cmd_handler_t* self);
 
-typedef void (*flag_handlefunc_t)(const char* path, struct cmd_handler_t* ctx);
-
+/* The flags aren't statically processed, and don't need a handler. */
 typedef struct {
-  const char* flag;
+  const char** aliases;
+  int num_aliases;
   const char* description;
-  const flag_handlefunc_t handler;
   bool lazy;
 } flag_handler_t;
 

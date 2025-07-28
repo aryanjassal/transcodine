@@ -80,39 +80,36 @@ int main(int argc, char* argv[]) {
 
     /* If we are at a leaf node, then pass the remaining args to the handler */
     if (current_handler->num_subcommands == 0) {
-      /* Before the handler, check if we are asking for help */
-      int fi;
-      for (fi = 0; fi < flagc; ++fi) {
-        if (strcmp(flagv[fi], "--help") == 0) {
-          print_help(HELP_REQUESTED, buf_to_cstr(&argpath), current_handler,
-                     NULL);
-          status = EXIT_OK;
-          goto quitprog;
-        }
-      }
       status = current_handler->handler(cmdc - ci, &cmdv[ci], flagc, flagv,
                                         buf_to_cstr(&argpath), current_handler);
       goto quitprog;
     }
 
     /* If we have no additional commands, then process flags */
-    if (ci == cmdc) {
+    if (ci == cmdc && current_handler->num_subcommands > 0) {
       int fi;
       for (fi = 0; fi < flagc; ++fi) {
-        if (strcmp(flagv[fi], "--help") == 0) {
-          print_help(HELP_REQUESTED, buf_to_cstr(&argpath), current_handler,
-                     NULL);
-          status = EXIT_OK;
-          goto quitprog;
+        const char* flag = flagv[fi];
+
+        /* Help flag */
+        int ai;
+        for (ai = 0; ai < flag_help.num_aliases; ++ai) {
+          if (strcmp(flag, flag_help.aliases[ai]) == 0) {
+            print_help(HELP_REQUESTED, buf_to_cstr(&argpath), current_handler,
+                       NULL);
+            status = EXIT_OK;
+            goto quitprog;
+          }
         }
+
+        break;
       }
 
-      if (current_handler->num_subcommands > 0) {
-        print_help(HELP_INVALID_USAGE, buf_to_cstr(&argpath), current_handler,
-                   NULL);
-        status = EXIT_USAGE;
-        goto quitprog;
-      }
+      /* Otherwise print invalid command */
+      print_help(HELP_INVALID_USAGE, buf_to_cstr(&argpath), current_handler,
+                 NULL);
+      status = EXIT_USAGE;
+      goto quitprog;
     }
 
     /* This node has children, so go through them to find a matching command */

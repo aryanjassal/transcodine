@@ -24,9 +24,12 @@ int handler_file_mv(int argc, char* argv[], int flagc, char* flagv[],
     const char* flag = flagv[fi];
 
     /* Help flag */
-    if (strcmp(flag, flag_help.flag) == 0) {
-      print_help(HELP_REQUESTED, path, self, NULL);
-      return EXIT_OK;
+    int ai;
+    for (ai = 0; ai < flag_help.num_aliases; ++ai) {
+      if (strcmp(flag, flag_help.aliases[ai]) == 0) {
+        print_help(HELP_REQUESTED, path, self, NULL);
+        return EXIT_OK;
+      }
     }
 
     /* Fail on extra flags */
@@ -95,7 +98,7 @@ int handler_file_mv(int argc, char* argv[], int flagc, char* flagv[],
     precode = EXIT_INVALID_DB_VALUE;
     goto preclean;
   }
-  preclean:
+preclean:
   buf_free(&buf_meta);
   db_close(&db);
   db_free(&db);
@@ -103,9 +106,7 @@ int handler_file_mv(int argc, char* argv[], int flagc, char* flagv[],
   buf_free(&db_key);
 
   /* If the code is not zero, then we failed */
-  if (precode != 0) {
-    return precode;
-  } 
+  if (precode != 0) { return precode; }
 
   /* Write a file to bin */
   buf_t fq_spath, fq_dpath, bin_tpath, bin_otpath, data;
