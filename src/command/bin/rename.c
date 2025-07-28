@@ -12,32 +12,38 @@
 #include "utils/cli.h"
 #include "utils/io.h"
 
-static void flag_help();
-
-static flag_handler_t flags[] = {
-    {"--help", "Print usage guide", flag_help, true}};
-
-static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
-
-static void flag_help() {
-  print_help("transcodine bin rename <old_name> <new_name> [...options]", flags,
-             num_flags);
-}
-
-int handler_bin_rename(int argc, char *argv[]) {
+int handler_bin_rename(int argc, char* argv[], int flagc, char* flagv[],
+                       const char* path, cmd_handler_t* self) {
   /* Flag handling */
-  switch (dispatch_flag(argc, argv, flags, num_flags)) {
-  case 1: return 0;
-  case -1: return flag_help(), 1;
-  case 0: break;
+  int fi;
+  for (fi = 0; fi < flagc; ++fi) {
+    const char* flag = flagv[fi];
+
+    /* Help flag */
+    if (strcmp(flag, flag_help.flag) == 0) {
+      print_help(HELP_REQUESTED, path, self, NULL);
+      return EXIT_OK;
+    }
+
+    /* Fail on extra flags */
+    print_help(HELP_INVALID_FLAGS, path, self, flag);
+    return EXIT_INVALID_FLAG;
   }
-  if (argc < 2) return flag_help(), 1;
+
+  /* Invalid usage */
+  if (argc != 2) {
+    print_help(HELP_INVALID_USAGE, path, self, NULL);
+    return EXIT_USAGE;
+  }
 
   /* Authentication */
   buf_t kek, db_key;
   buf_initf(&kek, KEK_SIZE);
   buf_initf(&db_key, AES_KEY_SIZE);
-  if (!prompt_password(&kek)) return error("Incorrect password"), 1;
+  if (!prompt_password(&kek)) {
+    error("Incorrect password");
+    return EXIT_INVALID_PASS;
+  }
   db_derive_key(&kek, &db_key);
   buf_free(&kek);
 
@@ -67,10 +73,12 @@ int handler_bin_rename(int argc, char *argv[]) {
   buf_write(&bin_opath, 0);
   buf_write(&bin_npath, 0);
   if (!access(buf_to_cstr(&bin_opath))) {
-    return error("A bin with that name does not exist"), 1;
+    error("A bin with that name does not exist");
+    return EXIT_INVALID_BIN;
   }
   if (access(buf_to_cstr(&bin_npath))) {
-    return error("A bin with that name already exists"), 1;
+    error("A bin with that name already exist");
+    return EXIT_INVALID_BIN;
   }
 
   /* Update tracked file path in the database */
@@ -89,5 +97,5 @@ int handler_bin_rename(int argc, char *argv[]) {
   db_free(&db);
   buf_free(&db_path);
   buf_free(&db_key);
-  return 0;
+  return EXIT_OK;
 }

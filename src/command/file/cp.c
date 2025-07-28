@@ -12,32 +12,33 @@
 #include "utils/cli.h"
 #include "utils/io.h"
 
-static void flag_help();
-
-static flag_handler_t flags[] = {
-    {"--help", "Print usage guide", flag_help, true}};
-
-static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
-
-static void flag_help() {
-  print_help(
-      "transcodine file cp <bin_name> <virtual_src_path> <virtual_dst_path> "
-      "[...options]",
-      flags, num_flags);
-}
-
 static bin_t out_bin;
 
-static void copy_file(const buf_t *data) { bin_write_file(&out_bin, data); }
+static void copy_file(const buf_t* data) { bin_write_file(&out_bin, data); }
 
-int handler_file_cp(int argc, char *argv[]) {
+int handler_file_cp(int argc, char* argv[], int flagc, char* flagv[],
+                    const char* path, cmd_handler_t* self) {
   /* Flag handling */
-  switch (dispatch_flag(argc, argv, flags, num_flags)) {
-  case 1: return 0;
-  case -1: return flag_help(), 1;
-  case 0: break;
+  int fi;
+  for (fi = 0; fi < flagc; ++fi) {
+    const char* flag = flagv[fi];
+
+    /* Help flag */
+    if (strcmp(flag, flag_help.flag) == 0) {
+      print_help(HELP_REQUESTED, path, self, NULL);
+      return EXIT_OK;
+    }
+
+    /* Fail on extra flags */
+    print_help(HELP_INVALID_FLAGS, path, self, flag);
+    return EXIT_INVALID_FLAG;
   }
-  if (argc < 3) return flag_help(), 1;
+
+  /* Invalid usage */
+  if (argc != 3) {
+    print_help(HELP_INVALID_USAGE, path, self, NULL);
+    return EXIT_USAGE;
+  }
 
   /* Authentication */
   buf_t kek, db_key;
@@ -48,13 +49,13 @@ int handler_file_cp(int argc, char *argv[]) {
   buf_free(&kek);
 
   /* Database setup */
-  buf_t path;
-  buf_init(&path, 32);
-  tempfile(&path);
+  buf_t db_path;
+  buf_init(&db_path, 32);
+  tempfile(&db_path);
   db_t db;
   db_init(&db);
   db_bootstrap(&db, &db_key, buf_to_cstr(&STATE_DB_PATH));
-  db_open(&db, &db_key, buf_to_cstr(&STATE_DB_PATH), buf_to_cstr(&path));
+  db_open(&db, &db_key, buf_to_cstr(&STATE_DB_PATH), buf_to_cstr(&db_path));
 
   /* Initialise file paths */
   buf_t bin_path;
@@ -64,7 +65,10 @@ int handler_file_cp(int argc, char *argv[]) {
   buf_write(&bin_path, '/');
   buf_append(&bin_path, argv[0], strlen(argv[0]));
   buf_write(&bin_path, 0);
-  if (!access(buf_to_cstr(&bin_path))) return error("No such bin exists"), 1;
+  if (!access(buf_to_cstr(&bin_path))) {
+    error("A bin with that name does not exist");
+    return EXIT_INVALID_BIN;
+  }
 
   /* Bin loading */
   bin_t bin;
@@ -74,7 +78,7 @@ int handler_file_cp(int argc, char *argv[]) {
   buf_initf(&aes_key, AES_KEY_SIZE);
   buf_initf(&buf_meta, BIN_GLOBAL_HEADER_SIZE - BIN_MAGIC_SIZE);
   bin_meta(buf_to_cstr(&bin_path), &buf_meta);
-  bin_meta_t meta = *(bin_meta_t *)buf_meta.data;
+  bin_meta_t meta = *(bin_meta_t*)buf_meta.data;
   buf_view(&id, meta.id, BIN_ID_SIZE);
 
   /* Read database */
@@ -87,14 +91,14 @@ int handler_file_cp(int argc, char *argv[]) {
     buf_free(&aes_key);
     db_close(&db);
     db_free(&db);
-    buf_free(&path);
+    buf_free(&db_path);
     buf_free(&db_key);
-    return 1;
+    return EXIT_INVALID_DB_VALUE;
   }
   buf_free(&buf_meta);
   db_close(&db);
   db_free(&db);
-  buf_free(&path);
+  buf_free(&db_path);
   buf_free(&db_key);
 
   /* Write a file to bin */
@@ -126,7 +130,7 @@ int handler_file_cp(int argc, char *argv[]) {
     buf_free(&fq_dpath);
     buf_free(&fq_spath);
     buf_free(&aes_key);
-    return 1;
+    return EXIT_INVALID_FILE;
   }
 
   if (bin_find_file(&bin, &fq_spath) == -1) {
@@ -142,29 +146,20 @@ int handler_file_cp(int argc, char *argv[]) {
     buf_free(&fq_dpath);
     buf_free(&fq_spath);
     buf_free(&aes_key);
-    return 1;
+    return EXIT_INVALID_FILE;
   }
 
   /* Attempt to open the file, or exit if it failed */
-  int code = 0;
+  int code = EXIT_OK;
   if (!bin_open_file(&out_bin, &fq_dpath)) {
-    bin_close(&bin);
-    bin_close(&out_bin);
-    bin_free(&out_bin);
-    bin_free(&bin);
-    buf_free(&bin_otpath);
-    buf_free(&bin_path);
-    buf_free(&bin_tpath);
-    buf_free(&data);
-    buf_free(&fq_dpath);
-    buf_free(&fq_spath);
-    buf_free(&aes_key);
-    return 1;
+    code = EXIT_INVALID_FILE;
+    goto cleanup;
   }
   bin_cat_file(&bin, &fq_spath, copy_file);
   bin_close_file(&out_bin, &aes_key);
 
-  /* Cleanup */
+/* Cleanup */
+cleanup:
   bin_close(&bin);
   bin_close(&out_bin);
   bin_free(&out_bin);

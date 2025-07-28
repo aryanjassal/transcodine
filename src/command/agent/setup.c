@@ -1,4 +1,5 @@
 #include "command/agent/setup.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -17,27 +18,7 @@
 #include "utils/io.h"
 #include "utils/throw.h"
 
-/**
- * Print the usage guidelines of this commands.
- * @author Alexandro Jauregui
- */
-static void flag_help();
-
-static flag_handler_t flags[] = {
-    {"--help", "Print usage guide", flag_help, true}};
-
-static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
-
-static void flag_help() {
-  printf("Usage: transcodine agent setup [...options]\n");
-  printf("Available options:\n");
-  int i;
-  for (i = 0; i < num_flags; ++i) {
-    printf("  %-10s %s\n", flags[i].flag, flags[i].description);
-  }
-}
-
-static void generate_salt(buf_t *salt) {
+static void generate_salt(buf_t* salt) {
   /* Attempt to generate salt via urandom */
   bool using_urandom = urandom(salt, salt->capacity);
   if (using_urandom) {
@@ -47,13 +28,13 @@ static void generate_salt(buf_t *salt) {
 
   /* If urandom cannot be accessed, then generate salt using a pseudo method */
   debug("Failed to access urandom. Using pseudo salt generator");
-  const char *last_slash = strrchr(buf_to_cstr(&HOME_PATH), '/');
+  const char* last_slash = strrchr(buf_to_cstr(&HOME_PATH), '/');
   if (!last_slash) { throw("Invalid home path"); }
-  const char *username = last_slash + 1;
+  const char* username = last_slash + 1;
   gen_pseudosalt(username, salt);
 }
 
-static void save_password(buf_t *password) {
+static void save_password(buf_t* password) {
   /* Prepare a new auth token */
   auth_t auth;
   buf_initf(&auth.pass_salt, PASSWORD_SALT_SIZE);
@@ -93,17 +74,36 @@ static void save_password(buf_t *password) {
   buf_free(&auth.kek_hash);
 }
 
-int handler_agent_setup(int argc, char *argv[]) {
+int handler_agent_setup(int argc, char* argv[], int flagc, char* flagv[],
+                        const char* path, cmd_handler_t* self) {
   /* Flag handling */
-  switch (dispatch_flag(argc, argv, flags, num_flags)) {
-  case 1: return 0;
-  case -1: return flag_help(), 1;
-  case 0: break;
+  int fi;
+  for (fi = 0; fi < flagc; ++fi) {
+    const char* flag = flagv[fi];
+
+    /* Help flag */
+    if (strcmp(flag, flag_help.flag) == 0) {
+      print_help(HELP_REQUESTED, path, self, NULL);
+      return EXIT_OK;
+    }
+
+    /* Fail on extra flags */
+    print_help(HELP_INVALID_FLAGS, path, self, flag);
+    return EXIT_INVALID_FLAG;
   }
+
+  /* Invalid usage */
+  if (argc > 0) {
+    print_help(HELP_INVALID_USAGE, path, self, NULL);
+    return EXIT_USAGE;
+  }
+
+  /* No arguments are expected, so we ignore this parameter */
+  (void)argv;
 
   if (access(buf_to_cstr(&AUTH_DB_PATH))) {
     error("Agent is already setup");
-    return 1;
+    return EXIT_INVALID_AGENT_STATE;
   }
 
   buf_t password;
@@ -112,5 +112,5 @@ int handler_agent_setup(int argc, char *argv[]) {
   save_password(&password);
   buf_free(&password);
   printf("Agent setup complete!\n");
-  return 0;
+  return EXIT_OK;
 }

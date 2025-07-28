@@ -6,8 +6,23 @@
 
 /* Error codes for program exit */
 #define EXIT_OK 0
+#define EXIT_USAGE 11
+#define EXIT_INVALID_PASS 12
+#define EXIT_INVALID_ARG 13
+#define EXIT_INVALID_FLAG 14
+#define EXIT_INVALID_DATA 15
+#define EXIT_INVALID_BIN 16
+#define EXIT_INVALID_FILE 17
+#define EXIT_INVALID_DB_VALUE 18
+#define EXIT_IO_ERROR 30
+#define EXIT_INVALID_AGENT_STATE 50
 #define EXIT_UNKNOWN 255
-#define EXIT_USAGE 64
+
+/* Type switches for help menu */
+#define HELP_REQUESTED 0
+#define HELP_INVALID_USAGE 1
+#define HELP_INVALID_ARGS 2
+#define HELP_INVALID_FLAGS 3
 
 /* Crypto parameters */
 #define SHA256_HASH_SIZE 32

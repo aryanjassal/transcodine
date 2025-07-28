@@ -3,66 +3,49 @@
 
 #include "stddefs.h"
 
-typedef int (*cmd_handlefunc_t)(int argc, char* argv[]);
+struct cmd_handler_t;
 
-typedef void (*flag_handlefunc_t)(void);
+typedef int (*cmd_handlefunc_t)(int argc, char* argv[], int flagc,
+                                char* flagv[], const char* path,
+                                struct cmd_handler_t* self);
+
+typedef void (*flag_handlefunc_t)(const char* path, struct cmd_handler_t* ctx);
 
 typedef struct {
   const char* flag;
   const char* description;
-  flag_handlefunc_t handler;
+  const flag_handlefunc_t handler;
   bool lazy;
 } flag_handler_t;
 
 typedef struct cmd_handler_t {
   const char* command;
   const char* description;
+  const char* usage;
   cmd_handlefunc_t handler;
   struct cmd_handler_t** subcommands;
   int num_subcommands;
   flag_handler_t** flags;
+  int num_flags;
 } cmd_handler_t;
 
 /**
- * Not all commands use or support using extra arguments or options. For those
- * commands, we will be ignoring the additional arguments. However, we need to
- * warn the user that an argument is being ignored.
- * @param argc
- * @param argv
- * @author Aryan Jassal
- */
-void ignore_args(int argc, char* argv[]);
-
-/**
- * You can very easily just ignore the argument, but this is here to ensure
- * ignored arguments generate a similar log in the output.
- * @param arg
- * @author Aryan Jassal
- */
-void ignore_arg(char* arg);
-
-/**
- * Dispatches flag handlers by matching them agains their flags.
- * @param argc
- * @param argv
- * @param flags Array of all flag metadata and their handlers
- * @param num_flags Number of flags in the array
- * @returns 1 if early exit is requested by the flag, -1 if the flag wasn't
- * found, 0 otherwise.
- * @author Aryan Jassal
+ * Stub, to be removed.
  */
 int dispatch_flag(int argc, char* argv[], const flag_handler_t flags[],
                   int num_flags);
 
 /**
  * Prints a consistent help text. Designed to be used by leaf commands.
- * @param usage The usage guide for the command
- * @param flags All available flags
- * @param num_flags
+ * @param type The type of help needed
+ * @param path The deepest parsed path of the commands
+ * @param handler The deepest parsed command handler
+ * @param invalid_val Invalid value for HELP_INVALID_FLAGS or HELP_INVALID_ARGS,
+ * NULL otherwise.
  * @author Aryan Jassal
  */
-void print_help(const char* usage, const flag_handler_t* flags,
-                const size_t num_flags);
+void print_help(const int type, const char* path, const cmd_handler_t* handler,
+                const char* invalid_val);
 
 /**
  * Splits the argv into commands and flags, so the command array can be used to
@@ -78,12 +61,24 @@ void print_help(const char* usage, const flag_handler_t* flags,
 void split_args(int argc, char* argv[], int* cmdc, char** cmdv[], int* flagc,
                 char** flagv[]);
 
+/* Reusable flag definitions */
+
+extern flag_handler_t flag_help;
+
 /* Helper functions for streamlining static command tree creation */
 
-#define CMD_MKLEAF(cmd, desc, handler, flags) \
-  (cmd_handler_t) { (cmd), (desc), (handler), NULL, 0, (flags) }
+extern flag_handler_t* DEFAULT_FLAGS[];
+enum { N_DEFAULT_FLAGS = 1 }; /* Hack for compile-time constant */
 
-#define CMD_MKGROUP(group, desc, commands, ncmds) \
-  (cmd_handler_t) { (group), (desc), NULL, (commands), (ncmds), NULL }
+#define CMD_MKLEAF(cmd, desc, usage, handler, flags, nflags)      \
+  (cmd_handler_t) {                                               \
+    (cmd), (desc), (usage), (handler), NULL, 0, (flags), (nflags) \
+  }
+
+#define CMD_MKGROUP(group, desc, usage, commands, ncmds)                \
+  (cmd_handler_t) {                                                     \
+    (group), (desc), (usage), NULL, (commands), (ncmds), DEFAULT_FLAGS, \
+        N_DEFAULT_FLAGS,                                                \
+  }
 
 #endif

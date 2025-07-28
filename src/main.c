@@ -44,11 +44,11 @@ const int num_root_commands = sizeof(root_commands) / sizeof(root_commands[0]);
 
 cmd_handler_t entrypoint =
     CMD_MKGROUP("transcodine", "Securely store and manage your secrets",
-                root_commands, num_root_commands);
+                "<command>", root_commands, num_root_commands);
 
 /*
  * Return codes with their meanings:
- * 64: Invalid usage
+ * 11: Invalid usage
  * 255: Unknown error
  */
 int main(int argc, char* argv[]) {
@@ -82,15 +82,35 @@ int main(int argc, char* argv[]) {
       int fi;
       for (fi = 0; fi < flagc; ++fi) {
         if (strcmp(flagv[fi], "--help") == 0) {
-          info(flagv[fi]);
-          warn("Help is not implemented yet");
+          print_help(HELP_REQUESTED, buf_to_cstr(&argpath), current_handler,
+                     NULL);
           status = EXIT_OK;
           goto quitprog;
         }
-        warn(flagv[fi]);
       }
-      status = current_handler->handler(cmdc - ci, &cmdv[ci]);
+      status = current_handler->handler(cmdc - ci, &cmdv[ci], flagc, flagv,
+                                        buf_to_cstr(&argpath), current_handler);
       goto quitprog;
+    }
+
+    /* If we have no additional commands, then process flags */
+    if (ci == cmdc) {
+      int fi;
+      for (fi = 0; fi < flagc; ++fi) {
+        if (strcmp(flagv[fi], "--help") == 0) {
+          print_help(HELP_REQUESTED, buf_to_cstr(&argpath), current_handler,
+                     NULL);
+          status = EXIT_OK;
+          goto quitprog;
+        }
+      }
+
+      if (current_handler->num_subcommands > 0) {
+        print_help(HELP_INVALID_USAGE, buf_to_cstr(&argpath), current_handler,
+                   NULL);
+        status = EXIT_USAGE;
+        goto quitprog;
+      }
     }
 
     /* This node has children, so go through them to find a matching command */
@@ -99,18 +119,15 @@ int main(int argc, char* argv[]) {
     for (si = 0; si < current_handler->num_subcommands; ++si) {
       if (cmdv[ci] == NULL) break;
       if (strcmp(cmdv[ci], current_handler->subcommands[si]->command) == 0) {
-        info(current_handler->subcommands[si]->command);
         current_handler = current_handler->subcommands[si];
         found = true;
         break;
       }
-      warn(current_handler->subcommands[si]->command);
       continue;
     }
     if (!found) {
-      warn(current_handler->command);
-      warn(buf_to_cstr(&argpath));
-      warn("Help is not implemented yet. Otherwise cmd not found.");
+      print_help(HELP_INVALID_ARGS, buf_to_cstr(&argpath), current_handler,
+                 cmdv[ci]);
       status = EXIT_USAGE;
       goto quitprog;
     }

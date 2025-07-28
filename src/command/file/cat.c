@@ -14,37 +14,42 @@
 #include "utils/cli.h"
 #include "utils/io.h"
 
-static void flag_help();
-
-static flag_handler_t flags[] = {
-    {"--help", "Print usage guide", flag_help, true}};
-
-static const int num_flags = sizeof(flags) / sizeof(flag_handler_t);
-
-static void flag_help() {
-  print_help("transcodine file cat <bin_name> <virtual_path> [...options]",
-             flags, num_flags);
-}
-
 static void print_data(const buf_t *data) {
   fwrite(data->data, sizeof(uint8_t), data->size, stdout);
   fflush(stdout);
 }
 
-int handler_file_cat(int argc, char *argv[]) {
-  /* Flag handling */
-  switch (dispatch_flag(argc, argv, flags, num_flags)) {
-  case 1: return 0;
-  case -1: return flag_help(), 1;
-  case 0: break;
+int handler_file_cat(int argc, char* argv[], int flagc, char* flagv[],
+                     const char* path, cmd_handler_t* self) {
+  int fi;
+  for (fi = 0; fi < flagc; ++fi) {
+    const char* flag = flagv[fi];
+
+    /* Help flag */
+    if (strcmp(flag, flag_help.flag) == 0) {
+      print_help(HELP_REQUESTED, path, self, NULL);
+      return EXIT_OK;
+    }
+
+    /* Fail on extra flags */
+    print_help(HELP_INVALID_FLAGS, path, self, flag);
+    return EXIT_INVALID_FLAG;
   }
-  if (argc < 2) return flag_help(), 1;
+
+  /* Invalid usage */
+  if (argc != 2) {
+    print_help(HELP_INVALID_USAGE, path, self, NULL);
+    return EXIT_USAGE;
+  }
 
   /* Authentication */
   buf_t kek, db_key;
   buf_initf(&kek, KEK_SIZE);
   buf_initf(&db_key, AES_KEY_SIZE);
-  if (!prompt_password(&kek)) return error("Incorrect password"), 1;
+  if (!prompt_password(&kek)) {
+    error("Incorrect password");
+    return EXIT_INVALID_PASS;
+  }
   db_derive_key(&kek, &db_key);
   buf_free(&kek);
 
@@ -65,7 +70,10 @@ int handler_file_cat(int argc, char *argv[]) {
   buf_write(&bin_path, '/');
   buf_append(&bin_path, argv[0], strlen(argv[0]));
   buf_write(&bin_path, 0);
-  if (!access(buf_to_cstr(&bin_path))) return error("No such bin exists"), 1;
+  if (!access(buf_to_cstr(&bin_path))) {
+    error("A bin with that name does not exist");
+    return EXIT_INVALID_BIN;
+  }
 
   /* Bin loading */
   bin_t bin;
@@ -89,7 +97,7 @@ int handler_file_cat(int argc, char *argv[]) {
     db_free(&db);
     buf_free(&db_path);
     buf_free(&db_key);
-    return 1;
+    return EXIT_INVALID_DB_VALUE;
   }
   buf_free(&buf_meta);
   db_close(&db);
@@ -98,7 +106,7 @@ int handler_file_cat(int argc, char *argv[]) {
   buf_free(&db_key);
 
   /* Read contents of a file */
-  int code = 0;
+  int code = EXIT_OK;
   buf_t fq_path, bin_tpath;
   buf_initf(&fq_path, strlen(argv[1]) + 1);
   buf_append(&fq_path, argv[1], strlen(argv[1]));
@@ -107,7 +115,7 @@ int handler_file_cat(int argc, char *argv[]) {
   bin_open(&bin, &aes_key, buf_to_cstr(&bin_path), buf_to_cstr(&bin_tpath));
   if (!bin_cat_file(&bin, &fq_path, print_data)) {
     error("Could not find file in bin");
-    code = 1;
+    code = EXIT_INVALID_FILE;
   }
 
   /* Cleanup */
